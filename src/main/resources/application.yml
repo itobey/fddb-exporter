@@ -1,0 +1,16 @@
+micronaut:
+  application:
+    name: fddbexporter
+
+datasources:
+  default:
+    url: jdbc:postgresql://192.168.0.34:5432/postgres
+    driverClassName: org.postgresql.Driver
+    username: postgres
+    password: example
+jpa.default.properties.hibernate.hbm2ddl.auto: update
+
+fddb-exporter:
+  fddb:
+    cookie: --
+    basicauth: --
