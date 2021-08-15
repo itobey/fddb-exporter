@@ -1,0 +1,6 @@
+applicationType: default
+defaultPackage: com.itobey.adapter.api.fddb.exporter
+testFramework: junit
+sourceLanguage: java
+buildTool: maven
+features: [ annotation-api, app-name, data, data-jpa, h2, http-client, java, java-application, jdbc-hikari, junit, lombok, maven, mockito, netty-server, readme, shade, slf4j-simple, spring, spring-boot, spring-data-jpa, yaml ]
