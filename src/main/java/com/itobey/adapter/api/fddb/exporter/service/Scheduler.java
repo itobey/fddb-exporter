@@ -4,6 +4,7 @@ import com.itobey.adapter.api.fddb.exporter.domain.Timeframe;
 import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.auth.AuthenticationException;
 
 import javax.inject.Singleton;
 
@@ -24,6 +25,11 @@ public class Scheduler {
     @Scheduled(cron = "0 3 * * *")
     public void runFddbExportForYesterday() {
         Timeframe timeframe = timeframeCalculator.calculateTimeframeForYesterday();
-        manualExporterService.exportDataAndSaveToDb(timeframe);
+        try {
+            manualExporterService.exportDataAndSaveToDb(timeframe);
+        } catch (AuthenticationException e) {
+            log.warn("not logged in - skipping job execution");
+            // TODO alerting?
+        }
     }
 }

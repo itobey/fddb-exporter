@@ -9,6 +9,8 @@ import io.micronaut.http.annotation.Post;
 import io.micronaut.validation.Validated;
 import io.reactivex.Single;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.auth.AuthenticationException;
 import org.springframework.web.bind.annotation.RequestBody;
 
 /**
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @Controller("/")
 @Validated
 @RequiredArgsConstructor
+@Slf4j
 public class ManualExporterResource {
 
     private final ManualExporterService manualExporterService;
@@ -32,7 +35,11 @@ public class ManualExporterResource {
         try {
             manualExporterService.exportBatch(fddbBatchExport);
         } catch (ManualExporterException e) {
-            e.printStackTrace();
+            log.warn("exception when handling batch export");
+            return Single.just("exception when handling batch export");
+        } catch (AuthenticationException e) {
+            log.warn("not logged in - batch export incomplete or unsuccessful");
+            return Single.just("not logged in - batch export incomplete or unsuccessful");
         }
         return Single.just("ok");
     }

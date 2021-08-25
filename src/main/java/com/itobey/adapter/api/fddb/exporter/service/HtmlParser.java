@@ -3,6 +3,7 @@ package com.itobey.adapter.api.fddb.exporter.service;
 import com.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.auth.AuthenticationException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class HtmlParser {
+
+    final static String CSS_SELECTOR_AUTH_STATUS = "#fddb-headerwrapper > div.quicklinks > a:nth-child(4)";
 
     final static String CSS_SELECTOR_PREFIX = "#content > div.mainblock > div.fullsizeblock > div:nth-child(2) > div > table:nth-child(5) > tbody > ";
     final static String CSS_SELECTOR_KCAL = CSS_SELECTOR_PREFIX + "tr:nth-child(1) > td:nth-child(2)";
@@ -30,8 +33,15 @@ public class HtmlParser {
      * @param response the response from FDDB
      * @return @{@link FddbData} containing all wanted data
      */
-    public FddbData getDataFromResponse(String response) {
+    public FddbData getDataFromResponse(String response) throws AuthenticationException {
         Document doc = Jsoup.parse(response);
+
+        Elements authStatus = doc.select(CSS_SELECTOR_AUTH_STATUS);
+        if (authStatus.html().equals("Anmelden") || authStatus.html().equals("Login")) {
+            log.error("error - not logged into FDDB");
+            throw new AuthenticationException("not logged into FDDB");
+        }
+
         Elements kcal = doc.select(CSS_SELECTOR_KCAL);
         Elements fat = doc.select(CSS_SELECTOR_FAT);
         Elements carbs = doc.select(CSS_SELECTOR_CARBS);

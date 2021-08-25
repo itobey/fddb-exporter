@@ -8,6 +8,7 @@ import com.itobey.adapter.api.fddb.exporter.exception.ManualExporterException;
 import com.itobey.adapter.api.fddb.exporter.repository.FddbRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.auth.AuthenticationException;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
@@ -34,7 +35,7 @@ public class ManualExporterService {
      *
      * @param fddbBatchExport the data which should be exported
      */
-    public void exportBatch(FddbBatchExport fddbBatchExport) throws ManualExporterException {
+    public void exportBatch(FddbBatchExport fddbBatchExport) throws ManualExporterException, AuthenticationException {
         LocalDateTime from = LocalDateTime.parse(fddbBatchExport.getFromDate());
         LocalDateTime to = LocalDateTime.parse(fddbBatchExport.getToDate());
 
@@ -58,7 +59,7 @@ public class ManualExporterService {
      *
      * @param timeframe the timeframe to retrieve the data to
      */
-    protected void exportDataAndSaveToDb(Timeframe timeframe) {
+    protected void exportDataAndSaveToDb(Timeframe timeframe) throws AuthenticationException {
         String response = fddbAdapter.retrieveDataToTimeframe(timeframe);
         FddbData fddbData = htmlParser.getDataFromResponse(response);
         log.info(fddbData.toString());
