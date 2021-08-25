@@ -52,8 +52,8 @@ public class ManualExporterServiceTest {
         doReturn(fddbResponse).when(fddbAdapter).retrieveDataToTimeframe(timeframe);
         doReturn(fddbData).when(htmlParser).getDataFromResponse(fddbResponse);
         FddbBatchExport fddbBatchExport = FddbBatchExport.builder()
-                .fromDate("2021-08-15T10:10:10")
-                .toDate("2021-08-15T10:10:10")
+                .fromDate("2021-08-15")
+                .toDate("2021-08-15")
                 .build();
         // when
         manualExporterService.exportBatch(fddbBatchExport);

@@ -12,6 +12,7 @@ import org.apache.http.auth.AuthenticationException;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
@@ -36,8 +37,8 @@ public class ManualExporterService {
      * @param fddbBatchExport the data which should be exported
      */
     public void exportBatch(FddbBatchExport fddbBatchExport) throws ManualExporterException, AuthenticationException {
-        LocalDateTime from = LocalDateTime.parse(fddbBatchExport.getFromDate());
-        LocalDateTime to = LocalDateTime.parse(fddbBatchExport.getToDate());
+        LocalDate from = LocalDate.parse(fddbBatchExport.getFromDate());
+        LocalDate to = LocalDate.parse(fddbBatchExport.getToDate());
 
         if (from.isAfter(to)) {
             throw new ManualExporterException("the 'from' date cannot be after the 'to' date");

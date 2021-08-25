@@ -28,9 +28,9 @@ public class TimeframeCalculator {
      *
      * @return
      */
-    public Timeframe calculateTimeframeFor(LocalDateTime date) {
+    public Timeframe calculateTimeframeFor(LocalDate date) {
         ZoneId z = ZoneId.of("Europe/Berlin");
-        ZonedDateTime startOfYesterday = ZonedDateTime.ofLocal(date, z, ZoneOffset.UTC).toLocalDate().atStartOfDay(z).plusHours(2);
+        ZonedDateTime startOfYesterday = date.atStartOfDay(z).plusHours(2);
         ZonedDateTime endOfYesterday = startOfYesterday.plusHours(24);
         return Timeframe.builder()
                 .from(startOfYesterday.toEpochSecond())
