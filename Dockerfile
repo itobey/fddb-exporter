@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11-openj9:jdk-11.0.1.13-alpine-slim
+FROM adoptopenjdk/openjdk11-openj9:jdk-11.0.11_9_openj9-0.26.0-alpine-slim
 COPY target/fddbexporter*.jar /fddb-exporter/app.jar
 EXPOSE 8080
 
