@@ -15,6 +15,7 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 
@@ -37,8 +38,15 @@ public class ManualExporterService {
      * @param fddbBatchExport the data which should be exported
      */
     public void exportBatch(FddbBatchExport fddbBatchExport) throws ManualExporterException, AuthenticationException {
-        LocalDate from = LocalDate.parse(fddbBatchExport.getFromDate());
-        LocalDate to = LocalDate.parse(fddbBatchExport.getToDate());
+        LocalDate from;
+        LocalDate to;
+        try {
+            from = LocalDate.parse(fddbBatchExport.getFromDate());
+            to = LocalDate.parse(fddbBatchExport.getToDate());
+        } catch (DateTimeParseException dateTimeParseException) {
+            log.error("payload cannot be parsed");
+            throw dateTimeParseException;
+        }
 
         if (from.isAfter(to)) {
             throw new ManualExporterException("the 'from' date cannot be after the 'to' date");

@@ -10,6 +10,7 @@ import com.itobey.adapter.api.fddb.exporter.service.HtmlParser;
 import com.itobey.adapter.api.fddb.exporter.service.ManualExporterService;
 import com.itobey.adapter.api.fddb.exporter.service.TimeframeCalculator;
 import org.apache.http.auth.AuthenticationException;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -17,6 +18,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.time.format.DateTimeParseException;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 public class ManualExporterServiceTest {
@@ -46,7 +51,8 @@ public class ManualExporterServiceTest {
     }
 
     @Test
-    public void exportBatch_whenPayloadValid_shouldRetrieveDataAndSaveToDatabase() throws ManualExporterException, AuthenticationException {
+    public void exportBatch_whenPayloadValid_shouldRetrieveDataAndSaveToDatabase()
+            throws ManualExporterException, AuthenticationException {
         // given
         doReturn(timeframe).when(timeframeCalculator).calculateTimeframeFor(Mockito.any());
         doReturn(fddbResponse).when(fddbAdapter).retrieveDataToTimeframe(timeframe);
@@ -62,6 +68,21 @@ public class ManualExporterServiceTest {
         verify(fddbAdapter, times(1)).retrieveDataToTimeframe(timeframe);
         verify(htmlParser, times(1)).getDataFromResponse(fddbResponse);
         verify(fddbRepository, times(1)).save(fddbData);
+    }
 
+    @Test
+    public void exportBatch_whenPayloadInvalid_shouldThrowException() {
+        // given
+        FddbBatchExport fddbBatchExport = FddbBatchExport.builder()
+                .fromDate("2021 08 15")
+                .toDate("2021_08_15")
+                .build();
+        // when; then
+        Exception exception = assertThrows(DateTimeParseException.class, () -> {
+            manualExporterService.exportBatch(fddbBatchExport);
+        });
+        String expectedMessage = "could not be parsed";
+        String actualMessage = exception.getMessage();
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 }
