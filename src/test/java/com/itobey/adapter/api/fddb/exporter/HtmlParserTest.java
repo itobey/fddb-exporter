@@ -12,8 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.format.DateTimeParseException;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test for @{@link HtmlParser}
@@ -29,13 +28,13 @@ public class HtmlParserTest {
         // when
         FddbData dataFromResponse = htmlParser.getDataFromResponse(html);
         // then
-        Assertions.assertEquals(2170, dataFromResponse.getKcal());
-        Assertions.assertEquals(149, dataFromResponse.getFat());
-        Assertions.assertEquals(99, dataFromResponse.getCarbs());
-        Assertions.assertEquals(41, dataFromResponse.getSugar());
-        Assertions.assertEquals(91, dataFromResponse.getProtein());
-        Assertions.assertEquals(30, dataFromResponse.getFiber());
-        Assertions.assertNull(dataFromResponse.getDate());
+        assertEquals(2170, dataFromResponse.getKcal());
+        assertEquals(149, dataFromResponse.getFat());
+        assertEquals(99, dataFromResponse.getCarbs());
+        assertEquals(41, dataFromResponse.getSugar());
+        assertEquals(91, dataFromResponse.getProtein());
+        assertEquals(30, dataFromResponse.getFiber());
+        assertNull(dataFromResponse.getDate());
     }
 
     @Test
