@@ -28,7 +28,7 @@ public class Scheduler {
         try {
             manualExporterService.exportDataAndSaveToDb(timeframe);
         } catch (AuthenticationException e) {
-            log.warn("not logged in - skipping job execution");
+            log.error("not logged in - skipping job execution");
             // TODO alerting?
         }
     }

@@ -16,15 +16,14 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class HtmlParser {
 
-    final static String CSS_SELECTOR_AUTH_STATUS = "#fddb-headerwrapper > div.quicklinks > a:nth-child(4)";
-
-    final static String CSS_SELECTOR_PREFIX = "#content > div.mainblock > div.fullsizeblock > div:nth-child(2) > div > table:nth-child(5) > tbody > ";
-    final static String CSS_SELECTOR_KCAL = CSS_SELECTOR_PREFIX + "tr:nth-child(1) > td:nth-child(2)";
-    final static String CSS_SELECTOR_FAT = CSS_SELECTOR_PREFIX + "tr:nth-child(2) > td:nth-child(2) > span";
-    final static String CSS_SELECTOR_CARBS = CSS_SELECTOR_PREFIX + "tr:nth-child(3) > td:nth-child(2) > span";
-    final static String CSS_SELECTOR_SUGAR = CSS_SELECTOR_PREFIX + "tr:nth-child(4) > td:nth-child(2) > span";
-    final static String CSS_SELECTOR_PROTEIN = CSS_SELECTOR_PREFIX + "tr:nth-child(5) > td:nth-child(2) > span";
-    final static String CSS_SELECTOR_FIBER = CSS_SELECTOR_PREFIX + "tr:nth-child(8) > td:nth-child(2)";
+     public static final String CSS_SELECTOR_AUTH_STATUS = "#fddb-headerwrapper > div.quicklinks > a:nth-child(4)";
+     public static final String CSS_SELECTOR_PREFIX = "#content > div.mainblock > div.fullsizeblock > div:nth-child(2) > div > table:nth-child(5) > tbody > ";
+     public static final String CSS_SELECTOR_KCAL = CSS_SELECTOR_PREFIX + "tr:nth-child(1) > td:nth-child(2)";
+     public static final String CSS_SELECTOR_FAT = CSS_SELECTOR_PREFIX + "tr:nth-child(2) > td:nth-child(2) > span";
+     public static final String CSS_SELECTOR_CARBS = CSS_SELECTOR_PREFIX + "tr:nth-child(3) > td:nth-child(2) > span";
+     public static final String CSS_SELECTOR_SUGAR = CSS_SELECTOR_PREFIX + "tr:nth-child(4) > td:nth-child(2) > span";
+     public static final String CSS_SELECTOR_PROTEIN = CSS_SELECTOR_PREFIX + "tr:nth-child(5) > td:nth-child(2) > span";
+     public static final String CSS_SELECTOR_FIBER = CSS_SELECTOR_PREFIX + "tr:nth-child(8) > td:nth-child(2)";
 
     /**
      * Retrieves the wanted data from the response.
