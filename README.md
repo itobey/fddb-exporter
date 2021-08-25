@@ -1,31 +1,41 @@
-## Micronaut 2.5.12 Documentation
+# FDDB Exporter
+This is a small tool I created to export data from [FDDB.info](https://fddb.info/).
+The following data will be exported on a daily basis:
+- kcal
+- fat
+- carbs
+- sugar
+- protein
+- fiber
 
-- [User Guide](https://docs.micronaut.io/2.5.12/guide/index.html)
-- [API Reference](https://docs.micronaut.io/2.5.12/api/index.html)
-- [Configuration Reference](https://docs.micronaut.io/2.5.12/guide/configurationreference.html)
-- [Micronaut Guides](https://guides.micronaut.io/index.html)
+## Prerequisites
+-   a running postgres database with a table set up
+-   an account on fddb.info for which you want to export the data
+-   the fddb cookie necessary (see [this README](https://github.com/itobey/fddb-calories-exporter#how-it-works) of an older project)
+-   Docker or Java to run the exporter
 
----
+## Technology
+This is based on [Micronaut](https://micronaut.io/) with some [Spring Boot](https://spring.io/projects/spring-boot) flavours, just because I'm new to Micronaut and familiar with Spring Boot. I may rework something to base it entirely on Micronaut in the future - but for now, it just works.
+As a database I use Postgres to save the gathered data, because I already had a Postgres running anyway. Feel free to change the persistence layer to suit your needs.
 
-## Feature http-client documentation
+## How does it work?
+You may start the Micronaut application yourself or just use the [created Docker image](https://github.com/itobey/fddb-exporter/pkgs/container/fddb-exporter%2Ffddb-exporter). Once running a scheduler will log into FDDB every night and gather the data for the day before. This is based on a cron expression (0 3 * * *), which is currently hardcoded and which I may outsource as a property in the future. The data is then saved to the configured database.
 
-- [Micronaut HTTP Client documentation](https://docs.micronaut.io/latest/guide/index.html#httpClient)
+### Batch export
+There's also a HTTP endpoint to get a batch export. This is available on `/batch` of your context root running the application. The payload is a simple JSON with the timerange you want the export for.
 
-## Feature spring documentation
+```json
+{
+ "fromDate": "2021-05-13",
+ "toDate": "2021-08-18"
+}
+```
 
-- [Micronaut Spring Framework Annotations documentation](https://micronaut-projects.github.io/micronaut-spring/latest/guide/index.html)
+The application will gather data for every day in this range and will save it to the database.
 
-## Feature lombok documentation
+### HTML vs. CSV
+FDDB offers a CSV-file containing data, which I based a [recent project](https://github.com/itobey/fddb-calories-exporter) on. However the CSV file does not contain the sugar values - only the carbs are available. Because I was highly interested in my sugar consumption, I needed to find another approach. The website of FDDB displays the sugar as well, so the approach in this application is to parse the HTML response for the values of interest. The performance is actually way better than anticipated.
 
-- [Micronaut Project Lombok documentation](https://docs.micronaut.io/latest/guide/index.html#lombok)
+## pics grafana
 
-- [https://projectlombok.org/features/all](https://projectlombok.org/features/all)
-
-## Feature jdbc-hikari documentation
-
-- [Micronaut Hikari JDBC Connection Pool documentation](https://micronaut-projects.github.io/micronaut-sql/latest/guide/index.html#jdbc)
-
-## Feature mockito documentation
-
-- [https://site.mockito.org](https://site.mockito.org)
-
+## footprint
