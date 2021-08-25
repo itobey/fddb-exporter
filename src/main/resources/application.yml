@@ -14,3 +14,7 @@ fddb-exporter:
   fddb:
     cookie: --
     basicauth: --
+
+logger:
+  levels:
+    root: INFO
