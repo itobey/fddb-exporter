@@ -71,9 +71,9 @@ public class ManualExporterService {
     protected void exportDataAndSaveToDb(Timeframe timeframe) throws AuthenticationException {
         String response = fddbAdapter.retrieveDataToTimeframe(timeframe);
         FddbData fddbData = htmlParser.getDataFromResponse(response);
-        log.info(fddbData.toString());
         LocalDateTime dateOfExport = LocalDateTime.ofEpochSecond(timeframe.getFrom(), 0, ZoneOffset.UTC);
         fddbData.setDate(Date.from(dateOfExport.toInstant(ZoneOffset.UTC)));
+        log.info(fddbData.toString());
         fddbRepository.save(fddbData);
     }
 
