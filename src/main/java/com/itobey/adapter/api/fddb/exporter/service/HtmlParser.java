@@ -26,7 +26,6 @@ public class HtmlParser {
     final static String CSS_SELECTOR_PROTEIN = CSS_SELECTOR_PREFIX + "tr:nth-child(5) > td:nth-child(2) > span";
     final static String CSS_SELECTOR_FIBER = CSS_SELECTOR_PREFIX + "tr:nth-child(8) > td:nth-child(2)";
 
-
     /**
      * Retrieves the wanted data from the response.
      *

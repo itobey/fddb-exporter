@@ -20,7 +20,7 @@ public class ConfigProperties {
     private Fddb fddb;
 
     /**
-     * InfluxDB properties
+     * FDDB.info properties
      */
     @Getter
     @Setter

@@ -3,7 +3,6 @@ package com.itobey.adapter.api.fddb.exporter.rest;
 import com.itobey.adapter.api.fddb.exporter.domain.FddbBatchExport;
 import com.itobey.adapter.api.fddb.exporter.exception.ManualExporterException;
 import com.itobey.adapter.api.fddb.exporter.service.ManualExporterService;
-import feign.Response;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.validation.Validated;
@@ -28,7 +27,7 @@ public class ManualExporterResource {
      * Export data for all days contained in the given timeframe as a batch.
      *
      * @param fddbBatchExport the data which should be exported
-     * @return
+     * @return HTTP 200 and 'ok' when everything went smoothly, error messages when it did not
      */
     @Post("/batch")
     public Single<String> batchExport(@RequestBody FddbBatchExport fddbBatchExport) {

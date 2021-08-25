@@ -5,13 +5,16 @@ import org.springframework.stereotype.Service;
 
 import java.time.*;
 
+/**
+ * Calculator for everything time and date related.
+ */
 @Service
 public class TimeframeCalculator {
 
     /**
      * Calculates the @{@link Timeframe} containing the epoch seconds from and to of yesterday.
      *
-     * @return
+     * @return a {@link Timeframe} object containing the values
      */
     public Timeframe calculateTimeframeForYesterday() {
         ZoneId z = ZoneId.of("Europe/Berlin");
@@ -26,7 +29,7 @@ public class TimeframeCalculator {
     /**
      * Calculates the @{@link Timeframe} containing the epoch seconds from and to of yesterday.
      *
-     * @return
+     * @return a {@link Timeframe} object containing the values
      */
     public Timeframe calculateTimeframeFor(LocalDate date) {
         ZoneId z = ZoneId.of("Europe/Berlin");
