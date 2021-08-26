@@ -15,7 +15,7 @@ The following data will be exported on a daily basis:
 -   Docker or Java to run the exporter
 
 ## Technology
-This is based on [Micronaut](https://micronaut.io/) with some [Spring Boot](https://spring.io/projects/spring-boot) flavours, just because I'm new to Micronaut and familiar with Spring Boot. I may rework something to base it entirely on Micronaut in the future - but for now, it just works.
+This is based on [Micronaut](https://micronaut.io/) with some [Spring Boot](https://spring.io/projects/spring-boot) flavours, just because I'm new to Micronaut and familiar with Spring Boot. I may base it entirely on Micronaut in the future - but for now, it just works.
 As a database I use Postgres to save the gathered data, because I already had a Postgres running anyway. Feel free to change the persistence layer to suit your needs.
 
 ## How does it work?
@@ -36,6 +36,9 @@ The application will gather data for every day in this range and will save it to
 ### HTML vs. CSV
 FDDB offers a CSV-file containing data, which I based a [recent project](https://github.com/itobey/fddb-calories-exporter) on. However the CSV file does not contain the sugar values - only the carbs are available. Because I was highly interested in my sugar consumption, I needed to find another approach. The website of FDDB displays the sugar as well, so the approach in this application is to parse the HTML response for the values of interest. The performance is actually way better than anticipated.
 
-## pics grafana
+## Screenshots
+After gathering all the data in a database, it's easy to display graphs based on it in Grafana.
+![image](https://user-images.githubusercontent.com/22119845/131020061-a65e9b6b-6b44-4ba9-8438-10e5ef81e708.png)
 
-## footprint
+## Footprint
+The Micronaut service is idling at around 120 MB RAM and with almost no CPU usage.
