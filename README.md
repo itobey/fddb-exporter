@@ -39,6 +39,7 @@ FDDB offers a CSV-file containing data, which I based a [recent project](https:/
 ## Screenshots
 After gathering all the data in a database, it's easy to display graphs based on it in Grafana.
 ![image](https://user-images.githubusercontent.com/22119845/131020061-a65e9b6b-6b44-4ba9-8438-10e5ef81e708.png)
+![image](https://user-images.githubusercontent.com/22119845/131022068-6479fdb5-1926-4adf-914b-c7bdf6905c15.png)
 
 ## Footprint
 The Micronaut service is idling at around 120 MB RAM and with almost no CPU usage.
