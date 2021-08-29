@@ -3,6 +3,7 @@ package com.itobey.adapter.api.fddb.exporter.service;
 import com.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.ParseException;
 import org.apache.http.auth.AuthenticationException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -31,7 +32,7 @@ public class HtmlParser {
      * @param response the response from FDDB
      * @return @{@link FddbData} containing all wanted data
      */
-    public FddbData getDataFromResponse(String response) throws AuthenticationException {
+    public FddbData getDataFromResponse(String response) throws AuthenticationException, ParseException {
         Document doc = Jsoup.parse(response);
 
         Elements authStatus = doc.select(CSS_SELECTOR_AUTH_STATUS);
@@ -46,6 +47,11 @@ public class HtmlParser {
         Elements sugar = doc.select(CSS_SELECTOR_SUGAR);
         Elements protein = doc.select(CSS_SELECTOR_PROTEIN);
         Elements fiber = doc.select(CSS_SELECTOR_FIBER);
+
+        if (kcal.html().isBlank()) {
+            log.error("no value found for kcal, there might be no data available for the specified day");
+            throw new ParseException("no value found");
+        }
 
         return FddbData.builder()
                 .kcal(parseKcal(kcal))

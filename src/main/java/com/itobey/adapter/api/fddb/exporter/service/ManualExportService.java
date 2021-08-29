@@ -5,6 +5,7 @@ import com.itobey.adapter.api.fddb.exporter.domain.Timeframe;
 import com.itobey.adapter.api.fddb.exporter.exception.ManualExporterException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.ParseException;
 import org.apache.http.auth.AuthenticationException;
 import org.springframework.stereotype.Service;
 
@@ -49,7 +50,12 @@ public class ManualExportService {
         // export days between the given dates
         for (int i = 0; i < amountDaysToExport; i++) {
             Timeframe timeframe = timeframeCalculator.calculateTimeframeFor(from);
-            exportService.exportDataAndSaveToDb(timeframe);
+            try {
+                exportService.exportDataAndSaveToDb(timeframe);
+            } catch (ParseException parseException) {
+                log.warn("data for date {} cannot be parsed, skipping this day", from);
+            }
+
             from = from.plusDays(1);
         }
 

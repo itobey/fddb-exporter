@@ -5,8 +5,10 @@ import com.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import com.itobey.adapter.api.fddb.exporter.domain.Timeframe;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.ParseException;
 import org.apache.http.auth.AuthenticationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
 import java.time.LocalDateTime;
@@ -30,11 +32,11 @@ public class ExportService {
      *
      * @param timeframe the timeframe to retrieve the data to
      */
-    public void exportDataAndSaveToDb(Timeframe timeframe) throws AuthenticationException {
+    @Transactional
+    public void exportDataAndSaveToDb(Timeframe timeframe) throws AuthenticationException, ParseException {
         FddbData dataToPersist = retrieveAndParseDataTo(timeframe);
         Optional<FddbData> optionalOfDbEntry = persistenceService.find(dataToPersist.getDate());
-        // TODO unit test for handling of data not beeing present
-        if (optionalOfDbEntry.isPresent() && dataToPersist.getKcal() != 0) {
+        if (optionalOfDbEntry.isPresent()) {
             FddbData existingFddbData = optionalOfDbEntry.get();
             log.debug("updating existing database entry for {}", dataToPersist.getDate());
             FddbData updatedData = updateDataObject(dataToPersist, existingFddbData);
@@ -47,7 +49,7 @@ public class ExportService {
         }
     }
 
-    private FddbData retrieveAndParseDataTo(Timeframe timeframe) throws AuthenticationException {
+    private FddbData retrieveAndParseDataTo(Timeframe timeframe) throws AuthenticationException, ParseException {
         String response = fddbAdapter.retrieveDataToTimeframe(timeframe);
         FddbData fddbData = htmlParser.getDataFromResponse(response);
         LocalDateTime dateOfExport = LocalDateTime.ofEpochSecond(timeframe.getFrom(), 0, ZoneOffset.UTC);
