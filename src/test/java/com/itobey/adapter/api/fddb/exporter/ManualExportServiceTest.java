@@ -1,42 +1,34 @@
 package com.itobey.adapter.api.fddb.exporter;
 
-import com.itobey.adapter.api.fddb.exporter.adapter.FddbAdapter;
 import com.itobey.adapter.api.fddb.exporter.domain.FddbBatchExport;
 import com.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import com.itobey.adapter.api.fddb.exporter.domain.Timeframe;
 import com.itobey.adapter.api.fddb.exporter.exception.ManualExporterException;
-import com.itobey.adapter.api.fddb.exporter.repository.FddbRepository;
-import com.itobey.adapter.api.fddb.exporter.service.HtmlParser;
-import com.itobey.adapter.api.fddb.exporter.service.ManualExporterService;
+import com.itobey.adapter.api.fddb.exporter.service.ExportService;
+import com.itobey.adapter.api.fddb.exporter.service.ManualExportService;
 import com.itobey.adapter.api.fddb.exporter.service.TimeframeCalculator;
 import org.apache.http.auth.AuthenticationException;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.time.format.DateTimeParseException;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
 
-public class ManualExporterServiceTest {
+/**
+ * Test for {@link ManualExportService}
+ */
+class ManualExportServiceTest {
 
     @InjectMocks
-    ManualExporterService manualExporterService;
+    ManualExportService manualExportService;
 
-    @Mock
+    @Spy
     TimeframeCalculator timeframeCalculator;
     @Mock
-    FddbAdapter fddbAdapter;
-    @Mock
-    HtmlParser htmlParser;
-    @Mock
-    FddbRepository fddbRepository;
+    ExportService exportService;
 
     Timeframe timeframe;
     String fddbResponse;
@@ -51,27 +43,21 @@ public class ManualExporterServiceTest {
     }
 
     @Test
-    public void exportBatch_whenPayloadValid_shouldRetrieveDataAndSaveToDatabase()
-            throws ManualExporterException, AuthenticationException {
+    void exportBatch_whenPayloadValid_shouldAccessExporterService() throws ManualExporterException, AuthenticationException {
         // given
-        doReturn(timeframe).when(timeframeCalculator).calculateTimeframeFor(Mockito.any());
-        doReturn(fddbResponse).when(fddbAdapter).retrieveDataToTimeframe(timeframe);
-        doReturn(fddbData).when(htmlParser).getDataFromResponse(fddbResponse);
         FddbBatchExport fddbBatchExport = FddbBatchExport.builder()
                 .fromDate("2021-08-15")
                 .toDate("2021-08-15")
                 .build();
+        Timeframe timeframe = Timeframe.builder().from(1628985600).to(1629072000).build();
         // when
-        manualExporterService.exportBatch(fddbBatchExport);
+        manualExportService.exportBatch(fddbBatchExport);
         // then
-        verify(timeframeCalculator, times(1)).calculateTimeframeFor(Mockito.any());
-        verify(fddbAdapter, times(1)).retrieveDataToTimeframe(timeframe);
-        verify(htmlParser, times(1)).getDataFromResponse(fddbResponse);
-        verify(fddbRepository, times(1)).save(fddbData);
+        Mockito.verify(exportService, Mockito.times(1)).exportDataAndSaveToDb(timeframe);
     }
 
     @Test
-    public void exportBatch_whenPayloadInvalid_shouldThrowException() {
+    void exportBatch_whenPayloadInvalid_shouldThrowException() {
         // given
         FddbBatchExport fddbBatchExport = FddbBatchExport.builder()
                 .fromDate("2021 08 15")
@@ -79,7 +65,7 @@ public class ManualExporterServiceTest {
                 .build();
         // when; then
         Exception exception = assertThrows(DateTimeParseException.class, () -> {
-            manualExporterService.exportBatch(fddbBatchExport);
+            manualExportService.exportBatch(fddbBatchExport);
         });
         String expectedMessage = "could not be parsed";
         String actualMessage = exception.getMessage();
