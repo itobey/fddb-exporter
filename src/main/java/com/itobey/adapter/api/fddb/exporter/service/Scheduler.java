@@ -17,7 +17,7 @@ import javax.inject.Singleton;
 public class Scheduler {
 
     private final TimeframeCalculator timeframeCalculator;
-    private final ManualExporterService manualExporterService;
+    private final ExportService exportService;
 
     /**
      * Runs the FDDB export for yesterday every day at 3 AM.
@@ -26,7 +26,7 @@ public class Scheduler {
     public void runFddbExportForYesterday() {
         Timeframe timeframe = timeframeCalculator.calculateTimeframeForYesterday();
         try {
-            manualExporterService.exportDataAndSaveToDb(timeframe);
+            exportService.exportDataAndSaveToDb(timeframe);
         } catch (AuthenticationException e) {
             log.error("not logged in - skipping job execution");
             // TODO alerting?
