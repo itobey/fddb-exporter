@@ -18,7 +18,7 @@
         <jdk.version>11</jdk.version>
         <release.version>11</release.version>
         <micronaut.version>2.5.13</micronaut.version>
-        <micronaut.data.version>2.5.0</micronaut.data.version>
+        <micronaut.data.version>3.2.2</micronaut.data.version>
         <exec.mainClass>com.itobey.adapter.api.fddb.exporter.Application</exec.mainClass>
         <micronaut.runtime>netty</micronaut.runtime>
     </properties>
