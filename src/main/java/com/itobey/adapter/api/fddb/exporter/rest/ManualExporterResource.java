@@ -6,7 +6,6 @@ import com.itobey.adapter.api.fddb.exporter.service.ManualExportService;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.validation.Validated;
-import io.reactivex.Single;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.auth.AuthenticationException;
@@ -30,17 +29,17 @@ public class ManualExporterResource {
      * @return HTTP 200 and 'ok' when everything went smoothly, error messages when it did not
      */
     @Post("/batch")
-    public Single<String> batchExport(@RequestBody FddbBatchExport fddbBatchExport) {
+    public String batchExport(@RequestBody FddbBatchExport fddbBatchExport) {
         try {
             manualExportService.exportBatch(fddbBatchExport);
         } catch (ManualExporterException e) {
             log.warn("exception when handling batch export");
-            return Single.just("exception when handling batch export");
+            return "exception when handling batch export";
         } catch (AuthenticationException e) {
             log.warn("not logged in - batch export incomplete or unsuccessful");
-            return Single.just("not logged in - batch export incomplete or unsuccessful");
+            return "not logged in - batch export incomplete or unsuccessful";
         }
-        return Single.just("ok");
+        return "ok";
     }
 
 }

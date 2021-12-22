@@ -2,12 +2,11 @@ package com.itobey.adapter.api.fddb.exporter.service;
 
 import com.itobey.adapter.api.fddb.exporter.domain.Timeframe;
 import io.micronaut.scheduling.annotation.Scheduled;
+import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.ParseException;
 import org.apache.http.auth.AuthenticationException;
-
-import javax.inject.Singleton;
 
 /**
  * Micronaut scheduler to periodically execute a job.
