@@ -2,12 +2,12 @@ package com.itobey.adapter.api.fddb.exporter;
 
 import com.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import com.itobey.adapter.api.fddb.exporter.service.HtmlParser;
+import lombok.SneakyThrows;
 import org.apache.http.ParseException;
 import org.apache.http.auth.AuthenticationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
@@ -19,7 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 public class HtmlParserTest {
 
     @Test
-    public void getDataFromResponse_whenResponseValid_shouldReturnData() throws IOException, AuthenticationException {
+    @SneakyThrows
+    public void getDataFromResponse_whenResponseValid_shouldReturnData() {
         // given
         ClassPathResource classPathResource = new ClassPathResource("validResponse.html");
         String html = Files.readString(classPathResource.getFile().toPath(), StandardCharsets.ISO_8859_1);
@@ -37,14 +38,15 @@ public class HtmlParserTest {
     }
 
     @Test
-    public void getDataFromResponse_whenUnauthenticated_shouldReturnData() throws IOException {
+    @SneakyThrows
+    public void getDataFromResponse_whenUnauthenticated_shouldReturnData() {
         // given
         ClassPathResource classPathResource = new ClassPathResource("unauthenticated.html");
         String html = Files.readString(classPathResource.getFile().toPath(), StandardCharsets.ISO_8859_1);
         HtmlParser htmlParser = new HtmlParser();
         // when; then
         Exception exception = assertThrows(AuthenticationException.class, () ->
-            htmlParser.getDataFromResponse(html)
+                htmlParser.getDataFromResponse(html)
         );
         String expectedMessage = "not logged into FDDB";
         String actualMessage = exception.getMessage();
@@ -52,7 +54,8 @@ public class HtmlParserTest {
     }
 
     @Test
-    public void getDataFromResponse_whenNoDataAvailable() throws IOException {
+    @SneakyThrows
+    public void getDataFromResponse_whenNoDataAvailable() {
         // given
         ClassPathResource classPathResource = new ClassPathResource("no-data-available.html");
         String html = Files.readString(classPathResource.getFile().toPath(), StandardCharsets.ISO_8859_1);

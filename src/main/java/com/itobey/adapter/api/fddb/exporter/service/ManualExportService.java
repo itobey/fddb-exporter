@@ -10,6 +10,7 @@ import org.apache.http.auth.AuthenticationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -29,6 +30,8 @@ public class ManualExportService {
      * Export data for all days contained in the given timeframe as a batch.
      *
      * @param fddbBatchExport the data which should be exported
+     * @throws AuthenticationException when the authentication is not successful
+     * @throws ManualExporterException when the given dates cannot be handled
      */
     public void exportBatch(FddbBatchExport fddbBatchExport) throws ManualExporterException, AuthenticationException {
         LocalDate from;
@@ -58,9 +61,21 @@ public class ManualExportService {
 
             from = from.plusDays(1);
         }
-
     }
 
-
+    /**
+     * Exports the data for yesterday.
+     *
+     * @throws AuthenticationException when the authentication is not successful
+     * @throws ManualExporterException when the given dates cannot be handled
+     */
+    public void exportBatchForYesterday() throws ManualExporterException, AuthenticationException {
+        String yesterday = LocalDate.now().minusDays(1L).format(DateTimeFormatter.ISO_DATE);
+        FddbBatchExport yesterdayBatch = FddbBatchExport.builder()
+                .fromDate(yesterday)
+                .toDate(yesterday)
+                .build();
+        exportBatch(yesterdayBatch);
+    }
 
 }

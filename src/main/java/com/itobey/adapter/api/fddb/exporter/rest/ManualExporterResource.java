@@ -4,6 +4,7 @@ import com.itobey.adapter.api.fddb.exporter.domain.FddbBatchExport;
 import com.itobey.adapter.api.fddb.exporter.exception.ManualExporterException;
 import com.itobey.adapter.api.fddb.exporter.service.ManualExportService;
 import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.validation.Validated;
 import io.reactivex.Single;
@@ -33,6 +34,20 @@ public class ManualExporterResource {
     public Single<String> batchExport(@RequestBody FddbBatchExport fddbBatchExport) {
         try {
             manualExportService.exportBatch(fddbBatchExport);
+        } catch (ManualExporterException e) {
+            log.warn("exception when handling batch export");
+            return Single.just("exception when handling batch export");
+        } catch (AuthenticationException e) {
+            log.warn("not logged in - batch export incomplete or unsuccessful");
+            return Single.just("not logged in - batch export incomplete or unsuccessful");
+        }
+        return Single.just("ok");
+    }
+
+    @Get("/batch/yesterday")
+    public Single<String> batchExportYesterday() {
+        try {
+            manualExportService.exportBatchForYesterday();
         } catch (ManualExporterException e) {
             log.warn("exception when handling batch export");
             return Single.just("exception when handling batch export");
