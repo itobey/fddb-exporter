@@ -31,6 +31,8 @@ public class ExportService {
      * Retrieve the data from FDDB, parse it and save it to the database.
      *
      * @param timeframe the timeframe to retrieve the data to
+     * @throws AuthenticationException when the authentication is not successful
+     * @throws ParseException          when parsing of the data was not possible
      */
     @Transactional
     public void exportDataAndSaveToDb(Timeframe timeframe) throws AuthenticationException, ParseException {

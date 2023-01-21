@@ -6,13 +6,14 @@ import com.itobey.adapter.api.fddb.exporter.domain.Timeframe;
 import com.itobey.adapter.api.fddb.exporter.service.ExportService;
 import com.itobey.adapter.api.fddb.exporter.service.HtmlParser;
 import com.itobey.adapter.api.fddb.exporter.service.PersistenceService;
-import org.apache.http.auth.AuthenticationException;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.sql.Date;
 import java.util.Optional;
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.*;
 /**
  * Test for {@link ExportService}
  */
+@ExtendWith(MockitoExtension.class)
 class ExportServiceTest {
 
     @InjectMocks
@@ -41,7 +43,6 @@ class ExportServiceTest {
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
         timeframe = Timeframe.builder().from(123).to(456).build();
         fddbResponse = "<html>something</html>";
         Date date = new Date(2021, 02, 01);
@@ -52,7 +53,8 @@ class ExportServiceTest {
     }
 
     @Test
-    void exportBatch_whenNoEntryFound_shouldRetrieveDataAndSaveNewEntryToDatabase() throws AuthenticationException {
+    @SneakyThrows
+    void exportBatch_whenNoEntryFound_shouldRetrieveDataAndSaveNewEntryToDatabase() {
         // given
         doReturn(fddbResponse).when(fddbAdapter).retrieveDataToTimeframe(timeframe);
         doReturn(fddbData).when(htmlParser).getDataFromResponse(fddbResponse);
@@ -65,7 +67,8 @@ class ExportServiceTest {
     }
 
     @Test
-    void exportBatch_whenEntryForDatePresent_shouldRetrieveDataAndUpdateEntry() throws AuthenticationException {
+    @SneakyThrows
+    void exportBatch_whenEntryForDatePresent_shouldRetrieveDataAndUpdateEntry() {
         // given
         doReturn(fddbResponse).when(fddbAdapter).retrieveDataToTimeframe(timeframe);
         doReturn(fddbData).when(htmlParser).getDataFromResponse(fddbResponse);
