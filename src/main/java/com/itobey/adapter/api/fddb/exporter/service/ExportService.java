@@ -31,23 +31,22 @@ public class ExportService {
      * Retrieve the data from FDDB, parse it and save it to the database.
      *
      * @param timeframe the timeframe to retrieve the data to
+     * @return the saved data
      * @throws AuthenticationException when the authentication is not successful
      * @throws ParseException          when parsing of the data was not possible
      */
     @Transactional
-    public void exportDataAndSaveToDb(Timeframe timeframe) throws AuthenticationException, ParseException {
+    public FddbData exportDataAndSaveToDb(Timeframe timeframe) throws AuthenticationException, ParseException {
         FddbData dataToPersist = retrieveAndParseDataTo(timeframe);
         Optional<FddbData> optionalOfDbEntry = persistenceService.find(dataToPersist.getDate());
         if (optionalOfDbEntry.isPresent()) {
             FddbData existingFddbData = optionalOfDbEntry.get();
             log.debug("updating existing database entry for {}", dataToPersist.getDate());
             FddbData updatedData = updateDataObject(dataToPersist, existingFddbData);
-            persistenceService.save(updatedData);
-            log.trace("updated entry");
+            return persistenceService.save(updatedData);
         } else {
             log.debug("persisting new database entry");
-            persistenceService.save(dataToPersist);
-            log.trace("persisted entry");
+            return persistenceService.save(dataToPersist);
         }
     }
 

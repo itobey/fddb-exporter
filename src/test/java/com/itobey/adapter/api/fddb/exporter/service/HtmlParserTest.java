@@ -1,7 +1,6 @@
-package com.itobey.adapter.api.fddb.exporter;
+package com.itobey.adapter.api.fddb.exporter.service;
 
 import com.itobey.adapter.api.fddb.exporter.domain.FddbData;
-import com.itobey.adapter.api.fddb.exporter.service.HtmlParser;
 import lombok.SneakyThrows;
 import org.apache.http.ParseException;
 import org.apache.http.auth.AuthenticationException;
