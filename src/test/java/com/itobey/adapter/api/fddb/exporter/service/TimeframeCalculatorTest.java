@@ -1,7 +1,6 @@
-package com.itobey.adapter.api.fddb.exporter;
+package com.itobey.adapter.api.fddb.exporter.service;
 
 import com.itobey.adapter.api.fddb.exporter.domain.Timeframe;
-import com.itobey.adapter.api.fddb.exporter.service.TimeframeCalculator;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
