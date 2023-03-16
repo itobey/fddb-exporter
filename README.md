@@ -21,6 +21,32 @@ As a database I use Postgres to save the gathered data, because I already had a 
 ## How does it work?
 You may start the Micronaut application yourself or just use the [created Docker image](https://github.com/itobey/fddb-exporter/pkgs/container/fddb-exporter%2Ffddb-exporter). Once running a scheduler will log into FDDB every night and gather the data for the day before. This is based on a cron expression (0 3 * * *), which is currently hardcoded and which I may outsource as a property in the future. The data is then saved to the configured database.
 
+### Using the image
+If you want to use the image, you can configure it using environment properties. The following `docker-compose.yaml` shows an example of this:
+```yaml
+version: '3.1'
+services:
+  db:
+    image: postgres:12.12
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=example
+    ports:
+      - 5432:5432
+  app:
+    image: ghcr.io/itobey/fddb-exporter/fddb-exporter:0.2
+    restart: always
+    environment:
+      - DATASOURCES_DEFAULT_URL=jdbc:postgresql://db:5432/postgres
+      - DATASOURCES_DEFAULT_USERNAME=postgres
+      - DATASOURCES_DEFAULT_PASSWORD=example
+      - FDDB_EXPORTER_FDDB_COOKIE=<cookie>
+      - FDDB_EXPORTER_FDDB_BASICAUTH=<basicauth>
+    ports:
+      - 8080:8080
+```
+
 ### Batch export
 
 #### retrieve timeframe
