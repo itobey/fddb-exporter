@@ -2,10 +2,10 @@ spring:
   application:
     name: fddbexporter
   datasource:
-    url: jdbc:postgresql://192.168.0.34:5432/postgres
+    url: jdbc:postgresql://localhost:5432/mydatabase
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: example
+    username: myuser
+    password: mypassword
   jpa:
     hibernate:
       ddl-auto: update
@@ -18,7 +18,3 @@ fddb-exporter:
   fddb:
     cookie: ---
     basicauth: ---
-
-logger:
-  levels:
-    root: INFO

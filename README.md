@@ -15,37 +15,15 @@ The following data will be exported on a daily basis:
 -   Docker or Java to run the exporter
 
 ## Technology
-This is based on [Micronaut](https://micronaut.io/) with some [Spring Boot](https://spring.io/projects/spring-boot) flavours, just because I'm new to Micronaut and familiar with Spring Boot. I may base it entirely on Micronaut in the future - but for now, it just works.
+Since version 0.3 this is based on [Spring Boot](https://spring.io/projects/spring-boot) and compiled with JDK 21.
 As a database I use Postgres to save the gathered data, because I already had a Postgres running anyway. Feel free to change the persistence layer to suit your needs.
+I will probably update this project and when that happens I may move to something like MongoDB.
 
 ## How does it work?
-You may start the Micronaut application yourself or just use the [created Docker image](https://github.com/itobey/fddb-exporter/pkgs/container/fddb-exporter%2Ffddb-exporter). Once running a scheduler will log into FDDB every night and gather the data for the day before. This is based on a cron expression (0 3 * * *), which is currently hardcoded and which I may outsource as a property in the future. The data is then saved to the configured database.
+You may start the application yourself or just use the [created Docker image](https://github.com/itobey/fddb-exporter/pkgs/container/fddb-exporter%2Ffddb-exporter). Once running a scheduler will log into FDDB every night and gather the data for the day before. This is based on a cron expression (0 3 * * * *), which is currently hardcoded and which I may outsource as a property in the future. The data is then saved to the configured database.
 
 ### Using the image
-If you want to use the image, you can configure it using environment properties. The following `docker-compose.yaml` shows an example of this:
-```yaml
-version: '3.1'
-services:
-  db:
-    image: postgres:12.12
-    restart: always
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=example
-    ports:
-      - 5432:5432
-  app:
-    image: ghcr.io/itobey/fddb-exporter/fddb-exporter:0.2
-    restart: always
-    environment:
-      - DATASOURCES_DEFAULT_URL=jdbc:postgresql://db:5432/postgres
-      - DATASOURCES_DEFAULT_USERNAME=postgres
-      - DATASOURCES_DEFAULT_PASSWORD=example
-      - FDDB_EXPORTER_FDDB_COOKIE=<cookie>
-      - FDDB_EXPORTER_FDDB_BASICAUTH=<basicauth>
-    ports:
-      - 8080:8080
-```
+If you want to use the image, you can configure it using environment properties. Have a look at the included `docker-compose.yaml` which shows an example of this.
 
 ### Batch export
 
@@ -79,6 +57,9 @@ After gathering all the data in a database, it's easy to display graphs based on
 
 ## Changelog
 
+### v0.3
+Switched the backend to Spring Boot 3 and JDK 21
+
 ### v0.2.1
 FDDB changed the placement of the login button and this fix deals with this change to combat the resulting issues.
 
@@ -86,4 +67,4 @@ FDDB changed the placement of the login button and this fix deals with this chan
 I've added an endpoint to retrieve data dating back a specific amount of days. See the `batch export` part of this readme for details.
 
 ## Footprint
-The Micronaut service is idling at around 120 MB RAM and with almost no CPU usage.
+The service is idling at around 270 MB RAM and with almost no CPU usage.
