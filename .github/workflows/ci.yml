@@ -1,0 +1,14 @@
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  run-ci-workflow:
+    uses: itobey/workflow-templates/.github/workflows/ci.yml@master
+    with:
+      image_name: fddb-exporter
+    secrets: inherit

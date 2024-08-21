@@ -1,0 +1,22 @@
+name: Release Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Version number for the release'
+        required: true
+        default: '1.0.0'
+      snapshot_version:
+        description: 'Version number for the next snapshot'
+        required: true
+        default: '1.0.1-SNAPSHOT'
+
+jobs:
+  run-release-workflow:
+    uses: itobey/workflow-templates/.github/workflows/release.yml@master
+    with:
+      image_name: fddb-exporter
+      snapshot_version: ${{ github.event.inputs.snapshot_version }}
+      release_version: ${{ github.event.inputs.release_version }}
+    secrets: inherit
