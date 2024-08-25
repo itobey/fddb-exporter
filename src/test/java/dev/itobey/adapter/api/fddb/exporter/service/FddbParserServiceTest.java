@@ -2,13 +2,15 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.Product;
+import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
+import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import lombok.SneakyThrows;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,7 +35,7 @@ class FddbParserServiceTest {
     @SneakyThrows
     void parseDiary_whenLoggedInAndDataAvailable_shouldParseAccordingly() {
         // Given
-        Resource resource = new ClassPathResource("fddb-new.html");
+        Resource resource = new ClassPathResource("valid-response.html");
         Path path = resource.getFile().toPath();
         String content = Files.readString(path, StandardCharsets.UTF_8);
 
@@ -82,12 +84,28 @@ class FddbParserServiceTest {
     }
 
     @Test
+    @SneakyThrows
     void parseDiary_whenNotLoggedIn_shouldThrowException() {
-        //TODO
+        // Given
+        Resource resource = new ClassPathResource("unauthenticated.html");
+        Path path = resource.getFile().toPath();
+        String content = Files.readString(path, StandardCharsets.UTF_8);
+
+        // When; Then
+        Assertions.assertThatExceptionOfType(AuthenticationException.class)
+                .isThrownBy(() -> fddbParserService.parseDiary(content));
     }
 
     @Test
+    @SneakyThrows
     void parseDiary_whenLoggedInAndNoDataAvailable_shouldThrowException() {
-        //TODO
+        // Given
+        Resource resource = new ClassPathResource("no-data-available.html");
+        Path path = resource.getFile().toPath();
+        String content = Files.readString(path, StandardCharsets.UTF_8);
+
+        // When; Then
+        Assertions.assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> fddbParserService.parseDiary(content));
     }
 }

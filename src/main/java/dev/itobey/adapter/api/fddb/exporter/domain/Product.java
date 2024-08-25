@@ -1,10 +1,8 @@
 package dev.itobey.adapter.api.fddb.exporter.domain;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-
-import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor

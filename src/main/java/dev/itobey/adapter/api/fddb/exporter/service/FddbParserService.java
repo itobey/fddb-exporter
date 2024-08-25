@@ -3,6 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.Product;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
+import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -22,9 +23,10 @@ public class FddbParserService {
     private static final String XPATH_SUGAR = "//*[@id=\"content\"]/div[3]/div[2]/div[2]/div/table[2]/tbody/tr[4]/td[2]/span";
     private static final String XPATH_FIBER = "//*[@id=\"content\"]/div[3]/div[2]/div[2]/div/table[2]/tbody/tr[8]/td[2]/b";
 
-    public FddbData parseDiary(String input) throws AuthenticationException {
+    public FddbData parseDiary(String input) throws AuthenticationException, ParseException {
         Document doc = Jsoup.parse(input, "UTF-8");
         checkAuthentication(doc);
+        checkDataAvailable(doc);
 
         FddbData fddbData = new FddbData();
         List<Product> products = parseProducts(doc);
@@ -110,5 +112,12 @@ public class FddbParserService {
 
     private double extractNumber(String text) {
         return Double.parseDouble(text.replaceAll("[^0-9.]", ""));
+    }
+
+    private void checkDataAvailable(Document doc) throws ParseException {
+        Elements lastRow = doc.selectXpath(XPATH_PRODUCT_TABLE + "[last()]/td");
+        if (lastRow.isEmpty()) {
+            throw new ParseException("cannot parse input. it's likely there is no data available for the given day");
+        }
     }
 }

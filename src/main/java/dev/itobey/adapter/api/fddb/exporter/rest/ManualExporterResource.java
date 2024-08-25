@@ -5,24 +5,28 @@ import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ManualExporterException;
 import dev.itobey.adapter.api.fddb.exporter.service.ManualExportService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.lang.Nullable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
- * An endpoint to request manual exports opposed to scheduled ones.
+ * This class contains the resource for manual exports (as the usual way is to have the scheduler in
+ * {@link dev.itobey.adapter.api.fddb.exporter.service.Scheduler} do the work.
  */
-@RestController("/")
+@RestController
+@RequestMapping("/api/v1/exports")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class ManualExporterResource {
 
-    public static final String AUTH_EXCEPTION_MSG = "not logged in - batch export incomplete or unsuccessful";
-    public static final String BATCH_EXPORT_MSG = "exception when handling batch export";
     private final ManualExportService manualExportService;
 
     /**
@@ -31,17 +35,17 @@ public class ManualExporterResource {
      * @param fddbBatchExport the data which should be exported
      * @return HTTP 200 and 'ok' when everything went smoothly, error messages when it did not
      */
-    //TODO add unit tests
     @PostMapping("/batch")
-    public List<FddbData> batchExport(@RequestBody FddbBatchExport fddbBatchExport) throws ManualExporterException {
+    public ResponseEntity<List<FddbData>> batchExport(@Valid @RequestBody FddbBatchExport fddbBatchExport) {
         try {
-            return manualExportService.exportBatch(fddbBatchExport);
-        } catch (ManualExporterException e) {
-            log.warn(BATCH_EXPORT_MSG);
-            throw new ManualExporterException(BATCH_EXPORT_MSG);
-        } catch (AuthenticationException e) {
-            log.warn(AUTH_EXCEPTION_MSG);
-            throw new ManualExporterException(AUTH_EXCEPTION_MSG);
+            List<FddbData> result = manualExportService.exportBatch(fddbBatchExport);
+            return ResponseEntity.ok(result);
+        } catch (AuthenticationException authenticationException) {
+            log.error("Authentication error during batch export", authenticationException);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (ManualExporterException | RuntimeException exception) {
+            log.error("Error during batch export", exception);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -51,23 +55,23 @@ public class ManualExporterResource {
      * <p>
      * If includeToday is true the current day will be exported as well.
      *
-     * @param params contains the Map with the values mentioned above
+     * @param days         the amount of days that should be exported
+     * @param includeToday true, if the current day should be included as well
      * @return a list of saved and updated data points
      */
-    //TODO add unit tests
     @GetMapping("/batch")
-    public List<FddbData> batchExportDaysBack(@Nullable @RequestParam Map<String, String> params) throws ManualExporterException {
-        int days = Integer.parseInt(params.get("days"));
-        boolean includeToday = Boolean.parseBoolean(params.get("includeToday"));
+    public ResponseEntity<List<FddbData>> batchExportDaysBack(
+            @RequestParam @Min(1) int days,
+            @RequestParam(defaultValue = "false") boolean includeToday) {
         try {
-            return manualExportService.exportBatchForDaysBack(days, includeToday);
-        } catch (ManualExporterException e) {
-            log.warn(BATCH_EXPORT_MSG);
-            throw new ManualExporterException(BATCH_EXPORT_MSG);
-        } catch (AuthenticationException e) {
-            log.warn(AUTH_EXCEPTION_MSG);
-            throw new ManualExporterException(AUTH_EXCEPTION_MSG);
+            List<FddbData> result = manualExportService.exportBatchForDaysBack(days, includeToday);
+            return ResponseEntity.ok(result);
+        } catch (AuthenticationException authenticationException) {
+            log.error("Authentication error during batch export", authenticationException);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (ManualExporterException manualExporterException) {
+            log.error("Error during batch export", manualExporterException);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
 }

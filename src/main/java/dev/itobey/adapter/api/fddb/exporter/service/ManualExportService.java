@@ -11,83 +11,64 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 
-/**
- * The service to handle manual export requests.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ManualExportService {
 
+    private static final int MIN_DAYS_BACK = 1;
+    private static final int MAX_DAYS_BACK = 365;
+
     private final TimeframeCalculator timeframeCalculator;
     private final ExportService exportService;
 
-    /**
-     * Export data for all days contained in the given timeframe as a batch.
-     *
-     * @param fddbBatchExport the data which should be exported
-     * @return a list of the saved or updated data
-     * @throws AuthenticationException when the authentication is not successful
-     * @throws ManualExporterException when the given dates cannot be handled
-     */
     public List<FddbData> exportBatch(FddbBatchExport fddbBatchExport) throws ManualExporterException, AuthenticationException {
-
-        LocalDate from = parseDate(fddbBatchExport.getFromDate());
-        LocalDate to = parseDate(fddbBatchExport.getToDate());
+        LocalDate from = DateUtils.parseDate(fddbBatchExport.getFromDate());
+        LocalDate to = DateUtils.parseDate(fddbBatchExport.getToDate());
 
         if (from.isAfter(to)) {
-            throw new ManualExporterException("the 'from' date cannot be after the 'to' date");
+            throw new ManualExporterException("The 'from' date cannot be after the 'to' date");
         }
 
         long amountDaysToExport = DAYS.between(from, to) + 1;
 
-        List<FddbData> savedDataPoints = new ArrayList<>();
-        // export days between the given dates
-        for (int i = 0; i < amountDaysToExport; i++) {
-            Timeframe timeframe = timeframeCalculator.calculateTimeframeFor(from);
-            try {
-                FddbData fddbData = exportService.exportDataAndSaveToDb(timeframe);
-                savedDataPoints.add(fddbData);
-            } catch (ParseException parseException) {
-                log.warn("data for date {} cannot be parsed, skipping this day", from);
-            }
-            from = from.plusDays(1);
-        }
-        return savedDataPoints;
+        return IntStream.range(0, (int) amountDaysToExport)
+                .mapToObj(from::plusDays)
+                .map(this::exportForDate)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
-    private LocalDate parseDate(String dateString) throws ManualExporterException {
+    private FddbData exportForDate(LocalDate date) {
+        Timeframe timeframe = timeframeCalculator.calculateTimeframeFor(date);
         try {
-            return LocalDate.parse(dateString);
-        } catch (DateTimeParseException dateTimeParseException) {
-            String errorMsg = "payload of given times cannot be parsed";
-            log.error(errorMsg);
-            throw new ManualExporterException(errorMsg);
+            return exportService.exportDataAndSaveToDb(timeframe);
+        } catch (ParseException | AuthenticationException e) {
+            log.warn("Data for date {} cannot be parsed or exported, skipping this day", date, e);
+            throw new RuntimeException("Error exporting data for date " + date, e);
         }
     }
 
-    /**
-     * Exports the data for yesterday.
-     *
-     * @return a list of the saved or updated data
-     * @throws AuthenticationException when the authentication is not successful
-     * @throws ManualExporterException when the given dates cannot be handled
-     */
     public List<FddbData> exportBatchForDaysBack(int days, boolean includeToday) throws ManualExporterException, AuthenticationException {
-        String fromDate = LocalDate.now().minusDays(days).format(DateTimeFormatter.ISO_DATE);
-        String toDate = LocalDate.now().minusDays(includeToday ? 0 : 1).format(DateTimeFormatter.ISO_DATE);
+        if (days < MIN_DAYS_BACK || days > MAX_DAYS_BACK) {
+            throw new ManualExporterException("Days back must be between " + MIN_DAYS_BACK + " and " + MAX_DAYS_BACK);
+        }
+
+        LocalDate to = includeToday ? LocalDate.now() : LocalDate.now().minusDays(1);
+        LocalDate from = to.minusDays(days - 1);
+
         FddbBatchExport timeframe = FddbBatchExport.builder()
-                .fromDate(fromDate)
-                .toDate(toDate)
+                .fromDate(from.toString())
+                .toDate(to.toString())
                 .build();
+
         return exportBatch(timeframe);
     }
-
 }

@@ -8,116 +8,101 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Test for {@link ManualExportService}
- */
 @ExtendWith(MockitoExtension.class)
 class ManualExportServiceTest {
 
     @InjectMocks
-    ManualExportService manualExportService;
+    private ManualExportService manualExportService;
 
-    @Spy
-    TimeframeCalculator timeframeCalculator;
     @Mock
-    ExportService exportService;
+    private TimeframeCalculator timeframeCalculator;
 
-    Timeframe timeframe;
-    String fddbResponse;
-    FddbData fddbData;
+    @Mock
+    private ExportService exportService;
+
+    private FddbData mockFddbData;
 
     @BeforeEach
-    public void setUp() {
-        timeframe = Timeframe.builder().from(123).to(456).build();
-        fddbResponse = "<html>something</html>";
-        fddbData = Mockito.mock(FddbData.class);
+    void setUp() {
+        mockFddbData = mock(FddbData.class);
     }
 
     @Test
     @SneakyThrows
     void exportBatch_whenPayloadValid_shouldAccessExporterService() {
         // given
-        FddbBatchExport fddbBatchExport = FddbBatchExport.builder()
-                .fromDate("2021-08-15")
-                .toDate("2021-08-15")
-                .build();
-        Timeframe timeframe = Timeframe.builder().from(1628985600).to(1629072000).build();
+        FddbBatchExport fddbBatchExport = new FddbBatchExport("2021-08-15", "2021-08-15");
+        Timeframe timeframe = new Timeframe(1628985600, 1629072000);
         LocalDate localDate = LocalDate.of(2021, 8, 15);
-        doReturn(fddbData).when(exportService).exportDataAndSaveToDb(timeframe);
+
+        when(timeframeCalculator.calculateTimeframeFor(localDate)).thenReturn(timeframe);
+        when(exportService.exportDataAndSaveToDb(timeframe)).thenReturn(mockFddbData);
+
         // when
         List<FddbData> actual = manualExportService.exportBatch(fddbBatchExport);
-        // then
-        verify(timeframeCalculator, Mockito.times(1)).calculateTimeframeFor(localDate);
-        assertTrue(actual.size() == 1);
-        assertTrue(actual.contains(fddbData));
-    }
 
-    @Test
-    void exportBatch_whenPayloadInvalid_shouldThrowException() {
-        // given
-        FddbBatchExport fddbBatchExport = FddbBatchExport.builder()
-                .fromDate("2021 08 15")
-                .toDate("2021_08_15")
-                .build();
-        // when; then
-        Exception exception = assertThrows(ManualExporterException.class, () -> manualExportService.exportBatch(fddbBatchExport));
-        String expectedMessage = "payload of given times cannot be parsed";
-        String actualMessage = exception.getMessage();
-        assertTrue(actualMessage.contains(expectedMessage));
+        // then
+        assertEquals(1, actual.size());
+        assertTrue(actual.contains(mockFddbData));
+        verify(timeframeCalculator).calculateTimeframeFor(localDate);
+        verify(exportService).exportDataAndSaveToDb(timeframe);
     }
 
     @Test
     void exportBatch_whenFromIsAfterTo_shouldThrowException() {
         // given
-        FddbBatchExport fddbBatchExport = FddbBatchExport.builder()
-                .fromDate("2023-01-20")
-                .toDate("2023-01-15")
-                .build();
-        // when; then
-        Exception exception = assertThrows(ManualExporterException.class, () -> manualExportService.exportBatch(fddbBatchExport));
-        String expectedMessage = "the 'from' date cannot be after the 'to' date";
-        String actualMessage = exception.getMessage();
-        assertTrue(actualMessage.contains(expectedMessage));
+        FddbBatchExport fddbBatchExport = new FddbBatchExport("2023-01-20", "2023-01-15");
+
+        // when & then
+        ManualExporterException exception = assertThrows(ManualExporterException.class,
+                () -> manualExportService.exportBatch(fddbBatchExport));
+        assertEquals("The 'from' date cannot be after the 'to' date", exception.getMessage());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "2, true",
+            "2, false"
+    })
+    @SneakyThrows
+    void exportBatchForDaysBack_shouldGenerateTimeframeAccordingly(int days, boolean includeToday) {
+        // given
+        LocalDate today = LocalDate.now();
+        LocalDate endDate = includeToday ? today : today.minusDays(1);
+        LocalDate startDate = endDate.minusDays(days - 1);
+
+        when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(mock(Timeframe.class));
+        when(exportService.exportDataAndSaveToDb(any(Timeframe.class))).thenReturn(mockFddbData);
+
+        // when
+        List<FddbData> result = manualExportService.exportBatchForDaysBack(days, includeToday);
+
+        // then
+        assertEquals(days, result.size());
+        verify(timeframeCalculator, times(days)).calculateTimeframeFor(any(LocalDate.class));
+        verify(exportService, times(days)).exportDataAndSaveToDb(any(Timeframe.class));
+
+        for (int i = 0; i < days; i++) {
+            verify(timeframeCalculator).calculateTimeframeFor(startDate.plusDays(i));
+        }
     }
 
     @Test
-    @SneakyThrows
-    void exportBatchForDaysBack_whenTodayIncluded_shouldGenerateTimeframeAccordingly() {
-        // given
-        boolean includeToday = true;
-        // when
-        manualExportService.exportBatchForDaysBack(2, includeToday);
-        // then
-        verify(timeframeCalculator, times(1)).calculateTimeframeFor(LocalDate.now());
-        verify(timeframeCalculator, times(1)).calculateTimeframeFor(LocalDate.now().minusDays(1));
-        verify(timeframeCalculator, times(1)).calculateTimeframeFor(LocalDate.now().minusDays(2));
+    void exportBatchForDaysBack_whenDaysOutOfRange_shouldThrowException() {
+        assertThrows(ManualExporterException.class, () -> manualExportService.exportBatchForDaysBack(0, true));
+        assertThrows(ManualExporterException.class, () -> manualExportService.exportBatchForDaysBack(366, true));
     }
 
-    @Test
-    @SneakyThrows
-    void exportBatchForDaysBack_whenTodayNotIncluded_shouldGenerateTimeframeAccordingly() {
-        // given
-        boolean includeToday = false;
-        // when
-        manualExportService.exportBatchForDaysBack(2, includeToday);
-        // then
-        verify(timeframeCalculator, times(0)).calculateTimeframeFor(LocalDate.now());
-        verify(timeframeCalculator, times(1)).calculateTimeframeFor(LocalDate.now().minusDays(1));
-        verify(timeframeCalculator, times(1)).calculateTimeframeFor(LocalDate.now().minusDays(2));
-    }
 }
