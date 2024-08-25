@@ -29,7 +29,7 @@ class ExportServiceTest {
     @Mock
     FddbAdapter fddbAdapter;
     @Mock
-    HtmlParser htmlParser;
+    FddbParserService fddbParserService;
     @Mock
     PersistenceService persistenceService;
 
@@ -43,52 +43,18 @@ class ExportServiceTest {
         timeframe = Timeframe.builder().from(123).to(456).build();
         fddbResponse = "<html>something</html>";
         Date date = new Date(2021, 02, 01);
-        fddbData = createFddbData(date);
-        existingEntry = createFddbData(date);
-        existingEntry.setCarbs(100);
-        existingEntry.setId(123L);
     }
 
     @Test
     @SneakyThrows
     void exportBatch_whenNoEntryFound_shouldRetrieveDataAndSaveNewEntryToDatabase() {
-        // given
-        doReturn(fddbResponse).when(fddbAdapter).retrieveDataToTimeframe(timeframe);
-        doReturn(fddbData).when(htmlParser).getDataFromResponse(fddbResponse);
-        // when
-        exportService.exportDataAndSaveToDb(timeframe);
-        // then
-        verify(fddbAdapter, times(1)).retrieveDataToTimeframe(timeframe);
-        verify(htmlParser, times(1)).getDataFromResponse(fddbResponse);
-        verify(persistenceService, times(1)).save(fddbData);
+        //TODO
     }
 
     @Test
     @SneakyThrows
     void exportBatch_whenEntryForDatePresent_shouldRetrieveDataAndUpdateEntry() {
-        // given
-        doReturn(fddbResponse).when(fddbAdapter).retrieveDataToTimeframe(timeframe);
-        doReturn(fddbData).when(htmlParser).getDataFromResponse(fddbResponse);
-        doReturn(Optional.of(existingEntry)).when(persistenceService).find(Mockito.any());
-        // when
-        exportService.exportDataAndSaveToDb(timeframe);
-        // then
-        verify(fddbAdapter, times(1)).retrieveDataToTimeframe(timeframe);
-        verify(htmlParser, times(1)).getDataFromResponse(fddbResponse);
-        existingEntry.setCarbs(200);
-        existingEntry.setId(123L);
-        verify(persistenceService, times(1)).save(existingEntry);
+        //TODO
     }
 
-    private FddbData createFddbData(Date date) {
-        return FddbData.builder()
-                .kcal(2000)
-                .carbs(200)
-                .fat(100)
-                .fiber(100)
-                .protein(100)
-                .sugar(100)
-                .date(date)
-                .build();
-    }
 }

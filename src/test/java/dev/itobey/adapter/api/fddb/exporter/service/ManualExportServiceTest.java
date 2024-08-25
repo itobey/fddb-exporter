@@ -14,6 +14,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
@@ -44,7 +45,7 @@ class ManualExportServiceTest {
     public void setUp() {
         timeframe = Timeframe.builder().from(123).to(456).build();
         fddbResponse = "<html>something</html>";
-        fddbData = FddbData.builder().carbs(100).build();
+        fddbData = Mockito.mock(FddbData.class);
     }
 
     @Test
@@ -57,7 +58,6 @@ class ManualExportServiceTest {
                 .build();
         Timeframe timeframe = Timeframe.builder().from(1628985600).to(1629072000).build();
         LocalDate localDate = LocalDate.of(2021, 8, 15);
-        FddbData fddbData = FddbData.builder().fat(1).sugar(2).fiber(3).carbs(4).kcal(5).protein(6).date(new Date()).build();
         doReturn(fddbData).when(exportService).exportDataAndSaveToDb(timeframe);
         // when
         List<FddbData> actual = manualExportService.exportBatch(fddbBatchExport);

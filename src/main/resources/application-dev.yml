@@ -1,18 +1,13 @@
 spring:
   application:
     name: fddbexporter
-  datasource:
-    url: jdbc:postgresql://localhost:5432/mydatabase
-    driver-class-name: org.postgresql.Driver
-    username: myuser
-    password: mypassword
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: fddb
+      username: fddb
+      password: password
 
 fddb-exporter:
   fddb:

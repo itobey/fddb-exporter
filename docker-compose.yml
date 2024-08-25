@@ -2,17 +2,17 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:12.16
-    container_name: postgres
+  mongodb:
+    image: mongo:7.0.9
+    container_name: mongodb
     ports:
-      - "5432:5432"
+      - "27017:27017"
     environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: fddb
     volumes:
-      - C:/Daten/postgres:/var/lib/postgresql/data
+      - mongo-data:/data/db
     networks:
       - container_network
 
@@ -22,16 +22,22 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - FDDB-EXPORTER_FDDB_COOKIE=---
-      - FDDB-EXPORTER_FDDB_BASICAUTH=---
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/mydatabase
-      - SPRING_DATASOURCE_USERNAME=myuser
-      - SPRING_DATASOURCE_PASSWORD=mypassword
+      SPRING_DATA_MONGODB_HOST: mongodb
+      SPRING_DATA_MONGODB_PORT: 27017
+      SPRING_DATA_MONGODB_DATABASE: fddb
+      SPRING_DATA_MONGODB_USERNAME: user
+      SPRING_DATA_MONGODB_PASSWORD: password
+      FDDB-EXPORTER_FDDB_COOKIE: ---
+      FDDB-EXPORTER_FDDB_BASICAUTH: ---
     depends_on:
-      - postgres
+      - mongodb
+
     networks:
       - container_network
 
 networks:
   container_network:
     driver: bridge
+
+volumes:
+  mongo-data:

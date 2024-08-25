@@ -24,7 +24,7 @@ import java.util.Optional;
 public class ExportService {
 
     private final FddbAdapter fddbAdapter;
-    private final HtmlParser htmlParser;
+    private final FddbParserService fddbParserService;
     private final PersistenceService persistenceService;
 
     /**
@@ -52,7 +52,7 @@ public class ExportService {
 
     private FddbData retrieveAndParseDataTo(Timeframe timeframe) throws AuthenticationException, ParseException {
         String response = fddbAdapter.retrieveDataToTimeframe(timeframe);
-        FddbData fddbData = htmlParser.getDataFromResponse(response);
+        FddbData fddbData = fddbParserService.parseDiary(response);
         LocalDateTime dateOfExport = LocalDateTime.ofEpochSecond(timeframe.getFrom(), 0, ZoneOffset.UTC);
         fddbData.setDate(Date.from(dateOfExport.toInstant(ZoneOffset.UTC)));
         log.info("handling dataset: {}", fddbData);
@@ -61,12 +61,13 @@ public class ExportService {
 
     private FddbData updateDataObject(FddbData dataToPersist, FddbData existingFddbData) {
         // TODO maybe switch to Mapstruct
-        existingFddbData.setCarbs(dataToPersist.getCarbs());
-        existingFddbData.setFat(dataToPersist.getFat());
-        existingFddbData.setFiber(dataToPersist.getFiber());
-        existingFddbData.setKcal(dataToPersist.getKcal());
-        existingFddbData.setSugar(dataToPersist.getSugar());
-        existingFddbData.setProtein(dataToPersist.getProtein());
+
+//        existingFddbData.setCarbs(dataToPersist.getCarbs());
+//        existingFddbData.setFat(dataToPersist.getFat());
+//        existingFddbData.setFiber(dataToPersist.getFiber());
+//        existingFddbData.setKcal(dataToPersist.getKcal());
+//        existingFddbData.setSugar(dataToPersist.getSugar());
+//        existingFddbData.setProtein(dataToPersist.getProtein());
         return existingFddbData;
     }
 }

@@ -1,37 +1,25 @@
 package dev.itobey.adapter.api.fddb.exporter.domain;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
+import java.util.List;
 
-/**
- * Contains the data retrieved from FDDB to a specific timeframe.
- */
+@Document(collection = "fddb")
 @Data
-@Builder
-@Entity
-@NoArgsConstructor
-@AllArgsConstructor
 public class FddbData {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private String id;
     private Date date;
-    private int kcal;
-    private int fat;
-    private int carbs;
-    private int sugar;
-    private int protein;
-    private int fiber;
+    private List<Product> products;
+    private double totalCalories;
+    private double totalFat;
+    private double totalCarbs;
+    private double totalSugar;
+    private double totalProtein;
+    private double totalFibre;
 
 }
