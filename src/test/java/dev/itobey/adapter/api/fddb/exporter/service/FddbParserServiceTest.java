@@ -43,11 +43,11 @@ class FddbParserServiceTest {
         // Then
         assertNotNull(fddbData);
         assertEquals(2565, fddbData.getTotalCalories());
-        assertEquals(new BigDecimal("110.4"), fddbData.getTotalFat());
-        assertEquals(new BigDecimal("246.2"), fddbData.getTotalCarbs());
-        assertEquals(new BigDecimal("126.4"), fddbData.getTotalProtein());
-        assertEquals(new BigDecimal("51"), fddbData.getTotalSugar());
-        assertEquals(new BigDecimal("18.3"), fddbData.getTotalFibre());
+        assertEquals(110.4, fddbData.getTotalFat());
+        assertEquals(246.2, fddbData.getTotalCarbs());
+        assertEquals(126.4, fddbData.getTotalProtein());
+        assertEquals(51, fddbData.getTotalSugar());
+        assertEquals(18.3, fddbData.getTotalFibre());
 
         List<Product> products = fddbData.getProducts();
         assertEquals(19, products.size());
@@ -57,27 +57,27 @@ class FddbParserServiceTest {
         assertEquals("Pizza", pizza.getName());
         assertEquals("150 g", pizza.getAmount());
         assertEquals(300, pizza.getCalories());
-        assertEquals(new BigDecimal("10.5"), pizza.getFat());
-        assertEquals(new BigDecimal("30"), pizza.getCarbs());
-        assertEquals(new BigDecimal("13.5"), pizza.getProtein());
+        assertEquals(10.5, pizza.getFat());
+        assertEquals(30, pizza.getCarbs());
+        assertEquals(13.5, pizza.getProtein());
         assertEquals("https://fddb.info/db/en/food/selbstgemacht_pizza/index.html", pizza.getLink());
 
         Product amaranth = products.get(1);
         assertEquals("Bio Amaranth gepufft", amaranth.getName());
         assertEquals("10 g", amaranth.getAmount());
         assertEquals(37, amaranth.getCalories());
-        assertEquals(new BigDecimal("0.5"), amaranth.getFat());
-        assertEquals(new BigDecimal("6.5"), amaranth.getCarbs());
-        assertEquals(new BigDecimal("1.2"), amaranth.getProtein());
+        assertEquals(0.5, amaranth.getFat());
+        assertEquals(6.5, amaranth.getCarbs());
+        assertEquals(1.2, amaranth.getProtein());
         assertEquals("https://fddb.info/db/en/food/antersdorfer_muehle_bio_amaranth_gepufft/index.html", amaranth.getLink());
 
         Product senf = products.get(18);
         assertEquals("Senf", senf.getName());
         assertEquals("30 g", senf.getAmount());
         assertEquals(26, senf.getCalories());
-        assertEquals(new BigDecimal("1.2"), senf.getFat());
-        assertEquals(new BigDecimal("1.8"), senf.getCarbs());
-        assertEquals(new BigDecimal("1.8"), senf.getProtein());
+        assertEquals(1.2, senf.getFat());
+        assertEquals(1.8, senf.getCarbs());
+        assertEquals(1.8, senf.getProtein());
         assertEquals("https://fddb.info/db/en/food/durchschnittswert_senf/index.html", senf.getLink());
     }
 

@@ -20,10 +20,10 @@ public interface FddbApi {
      * @param cookie    the necessary cookie, see README.md
      * @return the HTML response containing the data
      */
-    @GetMapping("/db/i18n/myday20/?lang=en&q={q}&p={p}")
+    @GetMapping("/db/i18n/myday20/?lang=en&q={to}&p={from}")
     String getDiary(
-            @RequestParam("p") long from,
-            @RequestParam("q") long to,
+            @RequestParam("from") long from,
+            @RequestParam("to") long to,
             @RequestHeader("Authorization") String basicauth,
             @RequestHeader("Cookie") String cookie
     );

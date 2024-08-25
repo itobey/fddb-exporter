@@ -10,20 +10,17 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @Slf4j
 public class FddbParserService {
 
-    private static final String CSS_SELECTOR_AUTH_STATUS = "#fddb-headerwrapper > div.quicklinks > a:nth-child(5)";
-    private static final String CSS_SELECTOR_PRODUCT_TABLE = "table.myday-table-std tr";
-    public static final String CSS_SELECTOR_PREFIX = "#content > div.mainblock > div.fullsizeblock > div:nth-child(2) > div > table:nth-child(5) > tbody > ";
-    public static final String CSS_SELECTOR_SUGAR = CSS_SELECTOR_PREFIX + "tr:nth-child(4) > td:nth-child(2) > span";
-    public static final String CSS_SELECTOR_FIBER = CSS_SELECTOR_PREFIX + "tr:nth-child(8) > td:nth-child(2)";
+    private static final String XPATH_AUTH_STATUS = "//div[@class='quicklinks']/a[contains(@class, 'v2hdlnk') and (text()='Anmelden' or text()='Login')]";
+    private static final String XPATH_PRODUCT_TABLE = "//table[@class='myday-table-std']/tbody/tr";
+    private static final String XPATH_SUGAR = "//*[@id=\"content\"]/div[3]/div[2]/div[2]/div/table[2]/tbody/tr[4]/td[2]/span";
+    private static final String XPATH_FIBER = "//*[@id=\"content\"]/div[3]/div[2]/div[2]/div/table[2]/tbody/tr[8]/td[2]/b";
 
     public FddbData parseDiary(String input) throws AuthenticationException {
         Document doc = Jsoup.parse(input, "UTF-8");
@@ -39,8 +36,8 @@ public class FddbParserService {
     }
 
     private void checkAuthentication(Document doc) throws AuthenticationException {
-        Elements authStatus = doc.select(CSS_SELECTOR_AUTH_STATUS);
-        if ("Anmelden".equals(authStatus.html()) || "Login".equals(authStatus.html())) {
+        Elements authStatus = doc.selectXpath(XPATH_AUTH_STATUS);
+        if (!authStatus.isEmpty()) {
             log.error("Error - not logged into FDDB");
             throw new AuthenticationException("Not logged into FDDB");
         }
@@ -48,7 +45,7 @@ public class FddbParserService {
 
     private List<Product> parseProducts(Document doc) {
         List<Product> products = new ArrayList<>();
-        Elements rows = doc.select(CSS_SELECTOR_PRODUCT_TABLE);
+        Elements rows = doc.selectXpath(XPATH_PRODUCT_TABLE);
 
         for (int i = 0; i < rows.size() - 1; i++) {
             Element row = rows.get(i);
@@ -101,13 +98,14 @@ public class FddbParserService {
     }
 
     private void setDayTotals(FddbData fddbData, Document doc) {
-        Elements lastRow = Objects.requireNonNull(doc.select(CSS_SELECTOR_PRODUCT_TABLE).last()).select("td");
+        Elements lastRow = doc.selectXpath(XPATH_PRODUCT_TABLE + "[last()]/td");
         fddbData.setTotalCalories(extractNumber(lastRow.get(2).text()));
         fddbData.setTotalFat(extractNumber(lastRow.get(3).text()));
         fddbData.setTotalCarbs(extractNumber(lastRow.get(4).text()));
         fddbData.setTotalProtein(extractNumber(lastRow.get(5).text()));
-        fddbData.setTotalSugar(extractNumber(doc.select(CSS_SELECTOR_SUGAR).html()));
-        fddbData.setTotalFibre(extractNumber(doc.select(CSS_SELECTOR_FIBER).html()));
+        fddbData.setTotalSugar(extractNumber(doc.selectXpath(XPATH_SUGAR).text()));
+        fddbData.setTotalSugar(extractNumber(doc.selectXpath(XPATH_SUGAR).text()));
+        fddbData.setTotalFibre(extractNumber(doc.selectXpath(XPATH_FIBER).text()));
     }
 
     private double extractNumber(String text) {

@@ -5,6 +5,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.Timeframe;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
+import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class ExportService {
     private final FddbAdapter fddbAdapter;
     private final FddbParserService fddbParserService;
     private final PersistenceService persistenceService;
+    private final FddbDataMapper fddbDataMapper;
 
     /**
      * Retrieve the data from FDDB, parse it and save it to the database.
@@ -60,14 +62,7 @@ public class ExportService {
     }
 
     private FddbData updateDataObject(FddbData dataToPersist, FddbData existingFddbData) {
-        // TODO maybe switch to Mapstruct
-
-//        existingFddbData.setCarbs(dataToPersist.getCarbs());
-//        existingFddbData.setFat(dataToPersist.getFat());
-//        existingFddbData.setFiber(dataToPersist.getFiber());
-//        existingFddbData.setKcal(dataToPersist.getKcal());
-//        existingFddbData.setSugar(dataToPersist.getSugar());
-//        existingFddbData.setProtein(dataToPersist.getProtein());
+        fddbDataMapper.updateFddbData(existingFddbData, dataToPersist);
         return existingFddbData;
     }
 }

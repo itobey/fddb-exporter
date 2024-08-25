@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Product {
+
     private String name;
     private String amount;
     private double calories;
@@ -17,4 +18,5 @@ public class Product {
     private double carbs;
     private double protein;
     private String link;
+
 }
