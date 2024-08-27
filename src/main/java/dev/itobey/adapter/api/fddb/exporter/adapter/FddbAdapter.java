@@ -17,11 +17,6 @@ public class FddbAdapter {
     private final FddbApi fddbApi;
     private final ConfigProperties configProperties;
 
-    /**
-     * Retrieve the diary containing all information to a specific timeframe.
-     *
-     * @return
-     */
     public String retrieveDataToTimeframe(Timeframe timeframe) {
         log.debug("retrieving fddb data for timeframe {}", timeframe);
         ConfigProperties.Fddb fddb = configProperties.getFddb();
