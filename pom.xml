@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.itobey.adapter.api.fddb.exporter</groupId>
     <artifactId>fddbexporter</artifactId>
-    <version>0.4-SNAPSHOT</version>
+    <version>0.3.1-SNAPSHOT</version>
     <name>collector</name>
     <description>Collect metrics data from Datadog</description>
     <properties>
