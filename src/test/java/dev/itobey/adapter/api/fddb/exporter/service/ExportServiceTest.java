@@ -5,9 +5,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.Timeframe;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
-import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import lombok.SneakyThrows;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,11 +13,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ExportServiceTest {
@@ -33,96 +30,49 @@ class ExportServiceTest {
     @Mock
     private FddbParserService fddbParserService;
 
-    @Mock
-    private PersistenceService persistenceService;
+    @Test
+    @SneakyThrows
+    void exportData_whenExportSuccessful_shouldReturnResult() {
+        // Given
+        long fromTimestamp = 1625097600L; // 2021-07-01 00:00:00 UTC
+        Timeframe timeframe = new Timeframe(fromTimestamp, fromTimestamp + 86400); // One day later // 2021-07-01 00:00:00 UTC to 2021-07-02 00:00:00 UTC
+        String mockResponse = "mock response data";
+        FddbData mockParsedData = new FddbData();
 
-    @Mock
-    private FddbDataMapper fddbDataMapper;
+        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(mockResponse);
+        when(fddbParserService.parseDiary(mockResponse)).thenReturn(mockParsedData);
 
-    private Timeframe timeframe;
-    private String fddbResponse;
-    private FddbData fddbData;
-    private LocalDate testDate;
+        // When
+        FddbData result = exportService.exportData(timeframe);
 
-    @BeforeEach
-    public void setUp() {
-        long epochSecond = 1622505600; // 2021-06-01 00:00:00 UTC
-        timeframe = new Timeframe(epochSecond, epochSecond + 86400);
-        fddbResponse = "<html>mock FDDB response</html>";
-//        testDate = new Date(Instant.ofEpochSecond(epochSecond).toEpochMilli());
-        testDate = LocalDate.ofEpochDay(epochSecond / 86400);
-        fddbData = new FddbData();
-        fddbData.setDate(testDate);
+        // Then
+        assertNotNull(result);
+        assertEquals(LocalDate.of(2021, 7, 1), result.getDate());
     }
 
     @Test
     @SneakyThrows
-    void exportDataAndSaveToDb_whenNoEntryFound_shouldRetrieveDataAndSaveNewEntryToDatabase() {
-        // given
-        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(fddbResponse);
-        when(fddbParserService.parseDiary(fddbResponse)).thenReturn(fddbData);
-        when(persistenceService.findByDate(testDate)).thenReturn(Optional.empty());
-        when(persistenceService.save(fddbData)).thenReturn(fddbData);
+    void exportData_whenAuthenticationExceptionThrown_shouldThrowException() {
+        // Given
+        Timeframe timeframe = new Timeframe(1625097600L, 1625184000L);
+        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenThrow(new AuthenticationException("Authentication failed"));
 
-        // when
-        FddbData result = exportService.exportDataAndSaveToDb(timeframe);
-
-        // then
-        assertEquals(fddbData, result);
-        verify(fddbAdapter).retrieveDataToTimeframe(timeframe);
-        verify(fddbParserService).parseDiary(fddbResponse);
-        verify(persistenceService).findByDate(testDate);
-        verify(persistenceService).save(fddbData);
-        verifyNoInteractions(fddbDataMapper);
+        // When & Then
+        assertThrows(AuthenticationException.class, () -> exportService.exportData(timeframe));
+        verifyNoInteractions(fddbParserService);
     }
 
     @Test
     @SneakyThrows
-    void exportDataAndSaveToDb_whenEntryForDatePresent_shouldRetrieveDataAndUpdateEntry() {
-        // given
-        FddbData existingEntry = new FddbData();
-        existingEntry.setDate(testDate);
+    void exportData_whenParseExceptionThrown_shouldThrowException() {
+        // Given
+        Timeframe timeframe = new Timeframe(1625097600L, 1625184000L);
+        String mockResponse = "invalid response data";
+        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(mockResponse);
+        when(fddbParserService.parseDiary(mockResponse)).thenThrow(new ParseException("Parsing failed"));
 
-        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(fddbResponse);
-        when(fddbParserService.parseDiary(fddbResponse)).thenReturn(fddbData);
-        when(persistenceService.findByDate(testDate)).thenReturn(Optional.of(existingEntry));
-        when(persistenceService.save(existingEntry)).thenReturn(existingEntry);
-
-        // when
-        FddbData result = exportService.exportDataAndSaveToDb(timeframe);
-
-        // then
-        assertEquals(existingEntry, result);
-        verify(fddbAdapter).retrieveDataToTimeframe(timeframe);
-        verify(fddbParserService).parseDiary(fddbResponse);
-        verify(persistenceService).findByDate(testDate);
-        verify(fddbDataMapper).updateFddbData(existingEntry, fddbData);
-        verify(persistenceService).save(existingEntry);
+        // When & Then
+        assertThrows(ParseException.class, () -> exportService.exportData(timeframe));
     }
 
-    @Test
-    @SneakyThrows
-    void exportDataAndSaveToDb_whenAuthenticationFails_shouldThrowAuthenticationException() {
-        // given
-        when(fddbParserService.parseDiary(any())).thenThrow(new AuthenticationException());
-
-        // when & then
-        assertThrows(AuthenticationException.class, () -> exportService.exportDataAndSaveToDb(timeframe));
-        verify(fddbAdapter).retrieveDataToTimeframe(timeframe);
-        verifyNoInteractions(persistenceService, fddbDataMapper);
-    }
-
-    @Test
-    @SneakyThrows
-    void exportDataAndSaveToDb_whenParsingFails_shouldThrowParseException() {
-        // given
-        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(fddbResponse);
-        when(fddbParserService.parseDiary(fddbResponse)).thenThrow(new ParseException("Parsing failed"));
-
-        // when & then
-        assertThrows(ParseException.class, () -> exportService.exportDataAndSaveToDb(timeframe));
-        verify(fddbAdapter).retrieveDataToTimeframe(timeframe);
-        verify(fddbParserService).parseDiary(fddbResponse);
-        verifyNoInteractions(persistenceService, fddbDataMapper);
-    }
 }

@@ -1,6 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.exception;
 
-public class AuthenticationException extends Exception {
+public class AuthenticationException extends RuntimeException {
 
     // Parameterless Constructor
     public AuthenticationException() {

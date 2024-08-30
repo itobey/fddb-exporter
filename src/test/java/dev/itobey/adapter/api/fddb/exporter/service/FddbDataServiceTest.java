@@ -33,6 +33,9 @@ class FddbDataServiceTest {
     @Mock
     private ExportService exportService;
 
+    @Mock
+    private PersistenceService persistenceService;
+
     private FddbData mockFddbData;
 
     @BeforeEach
@@ -48,7 +51,7 @@ class FddbDataServiceTest {
         Timeframe timeframe = new Timeframe(1628985600, 1629072000);
 
         when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(timeframe);
-        when(exportService.exportDataAndSaveToDb(timeframe)).thenReturn(mockFddbData);
+        when(exportService.exportData(timeframe)).thenReturn(mockFddbData);
 
         // when
         ExportResult result = fddbDataService.exportForTimerange(exportRequest);
@@ -59,7 +62,8 @@ class FddbDataServiceTest {
         assertTrue(result.getSuccessfulDays().contains("2021-08-16"));
         assertTrue(result.getUnsuccessfulDays().isEmpty());
         verify(timeframeCalculator, times(2)).calculateTimeframeFor(any(LocalDate.class));
-        verify(exportService, times(2)).exportDataAndSaveToDb(timeframe);
+        verify(exportService, times(2)).exportData(timeframe);
+        verify(persistenceService, times(2)).saveOrUpdate(mockFddbData);
     }
 
     @Test
@@ -70,7 +74,7 @@ class FddbDataServiceTest {
         Timeframe timeframe = new Timeframe(1628985600, 1629072000);
 
         when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(timeframe);
-        when(exportService.exportDataAndSaveToDb(timeframe))
+        when(exportService.exportData(timeframe))
                 .thenReturn(mockFddbData)
                 .thenThrow(new ParseException("Failed to parse"));
 
@@ -83,7 +87,8 @@ class FddbDataServiceTest {
         assertTrue(result.getSuccessfulDays().contains("2021-08-15"));
         assertTrue(result.getUnsuccessfulDays().contains("2021-08-16"));
         verify(timeframeCalculator, times(2)).calculateTimeframeFor(any(LocalDate.class));
-        verify(exportService, times(2)).exportDataAndSaveToDb(timeframe);
+        verify(exportService, times(2)).exportData(timeframe);
+        verify(persistenceService, times(1)).saveOrUpdate(mockFddbData);
     }
 
     @Test
@@ -95,6 +100,7 @@ class FddbDataServiceTest {
         DateTimeException exception = assertThrows(DateTimeException.class,
                 () -> fddbDataService.exportForTimerange(exportRequest));
         assertEquals("The 'from' date cannot be after the 'to' date", exception.getMessage());
+        verifyNoInteractions(persistenceService);
     }
 
     @ParameterizedTest
@@ -110,7 +116,7 @@ class FddbDataServiceTest {
         LocalDate startDate = endDate.minusDays(days - 1);
 
         when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(mock(Timeframe.class));
-        when(exportService.exportDataAndSaveToDb(any(Timeframe.class))).thenReturn(mockFddbData);
+        when(exportService.exportData(any(Timeframe.class))).thenReturn(mockFddbData);
 
         // when
         ExportResult result = fddbDataService.exportForDaysBack(days, includeToday);
@@ -119,16 +125,18 @@ class FddbDataServiceTest {
         assertEquals(days, result.getSuccessfulDays().size());
         assertTrue(result.getUnsuccessfulDays().isEmpty());
         verify(timeframeCalculator, times(days)).calculateTimeframeFor(any(LocalDate.class));
-        verify(exportService, times(days)).exportDataAndSaveToDb(any(Timeframe.class));
+        verify(exportService, times(days)).exportData(any(Timeframe.class));
 
         for (int i = 0; i < days; i++) {
             verify(timeframeCalculator).calculateTimeframeFor(startDate.plusDays(i));
         }
+        verify(persistenceService, times(2)).saveOrUpdate(mockFddbData);
     }
 
     @Test
     void exportForDaysBack_whenDaysOutOfRange_shouldThrowException() {
         assertThrows(DateTimeException.class, () -> fddbDataService.exportForDaysBack(0, true));
         assertThrows(DateTimeException.class, () -> fddbDataService.exportForDaysBack(366, true));
+        verifyNoInteractions(persistenceService);
     }
 }

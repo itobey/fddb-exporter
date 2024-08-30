@@ -27,7 +27,7 @@ public class Scheduler {
     public void runFddbExportForYesterday() {
         Timeframe timeframe = timeframeCalculator.calculateTimeframeForYesterday();
         try {
-            exportService.exportDataAndSaveToDb(timeframe);
+            exportService.exportData(timeframe);
         } catch (AuthenticationException authenticationException) {
             log.error("not logged in - skipping job execution");
             // TODO alerting?

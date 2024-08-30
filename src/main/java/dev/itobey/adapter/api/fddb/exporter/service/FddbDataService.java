@@ -64,9 +64,10 @@ public class FddbDataService {
                     try {
                         exportForDate(date);
                         successfulDays.add(date.toString());
-                    } catch (RuntimeException e) {
+                    } catch (ParseException parseException) {
                         unsuccessfulDays.add(date.toString());
                     }
+                    // AuthenticationException is not caught and will halt the process
                 });
 
         ExportResult result = new ExportResult();
@@ -92,13 +93,9 @@ public class FddbDataService {
         return exportForTimerange(timeframe);
     }
 
-    private void exportForDate(LocalDate date) {
+    private void exportForDate(LocalDate date) throws ParseException, AuthenticationException {
         Timeframe timeframe = timeframeCalculator.calculateTimeframeFor(date);
-        try {
-            exportService.exportDataAndSaveToDb(timeframe);
-        } catch (ParseException | AuthenticationException e) {
-            log.warn("Data for date {} cannot be parsed or exported, skipping this day", date, e);
-            throw new RuntimeException("Error exporting data for date " + date, e);
-        }
+        FddbData fddbData = exportService.exportData(timeframe);
+        persistenceService.saveOrUpdate(fddbData);
     }
 }

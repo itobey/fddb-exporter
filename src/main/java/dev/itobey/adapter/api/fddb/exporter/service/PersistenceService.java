@@ -1,6 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
+import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import java.util.Optional;
 public class PersistenceService {
 
     private final FddbDataRepository fddbDataRepository;
+    private final FddbDataMapper fddbDataMapper;
 
     /**
      * Retrieves all {@link FddbData} objects stored in the database.
@@ -53,14 +55,18 @@ public class PersistenceService {
         return fddbDataRepository.findByProductNameFuzzy(name);
     }
 
-    /**
-     * Persists the {@link FddbData} object to the database.
-     *
-     * @param fddbData the object containing the data
-     * @return the updated object saved to the database
-     */
-    public FddbData save(FddbData fddbData) {
-        return fddbDataRepository.save(fddbData);
+    public void saveOrUpdate(FddbData dataToPersist) {
+        Optional<FddbData> optionalOfDbEntry = findByDate(dataToPersist.getDate());
+        if (optionalOfDbEntry.isPresent()) {
+            FddbData existingFddbData = optionalOfDbEntry.get();
+            log.debug("updating existing database entry for {}", dataToPersist.getDate());
+            fddbDataMapper.updateFddbData(dataToPersist, existingFddbData);
+            FddbData updatedEntry = fddbDataRepository.save(existingFddbData);
+            log.info("updated entry: {}", updatedEntry);
+        } else {
+            FddbData savedEntry = fddbDataRepository.save(dataToPersist);
+            log.info("created entry: {}", savedEntry);
+        }
     }
 
 }
