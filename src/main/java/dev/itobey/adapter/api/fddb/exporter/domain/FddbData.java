@@ -4,7 +4,7 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 @Document(collection = "fddb")
@@ -13,7 +13,7 @@ public class FddbData {
 
     @Id
     private String id;
-    private Date date;
+    private LocalDate date;
     private List<Product> products;
     private double totalCalories;
     private double totalFat;

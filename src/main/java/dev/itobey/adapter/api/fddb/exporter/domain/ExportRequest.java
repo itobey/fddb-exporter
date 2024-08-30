@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Data
-public class FddbBatchExport {
+public class ExportRequest {
 
     @NotNull(message = "From date cannot be null")
     @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "From date must be in the format YYYY-MM-DD")

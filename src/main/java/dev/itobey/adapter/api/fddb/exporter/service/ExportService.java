@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Date;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -40,7 +39,7 @@ public class ExportService {
     @Transactional
     public FddbData exportDataAndSaveToDb(Timeframe timeframe) throws AuthenticationException, ParseException {
         FddbData dataToPersist = retrieveAndParseDataTo(timeframe);
-        Optional<FddbData> optionalOfDbEntry = persistenceService.find(dataToPersist.getDate());
+        Optional<FddbData> optionalOfDbEntry = persistenceService.findByDate(dataToPersist.getDate());
         if (optionalOfDbEntry.isPresent()) {
             FddbData existingFddbData = optionalOfDbEntry.get();
             log.debug("updating existing database entry for {}", dataToPersist.getDate());
@@ -56,7 +55,7 @@ public class ExportService {
         String response = fddbAdapter.retrieveDataToTimeframe(timeframe);
         FddbData fddbData = fddbParserService.parseDiary(response);
         LocalDateTime dateOfExport = LocalDateTime.ofEpochSecond(timeframe.getFrom(), 0, ZoneOffset.UTC);
-        fddbData.setDate(Date.from(dateOfExport.toInstant(ZoneOffset.UTC)));
+        fddbData.setDate(dateOfExport.toLocalDate());
         log.info("handling dataset: {}", fddbData);
         return fddbData;
     }

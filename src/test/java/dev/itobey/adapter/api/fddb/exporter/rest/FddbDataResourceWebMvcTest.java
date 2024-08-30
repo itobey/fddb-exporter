@@ -1,8 +1,9 @@
 package dev.itobey.adapter.api.fddb.exporter.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.itobey.adapter.api.fddb.exporter.domain.FddbBatchExport;
-import dev.itobey.adapter.api.fddb.exporter.service.ManualExportService;
+import dev.itobey.adapter.api.fddb.exporter.domain.ExportRequest;
+import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -14,8 +15,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(ManualExporterResource.class)
-class ManualExporterResourceWebMvcTest {
+@WebMvcTest(FddbDataResource.class)
+class FddbDataResourceWebMvcTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -24,16 +25,17 @@ class ManualExporterResourceWebMvcTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private ManualExportService manualExportService;
+    private FddbDataService fddbDataService;
 
     @Test
-    void batchExport_InvalidInput() throws Exception {
-        FddbBatchExport invalidBatchExport = FddbBatchExport.builder()
+    @SneakyThrows
+    void exportForTimerange_InvalidInput() {
+        ExportRequest invalidBatchExport = ExportRequest.builder()
                 .fromDate("2023/01/01")  // Invalid format
                 .toDate(null)  // Null value
                 .build();
 
-        mockMvc.perform(post("/api/v1/exports/batch")
+        mockMvc.perform(post("/api/v1/fddbdata")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidBatchExport)))
                 .andExpect(status().isBadRequest())

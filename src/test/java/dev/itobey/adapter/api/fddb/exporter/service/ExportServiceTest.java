@@ -14,8 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Date;
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,14 +42,15 @@ class ExportServiceTest {
     private Timeframe timeframe;
     private String fddbResponse;
     private FddbData fddbData;
-    private Date testDate;
+    private LocalDate testDate;
 
     @BeforeEach
     public void setUp() {
         long epochSecond = 1622505600; // 2021-06-01 00:00:00 UTC
         timeframe = new Timeframe(epochSecond, epochSecond + 86400);
         fddbResponse = "<html>mock FDDB response</html>";
-        testDate = new Date(Instant.ofEpochSecond(epochSecond).toEpochMilli());
+//        testDate = new Date(Instant.ofEpochSecond(epochSecond).toEpochMilli());
+        testDate = LocalDate.ofEpochDay(epochSecond / 86400);
         fddbData = new FddbData();
         fddbData.setDate(testDate);
     }
@@ -61,7 +61,7 @@ class ExportServiceTest {
         // given
         when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(fddbResponse);
         when(fddbParserService.parseDiary(fddbResponse)).thenReturn(fddbData);
-        when(persistenceService.find(testDate)).thenReturn(Optional.empty());
+        when(persistenceService.findByDate(testDate)).thenReturn(Optional.empty());
         when(persistenceService.save(fddbData)).thenReturn(fddbData);
 
         // when
@@ -71,7 +71,7 @@ class ExportServiceTest {
         assertEquals(fddbData, result);
         verify(fddbAdapter).retrieveDataToTimeframe(timeframe);
         verify(fddbParserService).parseDiary(fddbResponse);
-        verify(persistenceService).find(testDate);
+        verify(persistenceService).findByDate(testDate);
         verify(persistenceService).save(fddbData);
         verifyNoInteractions(fddbDataMapper);
     }
@@ -85,7 +85,7 @@ class ExportServiceTest {
 
         when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(fddbResponse);
         when(fddbParserService.parseDiary(fddbResponse)).thenReturn(fddbData);
-        when(persistenceService.find(testDate)).thenReturn(Optional.of(existingEntry));
+        when(persistenceService.findByDate(testDate)).thenReturn(Optional.of(existingEntry));
         when(persistenceService.save(existingEntry)).thenReturn(existingEntry);
 
         // when
@@ -95,7 +95,7 @@ class ExportServiceTest {
         assertEquals(existingEntry, result);
         verify(fddbAdapter).retrieveDataToTimeframe(timeframe);
         verify(fddbParserService).parseDiary(fddbResponse);
-        verify(persistenceService).find(testDate);
+        verify(persistenceService).findByDate(testDate);
         verify(fddbDataMapper).updateFddbData(existingEntry, fddbData);
         verify(persistenceService).save(existingEntry);
     }
