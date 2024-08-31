@@ -12,8 +12,8 @@ spring:
 fddb-exporter:
   fddb:
     url: https://fddb.info
-    cookie: ---
-    basicauth: ---
+    username: ---
+    password: ---
   scheduler:
     enabled: true
     cron: "0 0 3 * * *"

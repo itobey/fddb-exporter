@@ -19,10 +19,7 @@ public class FddbAdapter {
 
     public String retrieveDataToTimeframe(Timeframe timeframe) {
         log.debug("retrieving fddb data for timeframe {}", timeframe);
-        ConfigProperties.Fddb fddb = configProperties.getFddb();
-        String basicauthHeader = "Basic " + fddb.getBasicauth();
-        String cookieHeader = "fddb=" + fddb.getCookie();
-        return fddbApi.getDiary(timeframe.getFrom(), timeframe.getTo(), basicauthHeader, cookieHeader);
+        return fddbApi.getDiary(timeframe.getFrom(), timeframe.getTo());
     }
 
 }
