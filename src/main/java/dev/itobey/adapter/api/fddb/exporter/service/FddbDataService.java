@@ -94,6 +94,7 @@ public class FddbDataService {
     }
 
     private void exportForDate(LocalDate date) throws ParseException, AuthenticationException {
+        log.debug("exporting data for {}", date);
         Timeframe timeframe = timeframeCalculator.calculateTimeframeFor(date);
         FddbData fddbData = exportService.exportData(timeframe);
         persistenceService.saveOrUpdate(fddbData);

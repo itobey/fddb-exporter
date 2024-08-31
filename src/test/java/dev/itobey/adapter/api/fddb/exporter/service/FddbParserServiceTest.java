@@ -87,7 +87,7 @@ class FddbParserServiceTest {
     @SneakyThrows
     void parseDiary_whenNotLoggedIn_shouldThrowException() {
         // Given
-        Resource resource = new ClassPathResource("unauthenticated.html");
+        Resource resource = new ClassPathResource("__files/unauthenticated.html");
         Path path = resource.getFile().toPath();
         String content = Files.readString(path, StandardCharsets.UTF_8);
 

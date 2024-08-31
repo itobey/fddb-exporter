@@ -11,9 +11,10 @@ spring:
 
 fddb-exporter:
   fddb:
+    url: https://fddb.info
     cookie: ---
     basicauth: ---
 
-logger:
-  levels:
+logging:
+  level:
     root: INFO

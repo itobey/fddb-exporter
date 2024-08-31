@@ -30,4 +30,14 @@ public class GlobalExceptionHandler {
         }
         return errors;
     }
+
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler({AuthenticationException.class})
+    public Map<String, String> handleAuthenticationExceptions(Exception ex) {
+        Map<String, String> errors = new HashMap<>();
+        if (ex instanceof AuthenticationException authenticationException) {
+            errors.put("authenticationError", authenticationException.getMessage());
+        }
+        return errors;
+    }
 }

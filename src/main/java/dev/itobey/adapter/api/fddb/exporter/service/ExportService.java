@@ -22,6 +22,7 @@ public class ExportService {
 
     public FddbData exportData(Timeframe timeframe) throws AuthenticationException, ParseException {
         String response = fddbAdapter.retrieveDataToTimeframe(timeframe);
+        log.trace("HTML response: {}", response);
         FddbData fddbData = fddbParserService.parseDiary(response);
         LocalDateTime dateOfExport = LocalDateTime.ofEpochSecond(timeframe.getFrom(), 0, ZoneOffset.UTC);
         fddbData.setDate(dateOfExport.toLocalDate());

@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 /**
  * API for FDDB.info
  */
-@FeignClient(name = "fddbApi", url = "https://fddb.info")
+@FeignClient(name = "fddbApi", url = "${fddb-exporter.fddb.url}")
 public interface FddbApi {
 
     /**

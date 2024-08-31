@@ -36,6 +36,6 @@ public class TimeframeCalculator {
         ZonedDateTime startOfDay = date.atStartOfDay(ZONE_BERLIN).plusHours(OFFSET_HOURS);
         ZonedDateTime endOfDay = startOfDay.plusHours(DAY_HOURS);
 
-        return new Timeframe(startOfDay.toEpochSecond(), endOfDay.toEpochSecond());
+        return new Timeframe(startOfDay.toEpochSecond(), endOfDay.toEpochSecond() - 1);
     }
 }
