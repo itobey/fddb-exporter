@@ -32,6 +32,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 /**
  * This test acts as an e2e test to verify the application is working correctly.
+ * Wiremock will serve HTML of FDDB sites and the application will parse these and save the results in a MongoDB container.
  */
 @SpringBootTest
 @Testcontainers
