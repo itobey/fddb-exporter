@@ -71,6 +71,8 @@ Configure the application using environment variables:
 | `FDDB-EXPORTER_FDDB_URL`               | https://fddb.info     | FDDB website URL                                | No       |
 | `FDDB-EXPORTER_FDDB_SCHEDULER_ENABLED` | true                  | Enable/disable the daily export scheduler       | No       |
 | `FDDB-EXPORTER_FDDB_SCHEDULER_CRON`    | 0 0 3 * * *           | Scheduler cron expression (default: 3 AM daily) | No       |
+| `FDDB-EXPORTER_FDDB_MIN-DAYS-BACK`     | 1                     | Min limit of days back export for REST API      | No       |
+| `FDDB-EXPORTER_FDDB_MAX-DAYS-BACK`     | 365                   | Max limit of days back export for REST API      | No       |
 | `SPRING_DATA_MONGODB_HOST`             | localhost             | MongoDB host                                    | No       |
 | `SPRING_DATA_MONGODB_PORT`             | 27017                 | MongoDB port                                    | No       |
 | `SPRING_DATA_MONGODB_DATABASE`         | fddb                  | MongoDB database name                           | No       |

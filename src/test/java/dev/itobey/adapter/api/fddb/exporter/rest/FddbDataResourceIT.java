@@ -2,7 +2,6 @@ package dev.itobey.adapter.api.fddb.exporter.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.itobey.adapter.api.fddb.exporter.domain.ExportRequest;
-import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import dev.itobey.adapter.api.fddb.exporter.service.PersistenceService;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -61,7 +60,6 @@ class FddbDataResourceIT {
         mockMvc.perform(get("/api/v1/fddbdata/export?days=" + days + "&includeToday=" + includeToday))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.dateTimeError")
-                        .value("Days back must be between " + FddbDataService.MIN_DAYS_BACK + " and "
-                                + FddbDataService.MAX_DAYS_BACK));
+                        .value("Days back must be between 1 and 365"));
     }
 }

@@ -14,6 +14,8 @@ fddb-exporter:
     url: https://fddb.info
     username: ---
     password: ---
+    min-days-back: 1
+    max-days-back: 365
   scheduler:
     enabled: true
     cron: "0 0 3 * * *"

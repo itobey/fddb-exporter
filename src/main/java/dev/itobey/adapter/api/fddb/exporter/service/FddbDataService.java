@@ -8,6 +8,7 @@ import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.DateTimeException;
@@ -24,9 +25,11 @@ import static java.time.temporal.ChronoUnit.DAYS;
 @Slf4j
 public class FddbDataService {
 
-    //TODO introduce configuration param for these
-    public static final int MIN_DAYS_BACK = 1;
-    public static final int MAX_DAYS_BACK = 365;
+    @Value("${fddb-exporter.fddb.min-days-back:1}")
+    private int minDaysBack;
+
+    @Value("${fddb-exporter.fddb.max-days-back:365}")
+    private int maxDaysBack;
 
     private final TimeframeCalculator timeframeCalculator;
     private final ExportService exportService;
@@ -78,8 +81,8 @@ public class FddbDataService {
 
     public ExportResult exportForDaysBack(int days, boolean includeToday) {
         // safety net to prevent accidents
-        if (days < MIN_DAYS_BACK || days > MAX_DAYS_BACK) {
-            throw new DateTimeException("Days back must be between " + MIN_DAYS_BACK + " and " + MAX_DAYS_BACK);
+        if (days < minDaysBack || days > maxDaysBack) {
+            throw new DateTimeException("Days back must be between " + minDaysBack + " and " + maxDaysBack);
         }
 
         LocalDate to = includeToday ? LocalDate.now() : LocalDate.now().minusDays(1);
