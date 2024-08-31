@@ -1,0 +1,102 @@
+{
+  "id": "66d18658bc73187ea859f67c",
+  "date": "2024-08-28",
+  "products": [
+    {
+      "name": "Waffel Al limone, gutenfrei",
+      "amount": "64 g",
+      "calories": 331.0,
+      "fat": 16.6,
+      "carbs": 42.9,
+      "protein": 1.7,
+      "link": "/db/en/food/schaer_waffel_al_limone_gutenfrei/index.html"
+    },
+    {
+      "name": "Senf",
+      "amount": "30 g",
+      "calories": 26.0,
+      "fat": 1.2,
+      "carbs": 1.8,
+      "protein": 1.8,
+      "link": "/db/en/food/durchschnittswert_senf/index.html"
+    },
+    {
+      "name": "Heinz 50% Ketchup",
+      "amount": "30 ml",
+      "calories": 19.0,
+      "fat": 0.0,
+      "carbs": 3.6,
+      "protein": 0.4,
+      "link": "/db/en/food/heinz_heinz_50prozent_ketchup/index.html"
+    },
+    {
+      "name": "Fleischkäse",
+      "amount": "164 g",
+      "calories": 501.0,
+      "fat": 39.4,
+      "carbs": 0.5,
+      "protein": 30.4,
+      "link": "/db/en/food/metzger_fleischkaese/index.html"
+    },
+    {
+      "name": "Ciabatta, mit Sauerteig",
+      "amount": "50 g",
+      "calories": 116.0,
+      "fat": 1.7,
+      "carbs": 21.0,
+      "protein": 2.3,
+      "link": "/db/en/food/schaer_ciabatta_mit_sauerteig/index.html"
+    },
+    {
+      "name": "Panini Rolls",
+      "amount": "75 g",
+      "calories": 176.0,
+      "fat": 2.2,
+      "carbs": 33.8,
+      "protein": 2.8,
+      "link": "/db/en/food/schaer_panini_rolls/index.html"
+    },
+    {
+      "name": "Vollmilch, 3,5% Fett",
+      "amount": "40 ml",
+      "calories": 26.0,
+      "fat": 1.4,
+      "carbs": 1.9,
+      "protein": 1.2,
+      "link": "/db/en/food/molkerei_vollmilch_3_5prozent_fett/index.html"
+    },
+    {
+      "name": "Yuzu Yakitori Chicken Bowl",
+      "amount": "414 g",
+      "calories": 691.0,
+      "fat": 12.8,
+      "carbs": 115.9,
+      "protein": 28.6,
+      "link": "/db/en/food/kaufland_yuzu_yakitori_chicken_bowl/index.html"
+    },
+    {
+      "name": "inside out lachs sake",
+      "amount": "237 g",
+      "calories": 391.0,
+      "fat": 13.0,
+      "carbs": 52.1,
+      "protein": 14.7,
+      "link": "/db/en/food/diverse_inside_out_lachs_sake/index.html"
+    },
+    {
+      "name": "High Protein Lemon Mousse",
+      "amount": "200 g",
+      "calories": 160.0,
+      "fat": 5.2,
+      "carbs": 12.0,
+      "protein": 20.0,
+      "link": "/db/en/food/ehrmann_high_protein_lemon_mousse/index.html"
+    }
+  ],
+  "totalCalories": 2437.0,
+  "totalFat": 93.5,
+  "totalCarbs": 285.5,
+  "totalSugar": 76.3,
+  "totalProtein": 103.9,
+  "totalFibre": 10.3
+}

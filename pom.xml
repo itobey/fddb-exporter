@@ -89,6 +89,10 @@
             <artifactId>lombok-mapstruct-binding</artifactId>
             <version>0.2.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
 
         <!-- Test Dependencies-->
         <dependency>
@@ -123,11 +127,6 @@
             <groupId>org.wiremock</groupId>
             <artifactId>wiremock</artifactId>
             <version>3.9.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

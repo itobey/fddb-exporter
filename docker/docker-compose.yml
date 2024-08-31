@@ -26,8 +26,8 @@ services:
       SPRING_DATA_MONGODB_HOST: mongodb
       SPRING_DATA_MONGODB_PORT: 27017
       SPRING_DATA_MONGODB_DATABASE: fddb
-      SPRING_DATA_MONGODB_USERNAME: fddb_user
-      SPRING_DATA_MONGODB_PASSWORD: fddb_password
+      SPRING_DATA_MONGODB_USERNAME: mongodb_fddb_user
+      SPRING_DATA_MONGODB_PASSWORD: mongodb_fddb_password
       FDDB-EXPORTER_FDDB_USERNAME: ---
       FDDB-EXPORTER_FDDB_PASSWORD: ---
     depends_on:
