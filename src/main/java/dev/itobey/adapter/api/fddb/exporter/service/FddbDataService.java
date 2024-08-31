@@ -25,11 +25,10 @@ import static java.time.temporal.ChronoUnit.DAYS;
 @Slf4j
 public class FddbDataService {
 
-    @Value("${fddb-exporter.fddb.min-days-back:1}")
-    private int minDaysBack;
-
-    @Value("${fddb-exporter.fddb.max-days-back:365}")
-    private int maxDaysBack;
+    @Value("${fddb-exporter.fddb.min-days-back}")
+    private int minDaysBack = 1;
+    @Value("${fddb-exporter.fddb.max-days-back}")
+    private int maxDaysBack = 365;
 
     private final TimeframeCalculator timeframeCalculator;
     private final ExportService exportService;
