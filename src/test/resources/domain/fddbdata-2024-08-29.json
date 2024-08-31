@@ -1,0 +1,120 @@
+{
+  "date": "2024-08-29T00:00:00.000",
+  "products": [
+    {
+      "name": "Ciabatta, mit Sauerteig",
+      "amount": "100 g",
+      "calories": 231.0,
+      "fat": 3.3,
+      "carbs": 42.0,
+      "protein": 4.6,
+      "link": "https://fddb.info/db/en/food/schaer_ciabatta_mit_sauerteig/index.html"
+    },
+    {
+      "name": "Cevapcici",
+      "amount": "400 g",
+      "calories": 936.0,
+      "fat": 71.2,
+      "carbs": 2.0,
+      "protein": 70.8,
+      "link": "https://fddb.info/db/en/food/kaufland_cevapcici/index.html"
+    },
+    {
+      "name": "Erdnussmus, creamy",
+      "amount": "25 ml",
+      "calories": 155.0,
+      "fat": 12.5,
+      "carbs": 2.2,
+      "protein": 7.0,
+      "link": "https://fddb.info/db/en/food/kaufland_erdnussmus_creamy/index.html"
+    },
+    {
+      "name": "Helles Brot, glutenfrei",
+      "amount": "100 g",
+      "calories": 211.0,
+      "fat": 2.7,
+      "carbs": 41.0,
+      "protein": 2.4,
+      "link": "https://fddb.info/db/en/food/schaer_helles_brot_glutenfrei/index.html"
+    },
+    {
+      "name": "Marmelade, Durchschnitt",
+      "amount": "15 g",
+      "calories": 43.0,
+      "fat": 0.0,
+      "carbs": 10.4,
+      "protein": 0.0,
+      "link": "https://fddb.info/db/en/food/durchschnittswert_marmelade_durchschnitt/index.html"
+    },
+    {
+      "name": "Vollmilch, 3,5% Fett",
+      "amount": "40 ml",
+      "calories": 26.0,
+      "fat": 1.4,
+      "carbs": 1.9,
+      "protein": 1.2,
+      "link": "https://fddb.info/db/en/food/molkerei_vollmilch_3_5prozent_fett/index.html"
+    },
+    {
+      "name": "Paprikalyoner",
+      "amount": "39 g",
+      "calories": 110.0,
+      "fat": 10.1,
+      "carbs": 0.4,
+      "protein": 4.3,
+      "link": "https://fddb.info/db/en/food/real_paprikalyoner_727510/index.html"
+    },
+    {
+      "name": "Laugenbrötchen",
+      "amount": "72 g",
+      "calories": 205.0,
+      "fat": 1.2,
+      "carbs": 40.8,
+      "protein": 6.9,
+      "link": "https://fddb.info/db/en/food/baecker_laugenbroetchen/index.html"
+    },
+    {
+      "name": "Gemischter Salat, Salat Dressing",
+      "amount": "100 g",
+      "calories": 164.0,
+      "fat": 14.0,
+      "carbs": 6.9,
+      "protein": 1.1,
+      "link": "https://fddb.info/db/en/food/lidl_gemischter_salat/index.html"
+    },
+    {
+      "name": "pilzragout",
+      "amount": "150 g",
+      "calories": 142.0,
+      "fat": 4.7,
+      "carbs": 20.4,
+      "protein": 4.4,
+      "link": "https://fddb.info/db/en/food/klueh_pilzragout/index.html"
+    },
+    {
+      "name": "Gnocchi",
+      "amount": "250 g",
+      "calories": 375.0,
+      "fat": 5.5,
+      "carbs": 76.3,
+      "protein": 9.5,
+      "link": "https://fddb.info/db/en/food/durchschnittswert_gnocchi/index.html"
+    },
+    {
+      "name": "Butter",
+      "amount": "5 g",
+      "calories": 37.0,
+      "fat": 4.2,
+      "carbs": 0.0,
+      "protein": 0.0,
+      "link": "https://fddb.info/db/en/food/durchschnittswert_butter/index.html"
+    }
+  ],
+  "totalCalories": 2633.0,
+  "totalFat": 130.8,
+  "totalCarbs": 244.2,
+  "totalSugar": 33.8,
+  "totalProtein": 112.2,
+  "totalFibre": 25.6
+}
+

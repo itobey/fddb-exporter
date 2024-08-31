@@ -1,24 +1,25 @@
 spring:
   application:
     name: fddbexporter
-  datasource:
-    url: jdbc:postgresql://postgres.misc:5432/postgres
-    driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: ---
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: fddb
+      username: user
+      password: password
 
 fddb-exporter:
   fddb:
-    cookie: ---
-    basicauth: ---
+    url: https://fddb.info
+    username: ---
+    password: ---
+    min-days-back: 1
+    max-days-back: 365
+  scheduler:
+    enabled: true
+    cron: "0 0 3 * * *"
 
-logger:
-  levels:
+logging:
+  level:
     root: INFO

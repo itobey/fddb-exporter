@@ -1,0 +1,138 @@
+{
+  "date": "2024-08-27T00:00:00.000",
+  "products": [
+    {
+      "name": "Bio Ziegenjogurt mild",
+      "amount": "125 g",
+      "calories": 112.0,
+      "fat": 7.5,
+      "carbs": 4.5,
+      "protein": 6.6,
+      "link": "https://fddb.info/db/en/food/andechser_molkerei_bio_ziegenjogurt_mild_99503/index.html"
+    },
+    {
+      "name": "Skyr (Bioland)",
+      "amount": "200 g",
+      "calories": 120.0,
+      "fat": 0.4,
+      "carbs": 7.0,
+      "protein": 22.0,
+      "link": "https://fddb.info/db/en/food/kaufland_skyr_bioland/index.html"
+    },
+    {
+      "name": "Kinder Duo",
+      "amount": "25 g",
+      "calories": 131.0,
+      "fat": 7.0,
+      "carbs": 15.0,
+      "protein": 1.8,
+      "link": "https://fddb.info/db/en/food/ferrero_kinder_duo_1054818/index.html"
+    },
+    {
+      "name": "Impact Whey Protein, Cookies & Cream",
+      "amount": "1 Scoop",
+      "calories": 102.0,
+      "fat": 1.8,
+      "carbs": 1.8,
+      "protein": 19.8,
+      "link": "https://fddb.info/db/en/food/myprotein_impact_whey_protein_cookies_und_cream_flavour_516098/index.html"
+    },
+    {
+      "name": "Haferflocken",
+      "amount": "40 g",
+      "calories": 149.0,
+      "fat": 2.8,
+      "carbs": 23.5,
+      "protein": 5.4,
+      "link": "https://fddb.info/db/en/food/durchschnittswert_haferflocken/index.html"
+    },
+    {
+      "name": "Granatapfel Kerne",
+      "amount": "50 g",
+      "calories": 36.0,
+      "fat": 1.0,
+      "carbs": 6.0,
+      "protein": 0.7,
+      "link": "https://fddb.info/db/en/food/rewe_beste_wahl_granatapfel_kerne_1155693/index.html"
+    },
+    {
+      "name": "Cornflakes, glutenfrei",
+      "amount": "30 g",
+      "calories": 111.0,
+      "fat": 0.3,
+      "carbs": 24.0,
+      "protein": 2.4,
+      "link": "https://fddb.info/db/en/food/schaer_cornflakes_glutenfrei/index.html"
+    },
+    {
+      "name": "Chiasamen",
+      "amount": "30 g",
+      "calories": 123.0,
+      "fat": 9.9,
+      "carbs": 1.1,
+      "protein": 6.6,
+      "link": "https://fddb.info/db/en/food/k-bio_chiasamen_869980/index.html"
+    },
+    {
+      "name": "Leinsamen, geschrotet",
+      "amount": "10 g",
+      "calories": 54.0,
+      "fat": 4.2,
+      "carbs": 0.3,
+      "protein": 2.2,
+      "link": "https://fddb.info/db/en/food/alnatura_leinsamen_geschrotet_11146/index.html"
+    },
+    {
+      "name": "Rice Cracker",
+      "amount": "25 g",
+      "calories": 105.0,
+      "fat": 2.2,
+      "carbs": 19.3,
+      "protein": 1.9,
+      "link": "https://fddb.info/db/en/food/mitsuba_mitsuba/index.html"
+    },
+    {
+      "name": "Nudeln, gekocht",
+      "amount": "600 g",
+      "calories": 823.0,
+      "fat": 12.6,
+      "carbs": 150.0,
+      "protein": 27.0,
+      "link": "https://fddb.info/db/en/food/durchschnittswert_nudeln_gekocht/index.html"
+    },
+    {
+      "name": "Tomatensauce",
+      "amount": "300 ml",
+      "calories": 169.0,
+      "fat": 17.7,
+      "carbs": 17.7,
+      "protein": 6.6,
+      "link": "https://fddb.info/db/en/food/diverse_tomatensauce_923194/index.html"
+    },
+    {
+      "name": "Thunfisch-Filets, im eigenen Saft und Au",
+      "amount": "60 g",
+      "calories": 66.0,
+      "fat": 0.4,
+      "carbs": 0.1,
+      "protein": 15.6,
+      "link": "https://fddb.info/db/en/food/nixe_thunfisch-filets_im_eigenen_saft_und_aufguss/index.html"
+    },
+    {
+      "name": "Vollmilch, 3,5% Fett",
+      "amount": "40 ml",
+      "calories": 26.0,
+      "fat": 1.4,
+      "carbs": 1.9,
+      "protein": 1.2,
+      "link": "https://fddb.info/db/en/food/molkerei_vollmilch_3_5prozent_fett/index.html"
+    }
+  ],
+  "totalCalories": 2128.0,
+  "totalFat": 69.3,
+  "totalCarbs": 272.0,
+  "totalSugar": 44.1,
+  "totalProtein": 119.7,
+  "totalFibre": 24.0
+}
+

@@ -1,0 +1,44 @@
+#for local testing
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0.9
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: adminpassword
+      MONGO_INITDB_DATABASE: fddb
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - container_network
+
+  fddb-exporter:
+    image: fddb-exporter
+    container_name: fddb-exporter
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATA_MONGODB_HOST: mongodb
+      SPRING_DATA_MONGODB_PORT: 27017
+      SPRING_DATA_MONGODB_DATABASE: fddb
+      SPRING_DATA_MONGODB_USERNAME: mongodb_fddb_user
+      SPRING_DATA_MONGODB_PASSWORD: mongodb_fddb_password
+      FDDB-EXPORTER_FDDB_USERNAME: ---
+      FDDB-EXPORTER_FDDB_PASSWORD: ---
+    depends_on:
+      - mongodb
+
+    networks:
+      - container_network
+
+networks:
+  container_network:
+    driver: bridge
+
+volumes:
+  mongo-data:

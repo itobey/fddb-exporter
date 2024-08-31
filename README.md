@@ -1,70 +1,191 @@
 # FDDB Exporter
-This is a small tool I created to export data from [FDDB.info](https://fddb.info/).
-The following data will be exported on a daily basis:
-- kcal
-- fat
-- carbs
-- sugar
-- protein
-- fiber
+
+## Overview
+
+FDDB Exporter is a tool designed to extract nutritional data from [FDDB.info](https://fddb.info/) and store it in a MongoDB database. This application is particularly useful for individuals who want to track their daily nutritional intake, including detailed information on sugar consumption that isn't available in FDDB's standard CSV export.
+
+## Key Features
+
+- Exports daily nutritional totals: calories, fat, carbohydrates, sugar, protein, and fiber
+- Stores detailed information on consumed products, including name, amount, nutritional values, and link to the product page
+- Supports scheduled daily exports and manual exports for specific date ranges
+- Provides a RESTful API for data retrieval and export operations
+
+An example of a stored document can be seen [here](./doc/example-document.bson).
+
+An example of a response returned by the REST API can be seen [here](./doc/example-response.json).
 
 ## Prerequisites
--   a running postgres database with a table set up
--   an account on fddb.info for which you want to export the data
--   the fddb cookie necessary (see [this README](https://github.com/itobey/fddb-calories-exporter#how-it-works) of an older project)
--   Docker or Java to run the exporter
 
-## Technology
-Since version 0.3 this is based on [Spring Boot](https://spring.io/projects/spring-boot) and compiled with JDK 21.
-As a database I use Postgres to save the gathered data, because I already had a Postgres running anyway. Feel free to change the persistence layer to suit your needs.
-I will probably update this project and when that happens I may move to something like MongoDB.
+- Docker or Java 21+ runtime environment
+- A valid FDDB.info account
+- MongoDB instance (can be run using the provided Docker Compose file)
 
-## How does it work?
-You may start the application yourself or just use the [created Docker image](https://github.com/itobey/fddb-exporter/pkgs/container/fddb-exporter%2Ffddb-exporter). Once running a scheduler will log into FDDB every night and gather the data for the day before. This is based on a cron expression (0 3 * * * *), which is currently hardcoded and which I may outsource as a property in the future. The data is then saved to the configured database.
+## Technology Stack
 
-### Using the image
-If you want to use the image, you can configure it using environment properties. Have a look at the included `docker-compose.yaml` which shows an example of this.
+- [Spring Boot](https://spring.io/projects/spring-boot)
+- Java 21
+- MongoDB
+- Docker (optional)
 
-### Batch export
+## Installation and Setup
 
-#### retrieve timeframe
+### Option 1: Using Pre-built Docker Image
 
-There's also a HTTP endpoint to get a batch export. This is available on `/batch` of your context root running the application. The payload is a simple JSON with the timerange you want the export for.
+1. Pull the pre-built Docker image:
+   ```
+   docker pull ghcr.io/itobey/fddb-exporter/fddb-exporter:latest
+   ```
 
-```json
-# POST http://localhost:8080/batch
-{
- "fromDate": "2021-05-13",
- "toDate": "2021-08-18"
-}
-```
+2. Use the provided [docker-compose.yaml](./docker/docker-compose.yml) file to start both the MongoDB and FDDB Exporter containers:
+   ```
+   docker-compose -f docker/docker-compose.yml up -d
+   ```
 
-The application will gather data for every day in this range, will save it to the database and return a JSON payload containing the data.
+### Option 2: Building from Source
 
-#### retrieve recent days
+1. Clone the repository:
+   ```
+   git clone https://github.com/itobey/fddb-exporter.git
+   cd fddb-exporter
+   ```
 
-Sending a GET request to this endpoint with specific query params will retrieve the data for the last x amount of days. The query param `days` determines how many days back from today shall be retrieved and by adding `includeToday=true` the current day will be exported as well.
+2. Build the application:
+   ```
+   mvn clean install
+   ```
 
-`GET  http://localhost:8080/batch?days=2&includeToday=true`
+3. Build the Docker image:
+   ```
+   docker build -f docker/Dockerfile -t fddb-exporter .
+   ```
 
-### HTML vs. CSV
-FDDB offers a CSV-file containing data, which I based a [recent project](https://github.com/itobey/fddb-calories-exporter) on. However the CSV file does not contain the sugar values - only the carbs are available. Because I was highly interested in my sugar consumption, I needed to find another approach. The website of FDDB displays the sugar as well, so the approach in this application is to parse the HTML response for the values of interest. The performance is actually way better than anticipated.
+## Configuration
 
-## Screenshots
-After gathering all the data in a database, it's easy to display graphs based on it in Grafana.
+Configure the application using environment variables:
+
+| Variable                               | Default               | Description                                     | Required |
+|----------------------------------------|-----------------------|-------------------------------------------------|----------|
+| `FDDB-EXPORTER_FDDB_USERNAME`          | -                     | Your FDDB.info username or email                | Yes      |
+| `FDDB-EXPORTER_FDDB_PASSWORD`          | -                     | Your FDDB.info password                         | Yes      |
+| `FDDB-EXPORTER_FDDB_URL`               | https://fddb.info     | FDDB website URL                                | No       |
+| `FDDB-EXPORTER_FDDB_SCHEDULER_ENABLED` | true                  | Enable/disable the daily export scheduler       | No       |
+| `FDDB-EXPORTER_FDDB_SCHEDULER_CRON`    | 0 0 3 * * *           | Scheduler cron expression (default: 3 AM daily) | No       |
+| `FDDB-EXPORTER_FDDB_MIN-DAYS-BACK`     | 1                     | Min limit of days back export for REST API      | No       |
+| `FDDB-EXPORTER_FDDB_MAX-DAYS-BACK`     | 365                   | Max limit of days back export for REST API      | No       |
+| `SPRING_DATA_MONGODB_HOST`             | localhost             | MongoDB host                                    | No       |
+| `SPRING_DATA_MONGODB_PORT`             | 27017                 | MongoDB port                                    | No       |
+| `SPRING_DATA_MONGODB_DATABASE`         | fddb                  | MongoDB database name                           | No       |
+| `SPRING_DATA_MONGODB_USERNAME`         | mongodb_fddb_user     | MongoDB username                                | No       |
+| `SPRING_DATA_MONGODB_PASSWORD`         | mongodb_fddb_password | MongoDB password                                | No       |
+| `LOGGING_LEVEL_ROOT`                   | info                  | Application log level                           | No       |
+
+## Usage
+
+### Automated Daily Export
+
+By default, the application will automatically export data for the previous day at 3 AM. You can adjust this schedule using the `FDDB-EXPORTER_FDDB_SCHEDULER_CRON` environment variable.
+
+### REST API Documentation
+
+#### Overview
+
+This API allows you to retrieve and export data from the database. The endpoints support operations such as retrieving
+all data, filtering by date, searching for specific products, and exporting data for a specified date range.
+
+---
+
+#### Endpoints
+
+##### Retrieve All Data
+
+> **GET** `/api/v1/fddbdata`
+
+- **Description:** Retrieves all data from the database as JSON.
+- **Response:** A JSON array containing all entries.
+
+---
+
+##### Retrieve Data by Date
+
+> **GET** `/api/v1/fddbdata/{date}`
+
+- **Description:** Retrieves data for a specific day from the database as JSON.
+- **Path Parameter:**
+  - `date` _(required)_: The specific date in `YYYY-MM-DD` format.
+- **Example:** `/api/v1/fddbdata/2024-08-24`
+- **Response:** A JSON object containing the data for the specified date.
+
+---
+
+##### Search Products by Name
+
+> **GET** `/api/v1/fddbdata/products?name={product}`
+
+- **Description:** Retrieves all entries matching the given product name as JSON. The search is fuzzy, allowing for
+  partial matches.
+- **Query Parameter:**
+  - `name` _(required)_: The name of the product to search for.
+- **Example:** `/api/v1/fddbdata/products?name=mountain` _(This will find entries like `Mountain Dew`.)_
+- **Response:** A JSON array containing all matching entries.
+
+---
+
+##### Export Data by Date Range
+
+> **POST** `/api/v1/fddbdata`
+
+- **Description:** Exports all entries within a specified date range.
+- **Request Body:**
+  - `fromDate` _(required)_: The start date in `YYYY-MM-DD` format.
+  - `toDate` _(required)_: The end date in `YYYY-MM-DD` format.
+- **Example Payload:**
+  ```json
+  {
+    "fromDate": "2021-05-13",
+    "toDate": "2021-08-18"
+  }
+
+---
+
+##### Export Data for Last N Days
+
+> **GET** `/api/v1/fddbdata/export?days={amount}&includeToday={bool}`
+
+- **Description:** Exports entries for the last specified number of days.
+- **Query Parameters:**
+  - `days` _(required)_: The number of days to export.
+  - `includeToday` _(optional)_: Whether to include the current day in the export. (`true` or `false`)
+- **Example:** `/api/v1/fddbdata/export?days=5&includeToday=true`
+- **Response:** A JSON array containing the entries for the specified period.
+
+## Visualization
+After gathering all the data in a database, it's easy to display graphs based on it in Grafana. These screenshots
+are from version 0.3 as this version did use Postgresql and I didn't have time yet to figure out how to use MongoDB
+as a datasource for Grafana.
 ![image](https://user-images.githubusercontent.com/22119845/131020061-a65e9b6b-6b44-4ba9-8438-10e5ef81e708.png)
 ![image](https://user-images.githubusercontent.com/22119845/131022068-6479fdb5-1926-4adf-914b-c7bdf6905c15.png)
 
 ## Changelog
 
+### v1.0
+- Complete redesign of the application
+- Switched persistence layer to MongoDB
+- Updated API endpoints
+
 ### v0.3
-Switched the backend to Spring Boot 3 and JDK 21
+- Upgraded to Spring Boot 3 and JDK 21
 
 ### v0.2.1
-FDDB changed the placement of the login button and this fix deals with this change to combat the resulting issues.
+- Fixed login button detection due to FDDB website changes
 
 ### v0.2
-I've added an endpoint to retrieve data dating back a specific amount of days. See the `batch export` part of this readme for details.
+- Added endpoint to retrieve data for a specific number of past days
 
-## Footprint
-The service is idling at around 270 MB RAM and with almost no CPU usage.
+## Resource Usage
+
+The service typically uses around 270 MB of RAM with minimal CPU usage when idle.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.

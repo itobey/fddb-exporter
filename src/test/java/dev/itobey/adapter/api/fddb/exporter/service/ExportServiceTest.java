@@ -3,92 +3,76 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 import dev.itobey.adapter.api.fddb.exporter.adapter.FddbAdapter;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.Timeframe;
+import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
+import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import lombok.SneakyThrows;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Date;
-import java.util.Optional;
+import java.time.LocalDate;
 
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
-/**
- * Test for {@link ExportService}
- */
 @ExtendWith(MockitoExtension.class)
 class ExportServiceTest {
 
     @InjectMocks
-    ExportService exportService;
+    private ExportService exportService;
 
     @Mock
-    FddbAdapter fddbAdapter;
-    @Mock
-    HtmlParser htmlParser;
-    @Mock
-    PersistenceService persistenceService;
+    private FddbAdapter fddbAdapter;
 
-    Timeframe timeframe;
-    String fddbResponse;
-    FddbData fddbData;
-    FddbData existingEntry;
+    @Mock
+    private FddbParserService fddbParserService;
 
-    @BeforeEach
-    public void setUp() {
-        timeframe = Timeframe.builder().from(123).to(456).build();
-        fddbResponse = "<html>something</html>";
-        Date date = new Date(2021, 02, 01);
-        fddbData = createFddbData(date);
-        existingEntry = createFddbData(date);
-        existingEntry.setCarbs(100);
-        existingEntry.setId(123L);
+    @Test
+    @SneakyThrows
+    void exportData_whenExportSuccessful_shouldReturnResult() {
+        // Given
+        long fromTimestamp = 1625097600L; // 2021-07-01 00:00:00 UTC
+        Timeframe timeframe = new Timeframe(fromTimestamp, fromTimestamp + 86400); // One day later // 2021-07-01 00:00:00 UTC to 2021-07-02 00:00:00 UTC
+        String mockResponse = "mock response data";
+        FddbData mockParsedData = new FddbData();
+
+        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(mockResponse);
+        when(fddbParserService.parseDiary(mockResponse)).thenReturn(mockParsedData);
+
+        // When
+        FddbData result = exportService.exportData(timeframe);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(LocalDate.of(2021, 7, 1), result.getDate());
     }
 
     @Test
     @SneakyThrows
-    void exportBatch_whenNoEntryFound_shouldRetrieveDataAndSaveNewEntryToDatabase() {
-        // given
-        doReturn(fddbResponse).when(fddbAdapter).retrieveDataToTimeframe(timeframe);
-        doReturn(fddbData).when(htmlParser).getDataFromResponse(fddbResponse);
-        // when
-        exportService.exportDataAndSaveToDb(timeframe);
-        // then
-        verify(fddbAdapter, times(1)).retrieveDataToTimeframe(timeframe);
-        verify(htmlParser, times(1)).getDataFromResponse(fddbResponse);
-        verify(persistenceService, times(1)).save(fddbData);
+    void exportData_whenAuthenticationExceptionThrown_shouldThrowException() {
+        // Given
+        Timeframe timeframe = new Timeframe(1625097600L, 1625184000L);
+        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenThrow(new AuthenticationException("Authentication failed"));
+
+        // When & Then
+        assertThrows(AuthenticationException.class, () -> exportService.exportData(timeframe));
+        verifyNoInteractions(fddbParserService);
     }
 
     @Test
     @SneakyThrows
-    void exportBatch_whenEntryForDatePresent_shouldRetrieveDataAndUpdateEntry() {
-        // given
-        doReturn(fddbResponse).when(fddbAdapter).retrieveDataToTimeframe(timeframe);
-        doReturn(fddbData).when(htmlParser).getDataFromResponse(fddbResponse);
-        doReturn(Optional.of(existingEntry)).when(persistenceService).find(Mockito.any());
-        // when
-        exportService.exportDataAndSaveToDb(timeframe);
-        // then
-        verify(fddbAdapter, times(1)).retrieveDataToTimeframe(timeframe);
-        verify(htmlParser, times(1)).getDataFromResponse(fddbResponse);
-        existingEntry.setCarbs(200);
-        existingEntry.setId(123L);
-        verify(persistenceService, times(1)).save(existingEntry);
+    void exportData_whenParseExceptionThrown_shouldThrowException() {
+        // Given
+        Timeframe timeframe = new Timeframe(1625097600L, 1625184000L);
+        String mockResponse = "invalid response data";
+        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(mockResponse);
+        when(fddbParserService.parseDiary(mockResponse)).thenThrow(new ParseException("Parsing failed"));
+
+        // When & Then
+        assertThrows(ParseException.class, () -> exportService.exportData(timeframe));
     }
 
-    private FddbData createFddbData(Date date) {
-        return FddbData.builder()
-                .kcal(2000)
-                .carbs(200)
-                .fat(100)
-                .fiber(100)
-                .protein(100)
-                .sugar(100)
-                .date(date)
-                .build();
-    }
 }

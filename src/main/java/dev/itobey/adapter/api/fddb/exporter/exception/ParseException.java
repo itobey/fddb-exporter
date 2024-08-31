@@ -1,6 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.exception;
 
-public class ParseException extends Exception {
+public class ParseException extends RuntimeException {
 
     // Parameterless Constructor
     public ParseException() {
