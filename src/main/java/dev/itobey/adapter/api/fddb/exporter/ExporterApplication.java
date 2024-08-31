@@ -1,15 +1,12 @@
 package dev.itobey.adapter.api.fddb.exporter;
 
-import dev.itobey.adapter.api.fddb.exporter.config.ConfigProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
-@EnableConfigurationProperties(ConfigProperties.class)
 @EnableScheduling
 @EnableFeignClients
 public class ExporterApplication {

@@ -1,6 +1,5 @@
 package dev.itobey.adapter.api.fddb.exporter.adapter;
 
-import dev.itobey.adapter.api.fddb.exporter.config.ConfigProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.Timeframe;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Service;
 public class FddbAdapter {
 
     private final FddbApi fddbApi;
-    private final ConfigProperties configProperties;
 
     public String retrieveDataToTimeframe(Timeframe timeframe) {
         log.debug("retrieving fddb data for timeframe {}", timeframe);
