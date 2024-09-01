@@ -37,7 +37,7 @@ public class FddbParserService {
         return fddbData;
     }
 
-    private void checkAuthentication(Document doc) throws AuthenticationException {
+    public void checkAuthentication(Document doc) throws AuthenticationException {
         Elements authStatus = doc.selectXpath(XPATH_AUTH_STATUS);
         if (!authStatus.isEmpty()) {
             String errorMsg = "Login to FDDB not successful, please check credentials";
