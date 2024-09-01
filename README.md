@@ -166,6 +166,17 @@ as a datasource for Grafana.
 ![image](https://user-images.githubusercontent.com/22119845/131020061-a65e9b6b-6b44-4ba9-8438-10e5ef81e708.png)
 ![image](https://user-images.githubusercontent.com/22119845/131022068-6479fdb5-1926-4adf-914b-c7bdf6905c15.png)
 
+## Roadmap
+I plan on implementing the following features in the future:
+- [ ] Helm Chart for deployment
+- [ ] product search API: to get only relevant data instead of the entire day
+- [ ] product search API: limit search by date or weekday instead of searching and returning every day
+- [ ] new stats endpoint: display some stats of your data
+- [ ] ARM container release (currently only x86 available)
+- [ ] Alerting feature to notify when the Scheduler run failed
+
+If you have another feature in mind please open up an issue or contact me.
+
 ## Changelog
 
 ### v1.1.0
