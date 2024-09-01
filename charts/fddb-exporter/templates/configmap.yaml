@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: { { include "fddb-exporter.fullname" . } }-config
+  labels:
+    {{- include "fddb-exporter.labels" . | nindent 4 }}
+data:
+  SPRING_DATA_MONGODB_HOST: { { .Values.mongodb.host | quote } }
+  SPRING_DATA_MONGODB_PORT: { { .Values.mongodb.port | quote } }
+  SPRING_DATA_MONGODB_DATABASE: { { .Values.mongodb.database | quote } }
+  SPRING_DATA_MONGODB_USERNAME: { { .Values.mongodb.username | quote } }

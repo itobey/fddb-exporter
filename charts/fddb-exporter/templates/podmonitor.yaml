@@ -1,0 +1,17 @@
+{ { - if .Values.podMonitor.enabled } }
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: { { include "fddb-exporter.fullname" . } }
+  labels:
+    { { - include "fddb-exporter.labels" . | nindent 4 } }
+spec:
+  selector:
+    matchLabels:
+      { { - include "fddb-exporter.selectorLabels" . | nindent 6 } }
+  podMetricsEndpoints:
+    - port: http
+      path: { { .Values.podMonitor.path } }
+      interval: { { .Values.podMonitor.interval } }
+      scrapeTimeout: { { .Values.podMonitor.scrapeTimeout } }
+  { { - end } }
