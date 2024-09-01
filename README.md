@@ -168,10 +168,10 @@ as a datasource for Grafana.
 
 ## Changelog
 
-### v1.1
+### v1.1.0
 - added Spring Actuator for healthchecks
 
-### v1.0
+### v1.0.0
 - Complete redesign of the application
 - Switched persistence layer to MongoDB
 - Updated API endpoints
@@ -187,7 +187,7 @@ as a datasource for Grafana.
 
 ## Resource Usage
 
-The service typically uses around 270 MB of RAM with minimal CPU usage when idle.
+The service typically uses around 285 MB of RAM with minimal CPU usage when idle.
 
 ## Contributing
 
