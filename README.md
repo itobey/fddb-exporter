@@ -168,6 +168,9 @@ as a datasource for Grafana.
 
 ## Changelog
 
+### v1.1
+- added Spring Actuator for healthchecks
+
 ### v1.0
 - Complete redesign of the application
 - Switched persistence layer to MongoDB
