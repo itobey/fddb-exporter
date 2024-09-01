@@ -1,8 +1,9 @@
 package dev.itobey.adapter.api.fddb.exporter.rest;
 
-import dev.itobey.adapter.api.fddb.exporter.domain.ExportRequest;
-import dev.itobey.adapter.api.fddb.exporter.domain.ExportResult;
-import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -42,8 +43,8 @@ public class FddbDataResource {
      * @return a ResponseEntity containing a list of all FDDB data entries
      */
     @GetMapping
-    public ResponseEntity<List<FddbData>> findAllEntries() {
-        List<FddbData> entries = fddbDataService.findAllEntries();
+    public ResponseEntity<List<FddbDataDTO>> findAllEntries() {
+        List<FddbDataDTO> entries = fddbDataService.findAllEntries();
         return ResponseEntity.ok(entries);
     }
 
@@ -58,7 +59,7 @@ public class FddbDataResource {
         if (!isValidDate(date)) {
             return ResponseEntity.badRequest().body("Date must be in the format YYYY-MM-DD");
         }
-        Optional<FddbData> entry = fddbDataService.findByDate(date);
+        Optional<FddbDataDTO> entry = fddbDataService.findByDate(date);
         return entry.isPresent() ? ResponseEntity.ok(entry) : ResponseEntity.notFound().build();
     }
 
@@ -69,20 +70,20 @@ public class FddbDataResource {
      * @return a ResponseEntity containing a list of FDDB data matching the search criteria
      */
     @GetMapping("/products")
-    public ResponseEntity<List<FddbData>> findByProduct(@RequestParam String name) {
-        List<FddbData> products = fddbDataService.findByProduct(name);
-        return ResponseEntity.ok(products);
+    public ResponseEntity<List<ProductWithDateDTO>> findByProduct(@RequestParam String name) {
+        List<ProductWithDateDTO> productWithDate = fddbDataService.findByProduct(name);
+        return ResponseEntity.ok(productWithDate);
     }
 
     /**
      * Export data for all days contained in the given timeframe as a batch.
      *
-     * @param exportRequest the data which should be exported
+     * @param exportRequestDTO the data which should be exported
      * @return HTTP 200 and 'ok' when everything went smoothly, error messages when it did not
      */
     @PostMapping
-    public ResponseEntity<ExportResult> exportForTimerange(@Valid @RequestBody ExportRequest exportRequest) {
-        ExportResult result = fddbDataService.exportForTimerange(exportRequest);
+    public ResponseEntity<ExportResultDTO> exportForTimerange(@Valid @RequestBody ExportRequestDTO exportRequestDTO) {
+        ExportResultDTO result = fddbDataService.exportForTimerange(exportRequestDTO);
         return ResponseEntity.ok(result);
     }
 
@@ -97,10 +98,10 @@ public class FddbDataResource {
      * @return a list of saved and updated data points
      */
     @GetMapping("/export")
-    public ResponseEntity<ExportResult> exportForDaysBack(
+    public ResponseEntity<ExportResultDTO> exportForDaysBack(
             @RequestParam int days,
             @RequestParam(defaultValue = "false") boolean includeToday) {
-        ExportResult result = fddbDataService.exportForDaysBack(days, includeToday);
+        ExportResultDTO result = fddbDataService.exportForDaysBack(days, includeToday);
         return ResponseEntity.ok(result);
     }
 

@@ -1,15 +1,23 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
+import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
 /**
  * Provides persistence-related services for managing {@link FddbData} objects.
@@ -25,6 +33,7 @@ public class PersistenceService {
 
     private final FddbDataRepository fddbDataRepository;
     private final FddbDataMapper fddbDataMapper;
+    private final MongoTemplate mongoTemplate;
 
     /**
      * Retrieves all {@link FddbData} objects stored in the database.
@@ -46,13 +55,26 @@ public class PersistenceService {
     }
 
     /**
-     * Searches for {@link FddbData} objects by product name using a fuzzy search.
+     * Searches for a product name and returns the date with the product details.
+     * Unfortunately an aggregation annotation query did not work, maybe because I'm stuck with Mongo 4.4.
      *
-     * @param name the product name to search for
-     * @return a list of {@link FddbData} objects matching the search criteria
+     * @param name the name of the product
+     * @return a list of matches
      */
-    public List<FddbData> findByProduct(String name) {
-        return fddbDataRepository.findByProductNameFuzzy(name);
+    public List<ProductWithDate> findByProduct(String name) {
+        AggregationOperation match = match(Criteria.where("products.name").regex(name, "i"));
+        AggregationOperation unwind = unwind("products");
+        AggregationOperation secondMatch = match(Criteria.where("products.name").regex(name, "i"));
+        AggregationOperation project = project()
+                .andExpression("date").as("date")
+                .and("products").as("product");
+
+        Aggregation aggregation = newAggregation(match, unwind, secondMatch, project);
+
+        AggregationResults<ProductWithDate> results = mongoTemplate.aggregate(
+                aggregation, "fddb", ProductWithDate.class);
+
+        return results.getMappedResults();
     }
 
     public void saveOrUpdate(FddbData dataToPersist) {

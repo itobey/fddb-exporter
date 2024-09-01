@@ -1,6 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
-import dev.itobey.adapter.api.fddb.exporter.domain.Timeframe;
+import dev.itobey.adapter.api.fddb.exporter.dto.TimeframeDTO;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -18,9 +18,9 @@ public class TimeframeCalculatorTest {
         // given
         TimeframeCalculator timeframeCalculator = new TimeframeCalculator();
         // when
-        Timeframe timeframe = timeframeCalculator.calculateTimeframeForYesterday();
+        TimeframeDTO timeframeDTO = timeframeCalculator.calculateTimeframeForYesterday();
         // then
-        assertTrue(timeframe.getFrom() < timeframe.getTo());
+        assertTrue(timeframeDTO.getFrom() < timeframeDTO.getTo());
     }
 
     @Test
@@ -28,9 +28,9 @@ public class TimeframeCalculatorTest {
         // given
         TimeframeCalculator timeframeCalculator = new TimeframeCalculator();
         // when
-        Timeframe timeframe = timeframeCalculator.calculateTimeframeFor(LocalDate.now());
+        TimeframeDTO timeframeDTO = timeframeCalculator.calculateTimeframeFor(LocalDate.now());
         // then
-        assertTrue(timeframe.getFrom() < timeframe.getTo());
+        assertTrue(timeframeDTO.getFrom() < timeframeDTO.getTo());
     }
 
 }

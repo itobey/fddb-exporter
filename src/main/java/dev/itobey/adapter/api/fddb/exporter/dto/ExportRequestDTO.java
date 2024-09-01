@@ -1,4 +1,4 @@
-package dev.itobey.adapter.api.fddb.exporter.domain;
+package dev.itobey.adapter.api.fddb.exporter.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Data
-public class ExportRequest {
+public class ExportRequestDTO {
 
     @NotNull(message = "From date cannot be null")
     @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "From date must be in the format YYYY-MM-DD")

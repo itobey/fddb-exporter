@@ -1,7 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.actuator;
 
 import dev.itobey.adapter.api.fddb.exporter.adapter.FddbAdapter;
-import dev.itobey.adapter.api.fddb.exporter.domain.Timeframe;
+import dev.itobey.adapter.api.fddb.exporter.dto.TimeframeDTO;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbParserService;
 import dev.itobey.adapter.api.fddb.exporter.service.TimeframeCalculator;
@@ -28,8 +28,8 @@ public class FddbHealthIndicator implements HealthIndicator {
     @Override
     public Health health() {
         log.debug("running healthcheck to check authentication to FDDB");
-        Timeframe timeframe = timeframeCalculator.calculateTimeframeForYesterday();
-        String html = fddbAdapter.retrieveDataToTimeframe(timeframe);
+        TimeframeDTO timeframeDTO = timeframeCalculator.calculateTimeframeForYesterday();
+        String html = fddbAdapter.retrieveDataToTimeframe(timeframeDTO);
         Document doc = Jsoup.parse(html, "UTF-8");
         try {
             fddbParserService.checkAuthentication(doc);

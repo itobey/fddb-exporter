@@ -2,7 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.adapter.FddbAdapter;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
-import dev.itobey.adapter.api.fddb.exporter.domain.Timeframe;
+import dev.itobey.adapter.api.fddb.exporter.dto.TimeframeDTO;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import lombok.SneakyThrows;
@@ -35,15 +35,15 @@ class ExportServiceTest {
     void exportData_whenExportSuccessful_shouldReturnResult() {
         // Given
         long fromTimestamp = 1625097600L; // 2021-07-01 00:00:00 UTC
-        Timeframe timeframe = new Timeframe(fromTimestamp, fromTimestamp + 86400); // One day later // 2021-07-01 00:00:00 UTC to 2021-07-02 00:00:00 UTC
+        TimeframeDTO timeframeDTO = new TimeframeDTO(fromTimestamp, fromTimestamp + 86400); // One day later // 2021-07-01 00:00:00 UTC to 2021-07-02 00:00:00 UTC
         String mockResponse = "mock response data";
         FddbData mockParsedData = new FddbData();
 
-        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(mockResponse);
+        when(fddbAdapter.retrieveDataToTimeframe(timeframeDTO)).thenReturn(mockResponse);
         when(fddbParserService.parseDiary(mockResponse)).thenReturn(mockParsedData);
 
         // When
-        FddbData result = exportService.exportData(timeframe);
+        FddbData result = exportService.exportData(timeframeDTO);
 
         // Then
         assertNotNull(result);
@@ -54,11 +54,11 @@ class ExportServiceTest {
     @SneakyThrows
     void exportData_whenAuthenticationExceptionThrown_shouldThrowException() {
         // Given
-        Timeframe timeframe = new Timeframe(1625097600L, 1625184000L);
-        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenThrow(new AuthenticationException("Authentication failed"));
+        TimeframeDTO timeframeDTO = new TimeframeDTO(1625097600L, 1625184000L);
+        when(fddbAdapter.retrieveDataToTimeframe(timeframeDTO)).thenThrow(new AuthenticationException("Authentication failed"));
 
         // When & Then
-        assertThrows(AuthenticationException.class, () -> exportService.exportData(timeframe));
+        assertThrows(AuthenticationException.class, () -> exportService.exportData(timeframeDTO));
         verifyNoInteractions(fddbParserService);
     }
 
@@ -66,13 +66,13 @@ class ExportServiceTest {
     @SneakyThrows
     void exportData_whenParseExceptionThrown_shouldThrowException() {
         // Given
-        Timeframe timeframe = new Timeframe(1625097600L, 1625184000L);
+        TimeframeDTO timeframeDTO = new TimeframeDTO(1625097600L, 1625184000L);
         String mockResponse = "invalid response data";
-        when(fddbAdapter.retrieveDataToTimeframe(timeframe)).thenReturn(mockResponse);
+        when(fddbAdapter.retrieveDataToTimeframe(timeframeDTO)).thenReturn(mockResponse);
         when(fddbParserService.parseDiary(mockResponse)).thenThrow(new ParseException("Parsing failed"));
 
         // When & Then
-        assertThrows(ParseException.class, () -> exportService.exportData(timeframe));
+        assertThrows(ParseException.class, () -> exportService.exportData(timeframeDTO));
     }
 
 }
