@@ -8,7 +8,33 @@ spring:
       database: fddb
       username: user
       password: password
+  cloud:
+    discovery:
+      client:
+        composite-indicator:
+          enabled: false
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        liveness:
+          include: fddb-login-check,livenessState
+        readiness:
+          include: readinessState
+          exclude: fddb-login-check
+  health:
+    defaults:
+      enabled: true
+    diskSpace:
+      enabled: false
 fddb-exporter:
   fddb:
     url: https://fddb.info
