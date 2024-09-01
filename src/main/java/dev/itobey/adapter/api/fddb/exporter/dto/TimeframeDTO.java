@@ -1,4 +1,4 @@
-package dev.itobey.adapter.api.fddb.exporter.domain;
+package dev.itobey.adapter.api.fddb.exporter.dto;
 
 import dev.itobey.adapter.api.fddb.exporter.adapter.FddbApi;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Builder
 @Data
-public class Timeframe {
+public class TimeframeDTO {
 
     private final long from;
     private final long to;

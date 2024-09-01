@@ -1,8 +1,9 @@
 package dev.itobey.adapter.api.fddb.exporter.rest;
 
-import dev.itobey.adapter.api.fddb.exporter.domain.ExportRequest;
-import dev.itobey.adapter.api.fddb.exporter.domain.ExportResult;
-import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,10 +31,10 @@ class FddbDataResourceTest {
 
     @Test
     void testFindAllEntries() {
-        List<FddbData> mockData = Arrays.asList(new FddbData(), new FddbData());
+        List<FddbDataDTO> mockData = Arrays.asList(new FddbDataDTO(), new FddbDataDTO());
         when(fddbDataService.findAllEntries()).thenReturn(mockData);
 
-        ResponseEntity<List<FddbData>> response = fddbDataResource.findAllEntries();
+        ResponseEntity<List<FddbDataDTO>> response = fddbDataResource.findAllEntries();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockData, response.getBody());
@@ -42,7 +43,7 @@ class FddbDataResourceTest {
     @Test
     void testFindByDate_ValidDate() {
         String validDate = "2023-01-01";
-        FddbData mockData = new FddbData();
+        FddbDataDTO mockData = new FddbDataDTO();
         when(fddbDataService.findByDate(validDate)).thenReturn(Optional.of(mockData));
 
         ResponseEntity<?> response = fddbDataResource.findByDate(validDate);
@@ -74,10 +75,10 @@ class FddbDataResourceTest {
     @Test
     void testFindByProduct() {
         String productName = "TestProduct";
-        List<FddbData> mockData = Arrays.asList(new FddbData(), new FddbData());
+        List<ProductWithDateDTO> mockData = Arrays.asList(new ProductWithDateDTO(), new ProductWithDateDTO());
         when(fddbDataService.findByProduct(productName)).thenReturn(mockData);
 
-        ResponseEntity<List<FddbData>> response = fddbDataResource.findByProduct(productName);
+        ResponseEntity<List<ProductWithDateDTO>> response = fddbDataResource.findByProduct(productName);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockData, response.getBody());
@@ -85,11 +86,11 @@ class FddbDataResourceTest {
 
     @Test
     void testExportForTimerange() {
-        ExportRequest mockRequest = new ExportRequest();
-        ExportResult mockResult = new ExportResult();
+        ExportRequestDTO mockRequest = new ExportRequestDTO();
+        ExportResultDTO mockResult = new ExportResultDTO();
         when(fddbDataService.exportForTimerange(mockRequest)).thenReturn(mockResult);
 
-        ResponseEntity<ExportResult> response = fddbDataResource.exportForTimerange(mockRequest);
+        ResponseEntity<ExportResultDTO> response = fddbDataResource.exportForTimerange(mockRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockResult, response.getBody());
@@ -99,10 +100,10 @@ class FddbDataResourceTest {
     void testExportForDaysBack() {
         int days = 7;
         boolean includeToday = true;
-        ExportResult mockResult = new ExportResult();
+        ExportResultDTO mockResult = new ExportResultDTO();
         when(fddbDataService.exportForDaysBack(days, includeToday)).thenReturn(mockResult);
 
-        ResponseEntity<ExportResult> response = fddbDataResource.exportForDaysBack(days, includeToday);
+        ResponseEntity<ExportResultDTO> response = fddbDataResource.exportForDaysBack(days, includeToday);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockResult, response.getBody());

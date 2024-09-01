@@ -1,11 +1,11 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
-import dev.itobey.adapter.api.fddb.exporter.domain.ExportRequest;
-import dev.itobey.adapter.api.fddb.exporter.domain.ExportResult;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
-import dev.itobey.adapter.api.fddb.exporter.domain.Timeframe;
+import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
+import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,23 +33,27 @@ public class FddbDataService {
     private final TimeframeCalculator timeframeCalculator;
     private final ExportService exportService;
     private final PersistenceService persistenceService;
+    private final FddbDataMapper fddbDataMapper;
 
-    public List<FddbData> findAllEntries() {
-        return persistenceService.findAllEntries();
+    public List<FddbDataDTO> findAllEntries() {
+        List<FddbData> allEntries = persistenceService.findAllEntries();
+        return fddbDataMapper.toFddbDataDTO(allEntries);
     }
 
-    public List<FddbData> findByProduct(String name) {
-        return persistenceService.findByProduct(name);
+    public List<ProductWithDateDTO> findByProduct(String name) {
+        List<ProductWithDate> productsWithDate = persistenceService.findByProduct(name);
+        return fddbDataMapper.toProductWithDateDto(productsWithDate);
     }
 
-    public Optional<FddbData> findByDate(String dateString) {
+    public Optional<FddbDataDTO> findByDate(String dateString) {
         LocalDate date = LocalDate.parse(dateString);
-        return persistenceService.findByDate(date);
+        Optional<FddbData> fddbDataOptional = persistenceService.findByDate(date);
+        return fddbDataOptional.map(fddbDataMapper::toFddbDataDTO);
     }
 
-    public ExportResult exportForTimerange(ExportRequest exportRequest) {
-        LocalDate from = LocalDate.parse(exportRequest.getFromDate());
-        LocalDate to = LocalDate.parse(exportRequest.getToDate());
+    public ExportResultDTO exportForTimerange(ExportRequestDTO exportRequestDTO) {
+        LocalDate from = LocalDate.parse(exportRequestDTO.getFromDate());
+        LocalDate to = LocalDate.parse(exportRequestDTO.getToDate());
 
         if (from.isAfter(to)) {
             throw new DateTimeException("The 'from' date cannot be after the 'to' date");
@@ -72,13 +76,13 @@ public class FddbDataService {
                     // AuthenticationException is not caught and will halt the process
                 });
 
-        ExportResult result = new ExportResult();
+        ExportResultDTO result = new ExportResultDTO();
         result.setSuccessfulDays(successfulDays);
         result.setUnsuccessfulDays(unsuccessfulDays);
         return result;
     }
 
-    public ExportResult exportForDaysBack(int days, boolean includeToday) {
+    public ExportResultDTO exportForDaysBack(int days, boolean includeToday) {
         // safety net to prevent accidents
         if (days < minDaysBack || days > maxDaysBack) {
             throw new DateTimeException("Days back must be between " + minDaysBack + " and " + maxDaysBack);
@@ -87,7 +91,7 @@ public class FddbDataService {
         LocalDate to = includeToday ? LocalDate.now() : LocalDate.now().minusDays(1);
         LocalDate from = to.minusDays(days - 1);
 
-        ExportRequest timeframe = ExportRequest.builder()
+        ExportRequestDTO timeframe = ExportRequestDTO.builder()
                 .fromDate(from.toString())
                 .toDate(to.toString())
                 .build();
@@ -97,8 +101,8 @@ public class FddbDataService {
 
     private void exportForDate(LocalDate date) throws ParseException, AuthenticationException {
         log.debug("exporting data for {}", date);
-        Timeframe timeframe = timeframeCalculator.calculateTimeframeFor(date);
-        FddbData fddbData = exportService.exportData(timeframe);
+        TimeframeDTO timeframeDTO = timeframeCalculator.calculateTimeframeFor(date);
+        FddbData fddbData = exportService.exportData(timeframeDTO);
         persistenceService.saveOrUpdate(fddbData);
     }
 }

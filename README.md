@@ -93,7 +93,8 @@ all data, filtering by date, searching for specific products, and exporting data
 
 Example responses:
 1. [example response for querying data from the database](./doc/example-response.json)
-2. [example response when running an export](./doc/example-response-exports.json)
+2. [example response when querying a product name](./doc/example-response-products.json)
+3. [example response when running an export](./doc/example-response-exports.json)
 
 ---
 
@@ -104,7 +105,7 @@ Example responses:
 > **GET** `/api/v1/fddbdata`
 
 - **Description:** Retrieves all data from the database as JSON.
-- **Response:** A JSON array containing all entries (see example response #1).
+- **Response:** A JSON array containing all entries (see [example response](./doc/example-response.json)).
 
 ---
 
@@ -116,7 +117,8 @@ Example responses:
 - **Path Parameter:**
   - `date` _(required)_: The specific date in `YYYY-MM-DD` format.
 - **Example:** `/api/v1/fddbdata/2024-08-24`
-- **Response:** A JSON object containing the data for the specified date (see example response #1).
+- **Response:** A JSON object containing the data for the specified date (
+  see [example response](./doc/example-response.json)).
 
 ---
 
@@ -129,7 +131,8 @@ Example responses:
 - **Query Parameter:**
   - `name` _(required)_: The name of the product to search for.
 - **Example:** `/api/v1/fddbdata/products?name=mountain` _(This will find entries like `Mountain Dew`.)_
-- **Response:** A JSON array containing all matching entries (see example response #1).
+- **Response:** A JSON array containing all matching entries (
+  see [example response](./doc/example-response-products.json)).
 
 ---
 
@@ -147,7 +150,7 @@ Example responses:
     "fromDate": "2021-05-13",
     "toDate": "2021-08-18"
   }
-- **Response:** A JSON object containing the data (see example response #2).
+- **Response:** A JSON object containing the data (see [example response](./doc/example-response-exports.json)).
 
 ---
 
@@ -160,7 +163,7 @@ Example responses:
   - `days` _(required)_: The number of days to export.
   - `includeToday` _(optional)_: Whether to include the current day in the export. (`true` or `false`)
 - **Example:** `/api/v1/fddbdata/export?days=5&includeToday=true`
-- **Response:** A JSON object containing the data (see example response #2).
+- **Response:** A JSON object containing the data (see [example response](./doc/example-response-exports.json)).
 
 ## Visualization
 After gathering all the data in a database, it's easy to display graphs based on it in Grafana. These screenshots
@@ -172,7 +175,7 @@ as a datasource for Grafana.
 ## Roadmap
 I plan on implementing the following features in the future:
 - [ ] Helm Chart for deployment
-- [ ] product search API: to get only relevant data instead of the entire day
+- [x] product search API: to get only relevant data instead of the entire day
 - [ ] product search API: limit search by date or weekday instead of searching and returning every day
 - [ ] new stats endpoint: display some stats of your data
 - [ ] ARM container release (currently only x86 available)
@@ -182,21 +185,25 @@ If you have another feature in mind please open up an issue or contact me.
 
 ## Changelog
 
-### v1.1.0
+### 1.2.0
+
+- updated product query endpoint
+
+### 1.1.0
 - added Spring Actuator for healthchecks
 
-### v1.0.0
+### 1.0.0
 - Complete redesign of the application
 - Switched persistence layer to MongoDB
 - Updated API endpoints
 
-### v0.3
+### 0.3
 - Upgraded to Spring Boot 3 and JDK 21
 
-### v0.2.1
+### 0.2.1
 - Fixed login button detection due to FDDB website changes
 
-### v0.2
+### 0.2
 - Added endpoint to retrieve data for a specific number of past days
 
 ## Resource Usage

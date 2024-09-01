@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.config;
 
+import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,6 +63,6 @@ public class FddbRequestInterceptor implements RequestInterceptor {
                 }
             }
         }
-        throw new RuntimeException("Failed to retrieve fddb cookie");
+        throw new AuthenticationException("Login to FDDB not successful, please check credentials");
     }
 }

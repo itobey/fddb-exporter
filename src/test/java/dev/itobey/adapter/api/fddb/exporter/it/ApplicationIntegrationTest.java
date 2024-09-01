@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import dev.itobey.adapter.api.fddb.exporter.domain.ExportRequest;
-import dev.itobey.adapter.api.fddb.exporter.domain.ExportResult;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import dev.itobey.adapter.api.fddb.exporter.service.PersistenceService;
 import lombok.SneakyThrows;
@@ -73,14 +73,14 @@ class ApplicationIntegrationTest {
         stubFddbResponses();
 
         // when
-        ExportRequest exportRequest = ExportRequest.builder()
+        ExportRequestDTO exportRequestDTO = ExportRequestDTO.builder()
                 .fromDate("2024-08-27")
                 .toDate("2024-08-29")
                 .build();
-        ExportResult exportResult = fddbDataService.exportForTimerange(exportRequest);
+        ExportResultDTO exportResultDTO = fddbDataService.exportForTimerange(exportRequestDTO);
 
         // then
-        assertExportResult(exportResult);
+        assertExportResult(exportResultDTO);
         assertDatabaseEntries();
     }
 
@@ -103,10 +103,10 @@ class ApplicationIntegrationTest {
                 ));
     }
 
-    private void assertExportResult(ExportResult exportResult) {
-        assertThat(exportResult.getSuccessfulDays())
+    private void assertExportResult(ExportResultDTO exportResultDTO) {
+        assertThat(exportResultDTO.getSuccessfulDays())
                 .containsExactlyInAnyOrder("2024-08-27", "2024-08-29");
-        assertThat(exportResult.getUnsuccessfulDays())
+        assertThat(exportResultDTO.getUnsuccessfulDays())
                 .containsExactly("2024-08-28");
     }
 
