@@ -1,0 +1,26 @@
+[
+  {
+    "date": "2023-01-06",
+    "product": {
+      "name": "Pizza Brot",
+      "amount": "150 g",
+      "calories": 391.0,
+      "fat": 5.1,
+      "carbs": 71.1,
+      "protein": 15.0,
+      "link": "/db/en/food/marziale_pizza_brot/index.html"
+    }
+  },
+  {
+    "date": "2023-02-02",
+    "product": {
+      "name": "Pizza Parma",
+      "amount": "350 g",
+      "calories": 735.0,
+      "fat": 20.0,
+      "carbs": 108.9,
+      "protein": 25.6,
+      "link": "/db/en/food/diverse_pizza_parma/index.html"
+    }
+  }
+]
