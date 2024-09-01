@@ -13,8 +13,6 @@ FDDB Exporter is a tool designed to extract nutritional data from [FDDB.info](ht
 
 An example of a stored document can be seen [here](./doc/example-document.bson).
 
-An example of a response returned by the REST API can be seen [here](./doc/example-response.json).
-
 ## Prerequisites
 
 - Docker or Java 21+ runtime environment
@@ -93,6 +91,10 @@ By default, the application will automatically export data for the previous day 
 This API allows you to retrieve and export data from the database. The endpoints support operations such as retrieving
 all data, filtering by date, searching for specific products, and exporting data for a specified date range.
 
+Example responses:
+1. [example response for querying data from the database](./doc/example-response.json)
+2. [example response when running an export](./doc/example-response-exports.json)
+
 ---
 
 #### Endpoints
@@ -102,7 +104,7 @@ all data, filtering by date, searching for specific products, and exporting data
 > **GET** `/api/v1/fddbdata`
 
 - **Description:** Retrieves all data from the database as JSON.
-- **Response:** A JSON array containing all entries.
+- **Response:** A JSON array containing all entries (see example response #1).
 
 ---
 
@@ -114,7 +116,7 @@ all data, filtering by date, searching for specific products, and exporting data
 - **Path Parameter:**
   - `date` _(required)_: The specific date in `YYYY-MM-DD` format.
 - **Example:** `/api/v1/fddbdata/2024-08-24`
-- **Response:** A JSON object containing the data for the specified date.
+- **Response:** A JSON object containing the data for the specified date (see example response #1).
 
 ---
 
@@ -127,7 +129,7 @@ all data, filtering by date, searching for specific products, and exporting data
 - **Query Parameter:**
   - `name` _(required)_: The name of the product to search for.
 - **Example:** `/api/v1/fddbdata/products?name=mountain` _(This will find entries like `Mountain Dew`.)_
-- **Response:** A JSON array containing all matching entries.
+- **Response:** A JSON array containing all matching entries (see example response #1).
 
 ---
 
@@ -145,6 +147,7 @@ all data, filtering by date, searching for specific products, and exporting data
     "fromDate": "2021-05-13",
     "toDate": "2021-08-18"
   }
+- **Response:** A JSON object containing the data (see example response #2).
 
 ---
 
@@ -157,7 +160,7 @@ all data, filtering by date, searching for specific products, and exporting data
   - `days` _(required)_: The number of days to export.
   - `includeToday` _(optional)_: Whether to include the current day in the export. (`true` or `false`)
 - **Example:** `/api/v1/fddbdata/export?days=5&includeToday=true`
-- **Response:** A JSON array containing the entries for the specified period.
+- **Response:** A JSON object containing the data (see example response #2).
 
 ## Visualization
 After gathering all the data in a database, it's easy to display graphs based on it in Grafana. These screenshots
