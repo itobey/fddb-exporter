@@ -1,5 +1,7 @@
 # FDDB Exporter
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/search?repo=fddb-exporter)
+
 ## Overview
 
 FDDB Exporter is a tool designed to extract nutritional data from [FDDB.info](https://fddb.info/) and store it in a MongoDB database. This application is particularly useful for individuals who want to track their daily nutritional intake, including detailed information on sugar consumption that isn't available in FDDB's standard CSV export.
@@ -40,7 +42,18 @@ An example of a stored document can be seen [here](./doc/example-document.bson).
    docker-compose -f docker/docker-compose.yml up -d
    ```
 
-### Option 2: Building from Source
+### Option 2: Using Pre-built Helm Chart
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/search?repo=fddb-exporter)
+
+- Use the pre-built Helm Chart:
+   ```
+   helm pull oci://ghcr.io/itobey/charts/fddb-exporter
+   ```
+
+- or checkout the [Fddb-Exporter Chart](https://github.com/itobey/charts/tree/master/fddb-exporter) yourself
+
+### Option 3: Building from Source
 
 1. Clone the repository:
    ```
@@ -174,7 +187,7 @@ as a datasource for Grafana.
 
 ## Roadmap
 I plan on implementing the following features in the future:
-- [ ] Helm Chart for deployment
+- [x] Helm Chart for deployment
 - [x] product search API: to get only relevant data instead of the entire day
 - [ ] product search API: limit search by date or weekday instead of searching and returning every day
 - [ ] new stats endpoint: display some stats of your data
