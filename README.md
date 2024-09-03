@@ -32,7 +32,7 @@ An example of a stored document can be seen [here](./doc/example-document.bson).
 
 1. Pull the pre-built Docker image:
    ```
-   docker pull ghcr.io/itobey/fddb-exporter/fddb-exporter:latest
+   docker pull ghcr.io/itobey/fddb-exporter:latest
    ```
 
 2. Use the provided [docker-compose.yaml](./docker/docker-compose.yml) file to start both the MongoDB and FDDB Exporter containers:
