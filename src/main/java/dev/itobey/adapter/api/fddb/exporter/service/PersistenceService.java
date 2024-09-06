@@ -82,12 +82,20 @@ public class PersistenceService {
         if (optionalOfDbEntry.isPresent()) {
             FddbData existingFddbData = optionalOfDbEntry.get();
             log.debug("updating existing database entry for {}", dataToPersist.getDate());
+            updateDataIfNotIdentical(dataToPersist, existingFddbData);
+        } else {
+            FddbData savedEntry = fddbDataRepository.save(dataToPersist);
+            log.info("created entry: {}", savedEntry);
+        }
+    }
+
+    private void updateDataIfNotIdentical(FddbData dataToPersist, FddbData existingFddbData) {
+        if (!dataToPersist.equals(existingFddbData)) {
             fddbDataMapper.updateFddbData(existingFddbData, dataToPersist);
             FddbData updatedEntry = fddbDataRepository.save(existingFddbData);
             log.info("updated entry: {}", updatedEntry);
         } else {
-            FddbData savedEntry = fddbDataRepository.save(dataToPersist);
-            log.info("created entry: {}", savedEntry);
+            log.info("entry already exported, skipping: {}", dataToPersist);
         }
     }
 

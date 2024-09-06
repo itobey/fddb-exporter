@@ -1,6 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.domain;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -12,6 +13,7 @@ import java.util.List;
 public class FddbData {
 
     @Id
+    @EqualsAndHashCode.Exclude
     private String id;
     private LocalDate date;
     private List<Product> products;
