@@ -198,6 +198,10 @@ If you have another feature in mind please open up an issue or contact me.
 
 ## Changelog
 
+### 1.2.1
+
+- fixed an issue with updating database entries
+
 ### 1.2.0
 
 - updated product query endpoint
