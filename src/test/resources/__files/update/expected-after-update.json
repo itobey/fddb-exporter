@@ -1,0 +1,93 @@
+{
+  "id": "66db628a39b66e1533bb3509",
+  "date": "2024-09-06",
+  "products": [
+    {
+      "name": "Cheddar Käse (Subway)",
+      "amount": "28 g",
+      "calories": 113.0,
+      "fat": 8.7,
+      "carbs": 0.6,
+      "protein": 7.0,
+      "link": "/db/en/food/subway_cheddar_kaese_subway/index.html"
+    },
+    {
+      "name": "Subway Chicken Teriyaki",
+      "amount": "466 g",
+      "calories": 750.0,
+      "fat": 6.1,
+      "carbs": 88.5,
+      "protein": 37.3,
+      "link": "/db/en/food/subway_subway_chicken_teriyaki_1176162/index.html"
+    },
+    {
+      "name": "Subway Sauce, Asiago Caesar",
+      "amount": "42 g",
+      "calories": 200.0,
+      "fat": 18.5,
+      "carbs": 3.6,
+      "protein": 1.3,
+      "link": "/db/en/food/subway_subway_sauce_asiago_caesar/index.html"
+    },
+    {
+      "name": "Kinder Duo",
+      "amount": "50 g",
+      "calories": 262.0,
+      "fat": 14.1,
+      "carbs": 29.9,
+      "protein": 3.6,
+      "link": "/db/en/food/ferrero_kinder_duo_1054818/index.html"
+    },
+    {
+      "name": "British Heritage, Premium Cheddar Mature",
+      "amount": "50 g",
+      "calories": 205.0,
+      "fat": 17.5,
+      "carbs": 0.3,
+      "protein": 12.0,
+      "link": "/db/en/food/diverse_british_heritage_premium_cheddar_mature/index.html"
+    },
+    {
+      "name": "Burger Sauce",
+      "amount": "40 ml",
+      "calories": 79.0,
+      "fat": 5.6,
+      "carbs": 6.4,
+      "protein": 0.4,
+      "link": "/db/en/food/bulls-eye_burger_sauce/index.html"
+    },
+    {
+      "name": "Burger patty",
+      "amount": "250 g",
+      "calories": 617.0,
+      "fat": 47.5,
+      "carbs": 0.3,
+      "protein": 47.5,
+      "link": "/db/en/food/butchers_by_penny_burger_patty/index.html"
+    },
+    {
+      "name": "Butterschmalz",
+      "amount": "10 g",
+      "calories": 90.0,
+      "fat": 10.0,
+      "carbs": 0.0,
+      "protein": 0.0,
+      "link": "/db/en/food/meggle_butterschmalz/index.html"
+    },
+    {
+      "name": "Hamburger Brötchen, Glutenfrei",
+      "amount": "150 g",
+      "calories": 339.0,
+      "fat": 3.9,
+      "carbs": 66.0,
+      "protein": 4.8,
+      "link": "/db/en/food/schaer_hamburger_broetchen_glutenfrei/index.html"
+    }
+  ],
+  "totalCalories": 2656.0,
+  "totalFat": 131.7,
+  "totalCarbs": 195.5,
+  "totalSugar": 50.4,
+  "totalProtein": 113.9,
+  "totalFibre": 14.6
+}
