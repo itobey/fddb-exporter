@@ -82,7 +82,7 @@ public class PersistenceService {
         if (optionalOfDbEntry.isPresent()) {
             FddbData existingFddbData = optionalOfDbEntry.get();
             log.debug("updating existing database entry for {}", dataToPersist.getDate());
-            fddbDataMapper.updateFddbData(dataToPersist, existingFddbData);
+            fddbDataMapper.updateFddbData(existingFddbData, dataToPersist);
             FddbData updatedEntry = fddbDataRepository.save(existingFddbData);
             log.info("updated entry: {}", updatedEntry);
         } else {

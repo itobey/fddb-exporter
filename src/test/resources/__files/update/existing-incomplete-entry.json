@@ -1,0 +1,57 @@
+{
+  "id": "66db51ad6d4e833b37e7dcd6",
+  "date": "2024-09-06",
+  "products": [
+    {
+      "name": "British Heritage, Premium Cheddar Mature",
+      "amount": "50 g",
+      "calories": 205.0,
+      "fat": 17.5,
+      "carbs": 0.3,
+      "protein": 12.0,
+      "link": "/db/en/food/diverse_british_heritage_premium_cheddar_mature/index.html"
+    },
+    {
+      "name": "Burger Sauce",
+      "amount": "40 ml",
+      "calories": 79.0,
+      "fat": 5.6,
+      "carbs": 6.4,
+      "protein": 0.4,
+      "link": "/db/en/food/bulls-eye_burger_sauce/index.html"
+    },
+    {
+      "name": "Burger patty",
+      "amount": "250 g",
+      "calories": 617.0,
+      "fat": 47.5,
+      "carbs": 0.3,
+      "protein": 47.5,
+      "link": "/db/en/food/butchers_by_penny_burger_patty/index.html"
+    },
+    {
+      "name": "Butterschmalz",
+      "amount": "10 g",
+      "calories": 90.0,
+      "fat": 10.0,
+      "carbs": 0.0,
+      "protein": 0.0,
+      "link": "/db/en/food/meggle_butterschmalz/index.html"
+    },
+    {
+      "name": "Hamburger Brötchen, Glutenfrei",
+      "amount": "150 g",
+      "calories": 339.0,
+      "fat": 3.9,
+      "carbs": 66.0,
+      "protein": 4.8,
+      "link": "/db/en/food/schaer_hamburger_broetchen_glutenfrei/index.html"
+    }
+  ],
+  "totalCalories": 1330.0,
+  "totalFat": 84.5,
+  "totalCarbs": 72.9,
+  "totalSugar": 12.1,
+  "totalProtein": 64.7,
+  "totalFibre": 8.6
+}
