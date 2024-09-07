@@ -1,9 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.rest;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -103,6 +100,11 @@ public class FddbDataResource {
             @RequestParam(defaultValue = "false") boolean includeToday) {
         ExportResultDTO result = fddbDataService.exportForDaysBack(days, includeToday);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<StatsDTO> getStats() {
+        return ResponseEntity.ok(fddbDataService.getStats());
     }
 
     private boolean isValidDate(String date) {
