@@ -86,17 +86,40 @@ class PersistenceServiceTest {
     }
 
     @Test
-    void saveOrUpdate_shouldUpdateExistingEntry() {
+    void saveOrUpdate_shouldSkipExistingButIdenticalEntry() {
         FddbData existingData = new FddbData();
         existingData.setDate(LocalDate.now());
 
         when(fddbDataRepository.findFirstByDate(testFddbData.getDate())).thenReturn(Optional.of(existingData));
-        when(fddbDataRepository.save(existingData)).thenReturn(existingData);
 
         persistenceService.saveOrUpdate(testFddbData);
 
-        verify(fddbDataMapper).updateFddbData(testFddbData, existingData);
-        verify(fddbDataRepository).save(existingData);
+        verify(fddbDataRepository, times(1)).findFirstByDate(existingData.getDate());
+    }
+
+    @Test
+    void saveOrUpdate_shouldUpdateExistingEntryWithNewData() {
+        FddbData existingData = new FddbData();
+        existingData.setDate(LocalDate.now());
+        existingData.setTotalCalories(100);
+
+        testFddbData.setTotalCalories(200);
+
+        when(fddbDataRepository.findFirstByDate(existingData.getDate())).thenReturn(Optional.of(existingData));
+        when(fddbDataRepository.save(testFddbData)).thenReturn(testFddbData);
+
+        doAnswer(invocation -> {
+            FddbData targetArg = invocation.getArgument(0);
+            FddbData sourceArg = invocation.getArgument(1);
+            targetArg.setTotalCalories(sourceArg.getTotalCalories());
+            return null;
+        }).when(fddbDataMapper).updateFddbData(any(FddbData.class), any(FddbData.class));
+
+
+        persistenceService.saveOrUpdate(testFddbData);
+
+        verify(fddbDataMapper).updateFddbData(existingData, testFddbData);
+        verify(fddbDataRepository).save(testFddbData);
     }
 
     @Test
