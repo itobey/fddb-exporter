@@ -75,27 +75,27 @@ An example of a stored document can be seen [here](./doc/example-document.bson).
 
 Configure the application using environment variables:
 
-| Variable                               | Default               | Description                                     | Required |
-|----------------------------------------|-----------------------|-------------------------------------------------|----------|
-| `FDDB-EXPORTER_FDDB_USERNAME`          | -                     | Your FDDB.info username or email                | Yes      |
-| `FDDB-EXPORTER_FDDB_PASSWORD`          | -                     | Your FDDB.info password                         | Yes      |
-| `FDDB-EXPORTER_FDDB_URL`               | https://fddb.info     | FDDB website URL                                | No       |
-| `FDDB-EXPORTER_FDDB_SCHEDULER_ENABLED` | true                  | Enable/disable the daily export scheduler       | No       |
-| `FDDB-EXPORTER_FDDB_SCHEDULER_CRON`    | 0 0 3 * * *           | Scheduler cron expression (default: 3 AM daily) | No       |
-| `FDDB-EXPORTER_FDDB_MIN-DAYS-BACK`     | 1                     | Min limit of days back export for REST API      | No       |
-| `FDDB-EXPORTER_FDDB_MAX-DAYS-BACK`     | 365                   | Max limit of days back export for REST API      | No       |
-| `SPRING_DATA_MONGODB_HOST`             | localhost             | MongoDB host                                    | No       |
-| `SPRING_DATA_MONGODB_PORT`             | 27017                 | MongoDB port                                    | No       |
-| `SPRING_DATA_MONGODB_DATABASE`         | fddb                  | MongoDB database name                           | No       |
-| `SPRING_DATA_MONGODB_USERNAME`         | mongodb_fddb_user     | MongoDB username                                | No       |
-| `SPRING_DATA_MONGODB_PASSWORD`         | mongodb_fddb_password | MongoDB password                                | No       |
-| `LOGGING_LEVEL_ROOT`                   | info                  | Application log level                           | No       |
+| Variable                           | Default               | Description                                     | Required |
+|------------------------------------|-----------------------|-------------------------------------------------|----------|
+| `FDDB-EXPORTER_FDDB_USERNAME`      | -                     | Your FDDB.info username or email                | Yes      |
+| `FDDB-EXPORTER_FDDB_PASSWORD`      | -                     | Your FDDB.info password                         | Yes      |
+| `FDDB-EXPORTER_FDDB_URL`           | https://fddb.info     | FDDB website URL                                | No       |
+| `FDDB-EXPORTER_FDDB_MIN-DAYS-BACK` | 1                     | Min limit of days back export for REST API      | No       |
+| `FDDB-EXPORTER_FDDB_MAX-DAYS-BACK` | 365                   | Max limit of days back export for REST API      | No       |
+| `FDDB-EXPORTER_SCHEDULER_ENABLED`  | true                  | Enable/disable the daily export scheduler       | No       |
+| `FDDB-EXPORTER_SCHEDULER_CRON`     | 0 0 3 * * *           | Scheduler cron expression (default: 3 AM daily) | No       |
+| `SPRING_DATA_MONGODB_HOST`         | localhost             | MongoDB host                                    | No       |
+| `SPRING_DATA_MONGODB_PORT`         | 27017                 | MongoDB port                                    | No       |
+| `SPRING_DATA_MONGODB_DATABASE`     | fddb                  | MongoDB database name                           | No       |
+| `SPRING_DATA_MONGODB_USERNAME`     | mongodb_fddb_user     | MongoDB username                                | No       |
+| `SPRING_DATA_MONGODB_PASSWORD`     | mongodb_fddb_password | MongoDB password                                | No       |
+| `LOGGING_LEVEL_ROOT`               | info                  | Application log level                           | No       |
 
 ## Usage
 
 ### Automated Daily Export
 
-By default, the application will automatically export data for the previous day at 3 AM. You can adjust this schedule using the `FDDB-EXPORTER_FDDB_SCHEDULER_CRON` environment variable.
+By default, the application will automatically export data for the previous day at 3 AM. You can adjust this schedule using the `FDDB-EXPORTER_SCHEDULER_CRON` environment variable.
 
 ### REST API Documentation
 
@@ -197,6 +197,10 @@ I plan on implementing the following features in the future:
 If you have another feature in mind please open up an issue or contact me.
 
 ## Changelog
+
+### 1.2.2
+
+- fixed an issue with the scheduler not running as intended
 
 ### 1.2.1
 

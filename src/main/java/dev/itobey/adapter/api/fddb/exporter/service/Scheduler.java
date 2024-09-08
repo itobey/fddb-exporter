@@ -1,6 +1,5 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.TimeframeDTO;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +20,7 @@ public class Scheduler implements SchedulingConfigurer {
     @Value("${fddb-exporter.scheduler.cron}")
     private String schedulerCron;
 
-    private final TimeframeCalculator timeframeCalculator;
-    private final ExportService exportService;
+    private final FddbDataService fddbDataService;
 
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
@@ -32,9 +30,9 @@ public class Scheduler implements SchedulingConfigurer {
     }
 
     private void runFddbExportForYesterday() {
-        TimeframeDTO timeframeDTO = timeframeCalculator.calculateTimeframeForYesterday();
+        log.trace("starting scheduled export");
         try {
-            exportService.exportData(timeframeDTO);
+            fddbDataService.exportForDaysBack(1, false);
         } catch (AuthenticationException authenticationException) {
             log.error("not logged in - skipping job execution");
         } catch (ParseException parseException) {
