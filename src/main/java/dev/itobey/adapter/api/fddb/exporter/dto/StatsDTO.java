@@ -1,11 +1,12 @@
 package dev.itobey.adapter.api.fddb.exporter.dto;
 
 import lombok.Builder;
+import lombok.Data;
 import lombok.Value;
 
 import java.time.LocalDate;
 
-@Value
+@Data
 @Builder
 public class StatsDTO {
     long documentCount;
@@ -20,7 +21,7 @@ public class StatsDTO {
     DayStats highestFibreDay;
     DayStats highestSugarDay;
 
-    @Value
+    @Data
     @Builder
     public static class Averages {
         double avgTotalCalories;

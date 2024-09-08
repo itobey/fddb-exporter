@@ -68,6 +68,15 @@ public class StatsService {
         return getAverages(Criteria.where("date").gte(sevenDaysAgo));
     }
 
+    private StatsDTO.DayStats getDayWithHighestTotal(String totalField) {
+        Aggregation aggregation = newAggregation(
+                sort(Sort.Direction.DESC, totalField),
+                limit(1),
+                project("date").and(totalField).as("total")
+        );
+        return mongoTemplate.aggregate(aggregation, COLLECTION_NAME, StatsDTO.DayStats.class).getUniqueMappedResult();
+    }
+
     private StatsDTO.Averages getAverages(Criteria criteria) {
         List<AggregationOperation> operations = new ArrayList<>();
 
@@ -87,15 +96,6 @@ public class StatsService {
         Aggregation aggregation = newAggregation(operations);
         AggregationResults<StatsDTO.Averages> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, StatsDTO.Averages.class);
         return results.getUniqueMappedResult();
-    }
-
-    private StatsDTO.DayStats getDayWithHighestTotal(String totalField) {
-        Aggregation aggregation = newAggregation(
-                sort(Sort.Direction.DESC, totalField),
-                limit(1),
-                project("date").and(totalField).as("total")
-        );
-        return mongoTemplate.aggregate(aggregation, COLLECTION_NAME, StatsDTO.DayStats.class).getUniqueMappedResult();
     }
 
     private double calculateEntryPercentage(LocalDate givenDate, long documentCount) {
