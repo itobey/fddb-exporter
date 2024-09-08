@@ -95,7 +95,7 @@ Configure the application using environment variables:
 
 ### Automated Daily Export
 
-By default, the application will automatically export data for the previous day at 3 AM. You can adjust this schedule using the `FDDB-EXPORTER_FDDB_SCHEDULER_CRON` environment variable.
+By default, the application will automatically export data for the previous day at 3 AM. You can adjust this schedule using the `FDDB-EXPORTER_SCHEDULER_CRON` environment variable.
 
 ### REST API Documentation
 
