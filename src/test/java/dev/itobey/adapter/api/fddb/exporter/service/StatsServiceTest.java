@@ -67,11 +67,12 @@ class StatsServiceTest {
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getDocumentCount()).isEqualTo(100L);
-        assertThat(result.getEarliestDate()).isEqualTo(LocalDate.of(2023, 1, 1));
+        assertThat(result.getAmountEntries()).isEqualTo(100L);
+        assertThat(result.getFirstEntryDate()).isEqualTo(LocalDate.of(2023, 1, 1));
         assertThat(result.getEntryPercentage()).isGreaterThan(0);
         assertThat(result.getAverageTotals()).isEqualTo(mockAverages);
         assertThat(result.getLast7DaysAverage()).isEqualTo(mockAverages);
+        assertThat(result.getLast30DaysAverage()).isEqualTo(mockAverages);
         assertThat(result.getHighestCaloriesDay()).isEqualTo(mockDayStats);
         assertThat(result.getHighestFatDay()).isEqualTo(mockDayStats);
         assertThat(result.getHighestCarbsDay()).isEqualTo(mockDayStats);

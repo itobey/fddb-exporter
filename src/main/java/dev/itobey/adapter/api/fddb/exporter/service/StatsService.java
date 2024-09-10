@@ -28,18 +28,20 @@ public class StatsService {
     private final MongoTemplate mongoTemplate;
 
     public StatsDTO getStats() {
-        long documentCount = getDocumentCount();
-        LocalDate earliestDate = getEarliestDate();
-        double entryPercentage = calculateEntryPercentage(earliestDate, documentCount);
+        long amountEntries = getAmountEntries();
+        LocalDate firstEntryDate = getFirstEntryDate();
+        double entryPercentage = calculateEntryPercentage(firstEntryDate, amountEntries);
         StatsDTO.Averages averageTotals = getAverageTotals();
         StatsDTO.Averages last7DaysAverage = getLast7DaysAverage();
+        StatsDTO.Averages last30DaysAverage = getLast30DaysAverage();
 
         return StatsDTO.builder()
-                .documentCount(documentCount)
-                .earliestDate(earliestDate)
+                .amountEntries(amountEntries)
+                .firstEntryDate(firstEntryDate)
                 .entryPercentage(entryPercentage)
                 .averageTotals(averageTotals)
                 .last7DaysAverage(last7DaysAverage)
+                .last30DaysAverage(last30DaysAverage)
                 .highestCaloriesDay(getDayWithHighestTotal("totalCalories"))
                 .highestFatDay(getDayWithHighestTotal("totalFat"))
                 .highestCarbsDay(getDayWithHighestTotal("totalCarbs"))
@@ -49,11 +51,11 @@ public class StatsService {
                 .build();
     }
 
-    private long getDocumentCount() {
+    private long getAmountEntries() {
         return mongoTemplate.count(new Query(), COLLECTION_NAME);
     }
 
-    private LocalDate getEarliestDate() {
+    private LocalDate getFirstEntryDate() {
         Query query = new Query().with(Sort.by(Sort.Direction.ASC, "date")).limit(1);
         FddbData firstDocument = mongoTemplate.findOne(query, FddbData.class, COLLECTION_NAME);
         return firstDocument != null ? firstDocument.getDate() : null;
@@ -66,6 +68,11 @@ public class StatsService {
     private StatsDTO.Averages getLast7DaysAverage() {
         LocalDate sevenDaysAgo = LocalDate.now().minusDays(7);
         return getAverages(Criteria.where("date").gte(sevenDaysAgo));
+    }
+
+    private StatsDTO.Averages getLast30DaysAverage() {
+        LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
+        return getAverages(Criteria.where("date").gte(thirtyDaysAgo));
     }
 
     private StatsDTO.DayStats getDayWithHighestTotal(String totalField) {
