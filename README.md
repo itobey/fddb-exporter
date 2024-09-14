@@ -4,7 +4,7 @@
 
 ## Overview
 
-FDDB Exporter is a tool designed to extract nutritional data from [FDDB.info](https://fddb.info/) and store it in a MongoDB database. This application is particularly useful for individuals who want to track their daily nutritional intake, including detailed information on sugar consumption that isn't available in FDDB's standard CSV export.
+FDDB Exporter is a tool designed to extract nutritional data from [FDDB.info](https://fddb.info/) and store it in a MongoDB database. This application is especially useful for individuals who want to keep their FDDB diaries for themselves. FDDB only stores entries for up to 2 years for premium members, and even less for free users. Additionally, it is very handy if you want to query your data to see on which days you have entered specific products.
 
 ## Key Features
 
@@ -193,6 +193,7 @@ I plan on implementing the following features in the future:
 - [ ] new stats endpoint: display some stats of your data
 - [x] ARM container release (currently only x86 available) (available with 1.2.2+)
 - [ ] Alerting feature to notify when the Scheduler run failed
+- [ ] accompanying Flutter app as a frontend
 
 If you have another feature in mind please open up an issue or contact me.
 
