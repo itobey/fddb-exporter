@@ -191,7 +191,7 @@ I plan on implementing the following features in the future:
 - [x] product search API: to get only relevant data instead of the entire day
 - [ ] product search API: limit search by date or weekday instead of searching and returning every day
 - [ ] new stats endpoint: display some stats of your data
-- [ ] ARM container release (currently only x86 available)
+- [x] ARM container release (currently only x86 available) (available with 1.2.2+)
 - [ ] Alerting feature to notify when the Scheduler run failed
 
 If you have another feature in mind please open up an issue or contact me.
