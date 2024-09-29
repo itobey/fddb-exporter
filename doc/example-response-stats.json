@@ -1,0 +1,53 @@
+{
+  "amountEntries": 606,
+  "firstEntryDate": "2023-01-01",
+  "entryPercentage": 95.13343799058084,
+  "averageTotals": {
+    "avgTotalCalories": 2505.651815181518,
+    "avgTotalFat": 125.65561056105611,
+    "avgTotalCarbs": 204.4245874587459,
+    "avgTotalSugar": 63.448019801980195,
+    "avgTotalProtein": 117.9844884488449,
+    "avgTotalFibre": 18.43102310231023
+  },
+  "last7DaysAverage": {
+    "avgTotalCalories": 3054.4285714285716,
+    "avgTotalFat": 123.92857142857143,
+    "avgTotalCarbs": 303.75714285714287,
+    "avgTotalSugar": 85.65714285714286,
+    "avgTotalProtein": 136.18571428571428,
+    "avgTotalFibre": 25.82857142857143
+  },
+  "last30DaysAverage": {
+    "avgTotalCalories": 2833.3333333333335,
+    "avgTotalFat": 120.11333333333333,
+    "avgTotalCarbs": 286.4,
+    "avgTotalSugar": 81.34333333333333,
+    "avgTotalProtein": 127.08,
+    "avgTotalFibre": 19.363333333333333
+  },
+  "highestCaloriesDay": {
+    "date": "2024-07-31",
+    "total": 5317.0
+  },
+  "highestFatDay": {
+    "date": "2023-09-23",
+    "total": 260.3
+  },
+  "highestCarbsDay": {
+    "date": "2024-07-31",
+    "total": 501.7
+  },
+  "highestProteinDay": {
+    "date": "2024-08-03",
+    "total": 234.1
+  },
+  "highestFibreDay": {
+    "date": "2023-05-09",
+    "total": 53.8
+  },
+  "highestSugarDay": {
+    "date": "2023-10-21",
+    "total": 220.4
+  }
+}

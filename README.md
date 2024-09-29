@@ -108,6 +108,7 @@ Example responses:
 1. [example response for querying data from the database](./doc/example-response.json)
 2. [example response when querying a product name](./doc/example-response-products.json)
 3. [example response when running an export](./doc/example-response-exports.json)
+4. [example response when retrieving stats](./doc/example-response-stats.json)
 
 ---
 
@@ -178,6 +179,15 @@ Example responses:
 - **Example:** `/api/v1/fddbdata/export?days=5&includeToday=true`
 - **Response:** A JSON object containing the data (see [example response](./doc/example-response-exports.json)).
 
+---
+
+##### Retrieve Stats to Data
+
+> **GET** `/api/v1/fddbdata/stats`
+
+- **Description:** Retrieve the stats to the saved data.
+- **Response:** A JSON object containing the data (see [example response](./doc/example-response-stats.json)).
+
 ## Visualization
 After gathering all the data in a database, it's easy to display graphs based on it in Grafana. These screenshots
 are from version 0.3 as this version did use Postgresql and I didn't have time yet to figure out how to use MongoDB
@@ -190,7 +200,7 @@ I plan on implementing the following features in the future:
 - [x] Helm Chart for deployment
 - [x] product search API: to get only relevant data instead of the entire day
 - [ ] product search API: limit search by date or weekday instead of searching and returning every day
-- [ ] new stats endpoint: display some stats of your data
+- [x] new stats endpoint: display some stats of your data
 - [x] ARM container release (~~currently only x86 available~~) (available with 1.2.2+)
 - [ ] Alerting feature to notify when the Scheduler run failed
 - [ ] accompanying Flutter app as a frontend
@@ -198,6 +208,10 @@ I plan on implementing the following features in the future:
 If you have another feature in mind please open up an issue or contact me.
 
 ## Changelog
+
+### 1.3.0
+
+- added endpoint to retrieve stats for saved data
 
 ### 1.2.2
 
