@@ -34,6 +34,7 @@ public class FddbDataService {
     private final ExportService exportService;
     private final PersistenceService persistenceService;
     private final FddbDataMapper fddbDataMapper;
+    private final StatsService statsService;
 
     public List<FddbDataDTO> findAllEntries() {
         List<FddbData> allEntries = persistenceService.findAllEntries();
@@ -97,6 +98,10 @@ public class FddbDataService {
                 .build();
 
         return exportForTimerange(timeframe);
+    }
+
+    public StatsDTO getStats() {
+        return statsService.getStats();
     }
 
     private void exportForDate(LocalDate date) throws ParseException, AuthenticationException {
