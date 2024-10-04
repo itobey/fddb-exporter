@@ -18,7 +18,7 @@ services:
       - container_network
 
   fddb-exporter:
-    image: fddb-exporter
+    image: ghcr.io/itobey/fddb-exporter
     container_name: fddb-exporter
     ports:
       - "8080:8080"

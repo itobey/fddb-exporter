@@ -35,6 +35,10 @@ public class PersistenceService {
     private final FddbDataMapper fddbDataMapper;
     private final MongoTemplate mongoTemplate;
 
+    public long countAllEntries() {
+        return fddbDataRepository.count();
+    }
+
     /**
      * Retrieves all {@link FddbData} objects stored in the database.
      *
