@@ -201,8 +201,9 @@ still have any concerns, feel free to contact me or open an issue.
 
 ## Visualization
 After gathering all the data in a database, it's easy to display graphs based on it in Grafana. These screenshots
-are from version 0.3 as this version did use Postgresql and I didn't have time yet to figure out how to use MongoDB
-as a datasource for Grafana.
+are from version 0.3 as this version did use Postgresql and MongoDB cannot be used with Grafana. The next version (
+1.5.0) of
+this tool will feature InfluxDB as another persistence layer and Grafana will be able to query it directly.
 ![image](https://user-images.githubusercontent.com/22119845/131020061-a65e9b6b-6b44-4ba9-8438-10e5ef81e708.png)
 ![image](https://user-images.githubusercontent.com/22119845/131022068-6479fdb5-1926-4adf-914b-c7bdf6905c15.png)
 
