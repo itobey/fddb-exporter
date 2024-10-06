@@ -2,6 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
+import dev.itobey.adapter.api.fddb.exporter.service.telemetry.TelemetryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,6 +10,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
+/**
+ * This class is used to schedule the export of FDDb data and telemetry data.
+ */
 @Configuration
 @RequiredArgsConstructor
 @Slf4j
@@ -21,12 +25,19 @@ public class Scheduler implements SchedulingConfigurer {
     private String schedulerCron;
 
     private final FddbDataService fddbDataService;
+    private final TelemetryService telemetryService;
 
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         if (schedulerEnabled) {
             taskRegistrar.addCronTask(this::runFddbExportForYesterday, schedulerCron);
         }
+        taskRegistrar.addCronTask(this::sendTelemetryData, schedulerCron);
+    }
+
+    private void sendTelemetryData() {
+        log.debug("sending telemetry data");
+        telemetryService.sendTelemetryData();
     }
 
     private void runFddbExportForYesterday() {

@@ -35,6 +35,7 @@ management:
       enabled: true
     diskSpace:
       enabled: false
+
 fddb-exporter:
   fddb:
     url: https://fddb.info
@@ -45,6 +46,15 @@ fddb-exporter:
   scheduler:
     enabled: true
     cron: "0 0 3 * * *"
+  telemetry:
+    url: https://telemetry.itobey.dev
+    username: fddb-exporter
+    token: geXXjmYGbxfCxe3EX8onXH7yyg8ywxy9 #hard coded to prevent bots from accessing public endpoint
+  persistence:
+    mongodb:
+      enabled: true
+    influxdb:
+      enabled: false
 
 logging:
   level:

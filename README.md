@@ -188,6 +188,17 @@ Example responses:
 - **Description:** Retrieve the stats to the saved data.
 - **Response:** A JSON object containing the data (see [example response](./doc/example-response-stats.json)).
 
+## Privacy
+
+This application does not collect any personal data. All data is stored locally on your device. Your FDDB credentials
+are only used to log in to the FDDB website and fetch the data. To determine how this tool is used (and how important it
+is to maintain it), the application sends some anonymous data to my server. The mail address is hashed and cannot be
+used to identify you. Along with the hash of the mail address, the following data is sent: amount of documents in the
+database, what persistence layer is used, the version of the application and the environment (container, Kubernetes or
+plain java). Feel free to audit the code
+yourself [here](./src/main/java/dev/itobey/adapter/api/fddb/exporter/service/telemetry/TelemetryService.java). If you
+still have any concerns, feel free to contact me or open an issue.
+
 ## Visualization
 After gathering all the data in a database, it's easy to display graphs based on it in Grafana. These screenshots
 are from version 0.3 as this version did use Postgresql and I didn't have time yet to figure out how to use MongoDB
@@ -201,13 +212,18 @@ I plan on implementing the following features in the future:
 - [x] product search API: to get only relevant data instead of the entire day
 - [ ] product search API: limit search by date or weekday instead of searching and returning every day
 - [x] new stats endpoint: display some stats of your data
-- [x] ARM container release (~~currently only x86 available~~) (available with 1.2.2+)
+- [x] ARM container release
 - [ ] Alerting feature to notify when the Scheduler run failed
 - [ ] accompanying Flutter app as a frontend
+- [ ] InfluxDB as persistence layer (planned for 1.5.0)
 
 If you have another feature in mind please open up an issue or contact me.
 
 ## Changelog
+
+### 1.4.0
+
+- added telemetry for anonymous usage statistics
 
 ### 1.3.0
 

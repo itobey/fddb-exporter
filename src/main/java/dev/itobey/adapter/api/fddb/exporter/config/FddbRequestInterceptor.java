@@ -18,24 +18,25 @@ import java.util.List;
 
 public class FddbRequestInterceptor implements RequestInterceptor {
 
-    private final String username;
-    private final String password;
-    private String fddbCookie;
+    @Value("${fddb-exporter.fddb.username}")
+    private String username;
+    @Value("${fddb-exporter.fddb.password}")
+    private String password;
+    @Value("${fddb-exporter.fddb.url}")
+    private String fddbUrl;
 
-    public FddbRequestInterceptor(@Value("${fddb-exporter.fddb.username}") String username,
-                                  @Value("${fddb-exporter.fddb.password}") String password) {
-        this.username = username;
-        this.password = password;
-    }
+    private String fddbCookie;
 
     @Override
     public void apply(RequestTemplate template) {
-        if (fddbCookie == null) {
-            fddbCookie = login(template.feignTarget().url());
+        if (template.feignTarget().url().startsWith(fddbUrl)) {
+            if (fddbCookie == null) {
+                fddbCookie = login(template.feignTarget().url());
+            }
+            template.header("Cookie", "fddb=" + fddbCookie);
+            String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+            template.header("Authorization", "Basic " + auth);
         }
-        template.header("Cookie", "fddb=" + fddbCookie);
-        String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
-        template.header("Authorization", "Basic " + auth);
     }
 
     private String login(String baseUrl) {
