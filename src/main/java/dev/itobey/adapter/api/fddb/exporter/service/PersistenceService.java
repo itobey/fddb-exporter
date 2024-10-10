@@ -6,6 +6,7 @@ import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
@@ -13,8 +14,11 @@ import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
@@ -34,6 +38,10 @@ public class PersistenceService {
     private final FddbDataRepository fddbDataRepository;
     private final FddbDataMapper fddbDataMapper;
     private final MongoTemplate mongoTemplate;
+    private final InfluxDBService influxDBService;
+
+    @Value("${fddb-exporter.persistence.influxdb.enabled}")
+    private boolean influxdbEnabled;
 
     public long countAllEntries() {
         return fddbDataRepository.count();
@@ -91,6 +99,10 @@ public class PersistenceService {
             FddbData savedEntry = fddbDataRepository.save(dataToPersist);
             log.info("created entry: {}", savedEntry);
         }
+        if (influxdbEnabled) {
+            log.debug("writing point to influxdb: {}", dataToPersist);
+            saveToInfluxDB(dataToPersist);
+        }
     }
 
     private void updateDataIfNotIdentical(FddbData dataToPersist, FddbData existingFddbData) {
@@ -101,6 +113,22 @@ public class PersistenceService {
         } else {
             log.info("entry already exported, skipping: {}", dataToPersist);
         }
+    }
+
+    private void saveToInfluxDB(FddbData fddbData) {
+        Instant time = fddbData.getDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Map<String, Double> metrics = Map.of(
+                "calories", fddbData.getTotalCalories(),
+                "fat", fddbData.getTotalFat(),
+                "carbs", fddbData.getTotalCarbs(),
+                "sugar", fddbData.getTotalSugar(),
+                "fibre", fddbData.getTotalFibre(),
+                "protein", fddbData.getTotalProtein()
+        );
+
+        metrics.forEach((metric, value) ->
+                influxDBService.writeData("dailyTotals", metric, value, time)
+        );
     }
 
 }

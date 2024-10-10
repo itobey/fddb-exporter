@@ -1,13 +1,13 @@
 spring:
   application:
-    name: fddbexporter
+    name: fddb-exporter
   data:
     mongodb:
       host: localhost
       port: 27017
       database: fddb
-      username: user
-      password: password
+      username: mongodb_fddb_user
+      password: mongodb_fddb_password
   cloud:
     discovery:
       client:
@@ -50,11 +50,17 @@ fddb-exporter:
     url: https://telemetry.itobey.dev
     username: fddb-exporter
     token: geXXjmYGbxfCxe3EX8onXH7yyg8ywxy9 #hard coded to prevent bots from accessing public endpoint
+    cron: "0 0 4 * * *"
   persistence:
     mongodb:
       enabled: true
     influxdb:
       enabled: false
+  influxdb:
+    url: http://localhost:8086
+    token: ---
+    org: primary
+    bucket: fddb-exporter
 
 logging:
   level:

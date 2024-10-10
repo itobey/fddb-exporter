@@ -24,6 +24,9 @@ public class Scheduler implements SchedulingConfigurer {
     @Value("${fddb-exporter.scheduler.cron}")
     private String schedulerCron;
 
+    @Value("${fddb-exporter.telemetry.cron}")
+    private String telemetryCron;
+
     private final FddbDataService fddbDataService;
     private final TelemetryService telemetryService;
 
@@ -32,7 +35,7 @@ public class Scheduler implements SchedulingConfigurer {
         if (schedulerEnabled) {
             taskRegistrar.addCronTask(this::runFddbExportForYesterday, schedulerCron);
         }
-        taskRegistrar.addCronTask(this::sendTelemetryData, schedulerCron);
+        taskRegistrar.addCronTask(this::sendTelemetryData, telemetryCron);
     }
 
     private void sendTelemetryData() {
