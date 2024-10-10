@@ -3,7 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.service.telemetry;
 import dev.itobey.adapter.api.fddb.exporter.adapter.TelemetryApi;
 import dev.itobey.adapter.api.fddb.exporter.domain.ExecutionMode;
 import dev.itobey.adapter.api.fddb.exporter.dto.telemetry.TelemetryDto;
-import dev.itobey.adapter.api.fddb.exporter.service.PersistenceService;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

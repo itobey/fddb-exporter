@@ -4,6 +4,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

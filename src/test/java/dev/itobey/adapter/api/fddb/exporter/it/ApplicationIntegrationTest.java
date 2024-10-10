@@ -9,7 +9,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
-import dev.itobey.adapter.api.fddb.exporter.service.PersistenceService;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

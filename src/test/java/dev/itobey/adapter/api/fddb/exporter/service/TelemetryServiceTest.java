@@ -3,6 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 import dev.itobey.adapter.api.fddb.exporter.adapter.TelemetryApi;
 import dev.itobey.adapter.api.fddb.exporter.domain.ExecutionMode;
 import dev.itobey.adapter.api.fddb.exporter.dto.telemetry.TelemetryDto;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.EnvironmentDetector;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.TelemetryService;
 import org.junit.jupiter.api.BeforeEach;

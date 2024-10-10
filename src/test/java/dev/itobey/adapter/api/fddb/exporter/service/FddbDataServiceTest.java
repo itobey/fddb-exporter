@@ -5,6 +5,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

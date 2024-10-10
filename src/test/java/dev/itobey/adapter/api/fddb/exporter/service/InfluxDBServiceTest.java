@@ -5,6 +5,7 @@ import com.influxdb.client.WriteApi;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import com.influxdb.exceptions.InfluxException;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.InfluxDBService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,7 +51,7 @@ class InfluxDBServiceTest {
         Instant time = Instant.now();
 
         // when
-        influxDBService.writeData(MEASUREMENT, FIELD, VALUE, time);
+        influxDBService.writeData(FIELD, VALUE, time);
 
         // then
         verify(influxDBClient, times(1)).makeWriteApi();
@@ -74,7 +75,7 @@ class InfluxDBServiceTest {
         doThrow(new InfluxException("Write failed")).when(writeApi).writePoint(any(Point.class));
 
         // when/then
-        assertThatThrownBy(() -> influxDBService.writeData(MEASUREMENT, FIELD, VALUE, Instant.now()))
+        assertThatThrownBy(() -> influxDBService.writeData(FIELD, VALUE, Instant.now()))
                 .isInstanceOf(InfluxException.class)
                 .hasMessage("Write failed");
     }

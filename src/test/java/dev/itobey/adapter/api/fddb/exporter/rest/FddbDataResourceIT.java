@@ -2,7 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
-import dev.itobey.adapter.api.fddb.exporter.service.PersistenceService;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
