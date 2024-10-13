@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class InfluxDBServiceTest {
 
-    private static final String MEASUREMENT = "testMeasurement";
+    private static final String MEASUREMENT = "dailyTotals";
     private static final String FIELD = "testField";
     private static final double VALUE = 42.0;
 

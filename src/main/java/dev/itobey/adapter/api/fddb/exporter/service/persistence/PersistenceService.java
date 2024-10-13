@@ -40,6 +40,10 @@ public class PersistenceService {
         return mongoDBService.countAllEntries();
     }
 
+    public long countAllInfluxDbPoints() {
+        return influxDBService.getDataPointCount();
+    }
+
     public List<FddbData> findAllEntries() {
         return mongoDBService.findAllEntries();
     }

@@ -17,6 +17,23 @@ services:
     networks:
       - container_network
 
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=password
+      - DOCKER_INFLUXDB_INIT_ORG=primary
+      - DOCKER_INFLUXDB_INIT_BUCKET=fddb-exporter
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=token
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    networks:
+      - container_network
+
   fddb-exporter:
     image: ghcr.io/itobey/fddb-exporter
     container_name: fddb-exporter
@@ -28,10 +45,15 @@ services:
       SPRING_DATA_MONGODB_DATABASE: fddb
       SPRING_DATA_MONGODB_USERNAME: mongodb_fddb_user
       SPRING_DATA_MONGODB_PASSWORD: mongodb_fddb_password
+      FDDB-EXPORTER_INFLUXDB_TOKEN: token
+      FDDB-EXPORTER_INFLUXDB_URL: influxdb:8086
+      FDDB-EXPORTER_INFLUXDB_ORG: primary
+      FDDB-EXPORTER_INFLUXDB_BUCKET: fddb-exporter
       FDDB-EXPORTER_FDDB_USERNAME: ---
       FDDB-EXPORTER_FDDB_PASSWORD: ---
     depends_on:
       - mongodb
+      - influxdb
 
     networks:
       - container_network
@@ -42,3 +64,4 @@ networks:
 
 volumes:
   mongo-data:
+  influxdb-data:

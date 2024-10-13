@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.rest;
 
+import dev.itobey.adapter.api.fddb.exporter.annotation.RequiresMongoDb;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import jakarta.validation.Valid;
@@ -40,6 +41,7 @@ public class FddbDataResource {
      * @return a ResponseEntity containing a list of all FDDB data entries
      */
     @GetMapping
+    @RequiresMongoDb
     public ResponseEntity<List<FddbDataDTO>> findAllEntries() {
         List<FddbDataDTO> entries = fddbDataService.findAllEntries();
         return ResponseEntity.ok(entries);
@@ -52,6 +54,7 @@ public class FddbDataResource {
      * @return a ResponseEntity containing a list of FDDB data entries for the specified date, or a 400 Bad Request response if the date format is invalid
      */
     @GetMapping("/{date}")
+    @RequiresMongoDb
     public ResponseEntity<?> findByDate(@PathVariable String date) {
         if (!isValidDate(date)) {
             return ResponseEntity.badRequest().body("Date must be in the format YYYY-MM-DD");
@@ -67,6 +70,7 @@ public class FddbDataResource {
      * @return a ResponseEntity containing a list of FDDB data matching the search criteria
      */
     @GetMapping("/products")
+    @RequiresMongoDb
     public ResponseEntity<List<ProductWithDateDTO>> findByProduct(@RequestParam String name) {
         List<ProductWithDateDTO> productWithDate = fddbDataService.findByProduct(name);
         return ResponseEntity.ok(productWithDate);
@@ -103,6 +107,7 @@ public class FddbDataResource {
     }
 
     @GetMapping("/stats")
+    @RequiresMongoDb
     public ResponseEntity<StatsDTO> getStats() {
         return ResponseEntity.ok(fddbDataService.getStats());
     }
