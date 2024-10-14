@@ -4,6 +4,8 @@ import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.InfluxDBService;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.MongoDBService;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,9 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -27,17 +27,16 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PersistenceServiceTest {
 
-    @Mock
-    private FddbDataRepository fddbDataRepository;
-
-    @Mock
-    private FddbDataMapper fddbDataMapper;
-
-    @Mock
-    private MongoTemplate mongoTemplate;
-
     @InjectMocks
     private PersistenceService persistenceService;
+    @Mock
+    private FddbDataMapper fddbDataMapper;
+    @Mock
+    private MongoDBService mongoDBService;
+    @Mock
+    private InfluxDBService influxDBService;
+    @Mock
+    private FddbDataRepository fddbDataRepository;
 
     private FddbData testFddbData;
 
@@ -45,45 +44,43 @@ class PersistenceServiceTest {
     void setUp() {
         testFddbData = new FddbData();
         testFddbData.setDate(LocalDate.now());
+        ReflectionTestUtils.setField(persistenceService, "mongodbEnabled", true);
+        ReflectionTestUtils.setField(persistenceService, "influxdbEnabled", true);
     }
 
     @Test
     void findAllEntries_shouldReturnAllEntries() {
         List<FddbData> expectedEntries = Arrays.asList(new FddbData(), new FddbData());
-        when(fddbDataRepository.findAll()).thenReturn(expectedEntries);
+        when(mongoDBService.findAllEntries()).thenReturn(expectedEntries);
 
         List<FddbData> actualEntries = persistenceService.findAllEntries();
 
         assertEquals(expectedEntries, actualEntries);
-        verify(fddbDataRepository).findAll();
+        verify(mongoDBService).findAllEntries();
     }
 
     @Test
     void findByDate_shouldReturnOptionalOfFddbData() {
         LocalDate testDate = LocalDate.now();
-        when(fddbDataRepository.findFirstByDate(testDate)).thenReturn(Optional.of(testFddbData));
+        when(mongoDBService.findByDate(testDate)).thenReturn(Optional.of(testFddbData));
 
         Optional<FddbData> result = persistenceService.findByDate(testDate);
 
         assertTrue(result.isPresent());
         assertEquals(testFddbData, result.get());
-        verify(fddbDataRepository).findFirstByDate(testDate);
+        verify(mongoDBService).findByDate(testDate);
     }
 
     @Test
     void findByProduct_shouldReturnListOfProductWithDate() {
         String productName = "Test Product";
         List<ProductWithDate> expectedResults = Arrays.asList(new ProductWithDate(), new ProductWithDate());
-
-        AggregationResults<ProductWithDate> mockResults = mock(AggregationResults.class);
-        when(mockResults.getMappedResults()).thenReturn(expectedResults);
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq("fddb"), eq(ProductWithDate.class)))
-                .thenReturn(mockResults);
+        when(mongoDBService.findByProduct(productName)).thenReturn(expectedResults);
 
         List<ProductWithDate> actualResults = persistenceService.findByProduct(productName);
 
         assertEquals(expectedResults, actualResults);
-        verify(mongoTemplate).aggregate(any(Aggregation.class), eq("fddb"), eq(ProductWithDate.class));
+        verify(mongoDBService).findByProduct(productName);
     }
 
     @Test
@@ -91,11 +88,13 @@ class PersistenceServiceTest {
         FddbData existingData = new FddbData();
         existingData.setDate(LocalDate.now());
 
-        when(fddbDataRepository.findFirstByDate(testFddbData.getDate())).thenReturn(Optional.of(existingData));
+        when(mongoDBService.findByDate(testFddbData.getDate())).thenReturn(Optional.of(existingData));
 
         persistenceService.saveOrUpdate(testFddbData);
 
-        verify(fddbDataRepository, times(1)).findFirstByDate(existingData.getDate());
+        verify(mongoDBService).findByDate(existingData.getDate());
+        verify(fddbDataRepository, never()).save(any(FddbData.class));
+        verify(influxDBService).saveToInfluxDB(testFddbData);
     }
 
     @Test
@@ -106,31 +105,47 @@ class PersistenceServiceTest {
 
         testFddbData.setTotalCalories(200);
 
-        when(fddbDataRepository.findFirstByDate(existingData.getDate())).thenReturn(Optional.of(existingData));
-        when(fddbDataRepository.save(testFddbData)).thenReturn(testFddbData);
-
-        doAnswer(invocation -> {
-            FddbData targetArg = invocation.getArgument(0);
-            FddbData sourceArg = invocation.getArgument(1);
-            targetArg.setTotalCalories(sourceArg.getTotalCalories());
-            return null;
-        }).when(fddbDataMapper).updateFddbData(any(FddbData.class), any(FddbData.class));
-
+        when(mongoDBService.findByDate(existingData.getDate())).thenReturn(Optional.of(existingData));
+        when(fddbDataRepository.save(existingData)).thenReturn(existingData);
 
         persistenceService.saveOrUpdate(testFddbData);
 
         verify(fddbDataMapper).updateFddbData(existingData, testFddbData);
-        verify(fddbDataRepository).save(testFddbData);
+        verify(fddbDataRepository).save(existingData);
+        verify(influxDBService).saveToInfluxDB(testFddbData);
     }
 
     @Test
     void saveOrUpdate_shouldCreateNewEntry() {
-        when(fddbDataRepository.findFirstByDate(testFddbData.getDate())).thenReturn(Optional.empty());
+        when(mongoDBService.findByDate(testFddbData.getDate())).thenReturn(Optional.empty());
         when(fddbDataRepository.save(testFddbData)).thenReturn(testFddbData);
 
         persistenceService.saveOrUpdate(testFddbData);
 
         verify(fddbDataRepository).save(testFddbData);
         verify(fddbDataMapper, never()).updateFddbData(any(), any());
+        verify(influxDBService).saveToInfluxDB(testFddbData);
+    }
+
+    @Test
+    void countAllEntries_shouldReturnCount() {
+        long expectedCount = 10L;
+        when(mongoDBService.countAllEntries()).thenReturn(expectedCount);
+
+        long actualCount = persistenceService.countAllEntries();
+
+        assertEquals(expectedCount, actualCount);
+        verify(mongoDBService).countAllEntries();
+    }
+
+    @Test
+    void countAllInfluxDbPoints_shouldReturnCount() {
+        long expectedCount = 20L;
+        when(influxDBService.getDataPointCount()).thenReturn(expectedCount);
+
+        long actualCount = persistenceService.countAllInfluxDbPoints();
+
+        assertEquals(expectedCount, actualCount);
+        verify(influxDBService).getDataPointCount();
     }
 }

@@ -39,11 +39,17 @@ public class TelemetryService {
 
     public void sendTelemetryData() {
         ExecutionMode executionMode = environmentDetector.getExecutionMode();
-        long documentCount = persistenceService.countAllEntries();
         String mailHash = hashMail(fddbUserMail);
         TelemetryDto telemetryDto = new TelemetryDto();
+        if (mongodbEnabled) {
+            long documentCount = persistenceService.countAllEntries();
+            telemetryDto.setDocumentCount(documentCount);
+        }
+        if (influxdbEnabled) {
+            long pointCount = persistenceService.countAllInfluxDbPoints();
+            telemetryDto.setPointCount(pointCount);
+        }
         telemetryDto.setMailHash(mailHash);
-        telemetryDto.setDocumentCount(documentCount);
         telemetryDto.setMongodbEnabled(mongodbEnabled);
         telemetryDto.setInfluxdbEnabled(influxdbEnabled);
         telemetryDto.setExecutionMode(executionMode);

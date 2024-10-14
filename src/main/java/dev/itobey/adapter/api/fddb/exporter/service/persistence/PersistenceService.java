@@ -4,8 +4,8 @@ import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -22,13 +22,16 @@ import java.util.Optional;
  */
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class PersistenceService {
 
-    private final FddbDataRepository fddbDataRepository;
-    private final FddbDataMapper fddbDataMapper;
-    private final InfluxDBService influxDBService;
-    private final MongoDBService mongoDBService;
+    @Autowired
+    private FddbDataMapper fddbDataMapper;
+    @Autowired(required = false)
+    private FddbDataRepository fddbDataRepository;
+    @Autowired(required = false)
+    private MongoDBService mongoDBService;
+    @Autowired(required = false)
+    private InfluxDBService influxDBService;
 
     @Value("${fddb-exporter.persistence.mongodb.enabled}")
     private boolean mongodbEnabled;

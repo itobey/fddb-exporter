@@ -38,6 +38,8 @@ class TelemetryServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(telemetryService, "fddbUserMail", "test@example.com");
+        ReflectionTestUtils.setField(telemetryService, "mongodbEnabled", true);
+        ReflectionTestUtils.setField(telemetryService, "influxdbEnabled", true);
     }
 
     @Test

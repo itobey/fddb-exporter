@@ -55,7 +55,7 @@ fddb-exporter:
     mongodb:
       enabled: true
     influxdb:
-      enabled: false
+      enabled: true
   influxdb:
     url: http://localhost:8086
     token: ---

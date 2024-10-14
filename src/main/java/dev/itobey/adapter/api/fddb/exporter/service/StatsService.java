@@ -2,7 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -20,12 +20,12 @@ import java.util.List;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
 @Service
-@RequiredArgsConstructor
 public class StatsService {
 
     public static final String COLLECTION_NAME = "fddb";
 
-    private final MongoTemplate mongoTemplate;
+    @Autowired(required = false)
+    private MongoTemplate mongoTemplate;
 
     public StatsDTO getStats() {
         long amountEntries = getAmountEntries();

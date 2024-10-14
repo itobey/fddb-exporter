@@ -9,6 +9,7 @@ import com.influxdb.query.FluxTable;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -21,6 +22,7 @@ import java.util.Map;
  */
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "fddb-exporter.persistence.influxdb.enabled", havingValue = "true")
 public class InfluxDBService {
 
     public static final String DAILY_TOTALS = "dailyTotals";
