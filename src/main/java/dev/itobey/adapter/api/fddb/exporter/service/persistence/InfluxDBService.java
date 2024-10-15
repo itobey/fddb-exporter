@@ -6,9 +6,9 @@ import com.influxdb.client.WriteApi;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxTable;
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -29,8 +29,7 @@ public class InfluxDBService {
 
     private final InfluxDBClient influxDBClient;
 
-    @Value("${fddb-exporter.influxdb.bucket}")
-    private String bucket;
+    private final FddbExporterProperties properties;
 
     /**
      * Saves the given FddbData object to InfluxDB - but only uses the total values of the FddbData object.
@@ -78,7 +77,7 @@ public class InfluxDBService {
      */
     public long getDataPointCount() {
         QueryApi queryApi = influxDBClient.getQueryApi();
-        String flux = "from(bucket:\"" + bucket + "\")" +
+        String flux = "from(bucket:\"" + properties.getInfluxdb().getBucket() + "\")" +
                 " |> range(start: 0)" +
                 " |> filter(fn: (r) => r._measurement == \"" + DAILY_TOTALS + "\")" +
                 " |> count()";

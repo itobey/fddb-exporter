@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
@@ -9,7 +10,6 @@ import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.DateTimeException;
@@ -26,16 +26,12 @@ import static java.time.temporal.ChronoUnit.DAYS;
 @Slf4j
 public class FddbDataService {
 
-    @Value("${fddb-exporter.fddb.min-days-back}")
-    private int minDaysBack = 1;
-    @Value("${fddb-exporter.fddb.max-days-back}")
-    private int maxDaysBack = 365;
-
     private final TimeframeCalculator timeframeCalculator;
     private final ExportService exportService;
     private final PersistenceService persistenceService;
     private final FddbDataMapper fddbDataMapper;
     private final StatsService statsService;
+    private final FddbExporterProperties properties;
 
     public List<FddbDataDTO> findAllEntries() {
         List<FddbData> allEntries = persistenceService.findAllEntries();
@@ -86,6 +82,8 @@ public class FddbDataService {
 
     public ExportResultDTO exportForDaysBack(int days, boolean includeToday) {
         // safety net to prevent accidents
+        int maxDaysBack = properties.getFddb().getMaxDaysBack();
+        int minDaysBack = properties.getFddb().getMinDaysBack();
         if (days < minDaysBack || days > maxDaysBack) {
             throw new DateTimeException("Days back must be between " + minDaysBack + " and " + maxDaysBack);
         }

@@ -1,11 +1,11 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.TelemetryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
@@ -18,24 +18,16 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 @Slf4j
 public class Scheduler implements SchedulingConfigurer {
 
-    @Value("${fddb-exporter.scheduler.enabled}")
-    private boolean schedulerEnabled;
-
-    @Value("${fddb-exporter.scheduler.cron}")
-    private String schedulerCron;
-
-    @Value("${fddb-exporter.telemetry.cron}")
-    private String telemetryCron;
-
     private final FddbDataService fddbDataService;
     private final TelemetryService telemetryService;
+    private final FddbExporterProperties properties;
 
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-        if (schedulerEnabled) {
-            taskRegistrar.addCronTask(this::runFddbExportForYesterday, schedulerCron);
+        if (properties.getScheduler().isEnabled()) {
+            taskRegistrar.addCronTask(this::runFddbExportForYesterday, properties.getScheduler().getCron());
         }
-        taskRegistrar.addCronTask(this::sendTelemetryData, telemetryCron);
+        taskRegistrar.addCronTask(this::sendTelemetryData, properties.getTelemetry().getCron());
     }
 
     private void sendTelemetryData() {

@@ -1,12 +1,12 @@
 package dev.itobey.adapter.api.fddb.exporter.service.persistence;
 
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -32,12 +32,8 @@ public class PersistenceService {
     private MongoDBService mongoDBService;
     @Autowired(required = false)
     private InfluxDBService influxDBService;
-
-    @Value("${fddb-exporter.persistence.mongodb.enabled}")
-    private boolean mongodbEnabled;
-
-    @Value("${fddb-exporter.persistence.influxdb.enabled}")
-    private boolean influxdbEnabled;
+    @Autowired
+    private FddbExporterProperties properties;
 
     public long countAllEntries() {
         return mongoDBService.countAllEntries();
@@ -65,14 +61,14 @@ public class PersistenceService {
     }
 
     private void saveToInfluxDbIfEnabled(FddbData dataToPersist) {
-        if (influxdbEnabled) {
+        if (properties.getPersistence().getInfluxdb().isEnabled()) {
             log.info("writing point to influxdb: {}", dataToPersist);
             influxDBService.saveToInfluxDB(dataToPersist);
         }
     }
 
     private void saveToMongoDbIfEnabled(FddbData dataToPersist) {
-        if (mongodbEnabled) {
+        if (properties.getPersistence().getMongodb().isEnabled()) {
             Optional<FddbData> optionalOfDbEntry = mongoDBService.findByDate(dataToPersist.getDate());
             if (optionalOfDbEntry.isPresent()) {
                 FddbData existingFddbData = optionalOfDbEntry.get();

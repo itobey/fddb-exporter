@@ -1,21 +1,19 @@
 package dev.itobey.adapter.api.fddb.exporter.config;
 
 import feign.auth.BasicAuthRequestInterceptor;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@RequiredArgsConstructor
 public class TelemetryFeignConfig {
 
-    @Value("${fddb-exporter.telemetry.username}")
-    private String username;
-
-    @Value("${fddb-exporter.telemetry.token}")
-    private String token;
+    private final FddbExporterProperties properties;
 
     @Bean
     public BasicAuthRequestInterceptor basicAuthRequestInterceptor() {
-        return new BasicAuthRequestInterceptor(username, token);
+        return new BasicAuthRequestInterceptor(properties.getTelemetry().getUsername(),
+                properties.getTelemetry().getToken());
     }
 }

@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
@@ -10,10 +11,10 @@ import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceServi
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -37,6 +38,8 @@ class PersistenceServiceTest {
     private InfluxDBService influxDBService;
     @Mock
     private FddbDataRepository fddbDataRepository;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private FddbExporterProperties properties;
 
     private FddbData testFddbData;
 
@@ -44,8 +47,6 @@ class PersistenceServiceTest {
     void setUp() {
         testFddbData = new FddbData();
         testFddbData.setDate(LocalDate.now());
-        ReflectionTestUtils.setField(persistenceService, "mongodbEnabled", true);
-        ReflectionTestUtils.setField(persistenceService, "influxdbEnabled", true);
     }
 
     @Test
@@ -89,6 +90,8 @@ class PersistenceServiceTest {
         existingData.setDate(LocalDate.now());
 
         when(mongoDBService.findByDate(testFddbData.getDate())).thenReturn(Optional.of(existingData));
+        when(properties.getPersistence().getInfluxdb().isEnabled()).thenReturn(true);
+        when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(true);
 
         persistenceService.saveOrUpdate(testFddbData);
 
@@ -107,6 +110,8 @@ class PersistenceServiceTest {
 
         when(mongoDBService.findByDate(existingData.getDate())).thenReturn(Optional.of(existingData));
         when(fddbDataRepository.save(existingData)).thenReturn(existingData);
+        when(properties.getPersistence().getInfluxdb().isEnabled()).thenReturn(true);
+        when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(true);
 
         persistenceService.saveOrUpdate(testFddbData);
 
@@ -119,6 +124,8 @@ class PersistenceServiceTest {
     void saveOrUpdate_shouldCreateNewEntry() {
         when(mongoDBService.findByDate(testFddbData.getDate())).thenReturn(Optional.empty());
         when(fddbDataRepository.save(testFddbData)).thenReturn(testFddbData);
+        when(properties.getPersistence().getInfluxdb().isEnabled()).thenReturn(true);
+        when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(true);
 
         persistenceService.saveOrUpdate(testFddbData);
 
