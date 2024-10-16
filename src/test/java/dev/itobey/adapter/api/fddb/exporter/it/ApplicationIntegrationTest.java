@@ -30,9 +30,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -163,7 +164,8 @@ class ApplicationIntegrationTest {
         assertThat(tables.getFirst().getRecords()).hasSize(2);
 
         FluxRecord record1 = tables.getFirst().getRecords().getFirst();
-        assertThat(record1.getTime()).isEqualTo(Instant.parse("2024-08-26T22:00:00Z"));
+        ZonedDateTime expectedTime1 = ZonedDateTime.of(2024, 8, 27, 0, 0, 0, 0, ZoneId.systemDefault());
+        assertThat(record1.getTime()).isEqualTo(expectedTime1.toInstant());
         assertThat(record1.getValueByKey("calories")).isEqualTo(2128.0);
         assertThat(record1.getValueByKey("fat")).isEqualTo(69.3);
         assertThat(record1.getValueByKey("carbs")).isEqualTo(272.0);
@@ -172,7 +174,8 @@ class ApplicationIntegrationTest {
         assertThat(record1.getValueByKey("fibre")).isEqualTo(24.0);
 
         FluxRecord record2 = tables.getFirst().getRecords().get(1);
-        assertThat(record2.getTime()).isEqualTo(Instant.parse("2024-08-28T22:00:00Z"));
+        ZonedDateTime expectedTime2 = ZonedDateTime.of(2024, 8, 29, 0, 0, 0, 0, ZoneId.systemDefault());
+        assertThat(record2.getTime()).isEqualTo(expectedTime2.toInstant());
         assertThat(record2.getValueByKey("calories")).isEqualTo(2633.0);
         assertThat(record2.getValueByKey("fat")).isEqualTo(130.8);
         assertThat(record2.getValueByKey("carbs")).isEqualTo(244.2);

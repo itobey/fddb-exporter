@@ -1,11 +1,13 @@
 package dev.itobey.adapter.api.fddb.exporter.rest;
 
+import dev.itobey.adapter.api.fddb.exporter.annotation.RequiresInfluxDb;
 import dev.itobey.adapter.api.fddb.exporter.annotation.RequiresMongoDb;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
+import dev.itobey.adapter.api.fddb.exporter.service.DataMigrationService;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -26,12 +28,14 @@ import java.util.regex.Pattern;
  */
 @RestController
 @RequestMapping("/api/v1/fddbdata")
-@RequiredArgsConstructor
 @Slf4j
 @Validated
 public class FddbDataResource {
 
-    private final FddbDataService fddbDataService;
+    @Autowired
+    private FddbDataService fddbDataService;
+    @Autowired(required = false)
+    private DataMigrationService dataMigrationService;
 
     private static final String DATE_PATTERN = "\\d{4}-\\d{2}-\\d{2}";
 
@@ -110,6 +114,14 @@ public class FddbDataResource {
     @RequiresMongoDb
     public ResponseEntity<StatsDTO> getStats() {
         return ResponseEntity.ok(fddbDataService.getStats());
+    }
+
+    @PostMapping("/migrateToInfluxDb")
+    @RequiresMongoDb
+    @RequiresInfluxDb
+    public ResponseEntity<String> migrateMongoDbEntriesToInfluxDb() {
+        int amountEntries = dataMigrationService.migrateMongoDbEntriesToInfluxDb();
+        return ResponseEntity.ok("Migrated " + amountEntries + " entries to InfluxDB");
     }
 
     private boolean isValidDate(String date) {

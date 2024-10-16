@@ -35,9 +35,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -64,19 +65,14 @@ class UpdateEntryIntegrationTest {
 
     @Autowired
     private FddbDataService fddbDataService;
-
     @Autowired
     private FddbDataRepository fddbDataRepository;
-
     @Autowired
     private InfluxDBService influxDBService;
-
     @Autowired
     private MongoTemplate mongoTemplate;
-
     @Autowired
     private InfluxDBClient influxDBClient;
-
     @Autowired
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
@@ -155,7 +151,8 @@ class UpdateEntryIntegrationTest {
         assertThat(tables.getFirst().getRecords()).hasSize(1);
 
         FluxRecord record1 = tables.getFirst().getRecords().getFirst();
-        AssertionsForClassTypes.assertThat(record1.getTime()).isEqualTo(Instant.parse("2024-09-05T22:00:00Z"));
+        ZonedDateTime expectedTime2 = ZonedDateTime.of(2024, 9, 6, 0, 0, 0, 0, ZoneId.systemDefault());
+        AssertionsForClassTypes.assertThat(record1.getTime()).isEqualTo(expectedTime2.toInstant());
         AssertionsForClassTypes.assertThat(record1.getValueByKey("calories")).isEqualTo(2656.0);
         AssertionsForClassTypes.assertThat(record1.getValueByKey("fat")).isEqualTo(131.7);
         AssertionsForClassTypes.assertThat(record1.getValueByKey("carbs")).isEqualTo(195.5);
