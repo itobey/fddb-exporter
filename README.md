@@ -4,7 +4,11 @@
 
 ## Overview
 
-FDDB Exporter is a tool designed to extract nutritional data from [FDDB.info](https://fddb.info/) and store it in a MongoDB database. This application is especially useful for individuals who want to keep their FDDB diaries for themselves. FDDB only stores entries for up to 2 years for premium members, and even less for free users. Additionally, it is very handy if you want to query your data to see on which days you have entered specific products.
+FDDB Exporter is a tool designed to extract nutritional data from [FDDB.info](https://fddb.info/) and store it in a
+MongoDB/InfluxDB database.
+This application is especially useful for individuals who want to keep their FDDB diaries for themselves.
+FDDB only stores entries for up to 2 years for premium members, and even less for free users.
+Additionally, it is very handy if you want to query your data to see on which days you have entered specific products.
 
 ## Key Features
 
@@ -20,6 +24,7 @@ An example of a stored document can be seen [here](./doc/example-document.bson).
 - Docker or Java 21+ runtime environment
 - A valid FDDB.info account
 - MongoDB instance (can be run using the provided Docker Compose file)
+- InfluxDB instance (optional, but recommended for storing daily totals)
 
 ## Technology Stack
 
@@ -75,27 +80,47 @@ An example of a stored document can be seen [here](./doc/example-document.bson).
 
 Configure the application using environment variables:
 
-| Variable                           | Default               | Description                                     | Required |
-|------------------------------------|-----------------------|-------------------------------------------------|----------|
-| `FDDB-EXPORTER_FDDB_USERNAME`      | -                     | Your FDDB.info username or email                | Yes      |
-| `FDDB-EXPORTER_FDDB_PASSWORD`      | -                     | Your FDDB.info password                         | Yes      |
-| `FDDB-EXPORTER_FDDB_URL`           | https://fddb.info     | FDDB website URL                                | No       |
-| `FDDB-EXPORTER_FDDB_MIN-DAYS-BACK` | 1                     | Min limit of days back export for REST API      | No       |
-| `FDDB-EXPORTER_FDDB_MAX-DAYS-BACK` | 365                   | Max limit of days back export for REST API      | No       |
-| `FDDB-EXPORTER_SCHEDULER_ENABLED`  | true                  | Enable/disable the daily export scheduler       | No       |
-| `FDDB-EXPORTER_SCHEDULER_CRON`     | 0 0 3 * * *           | Scheduler cron expression (default: 3 AM daily) | No       |
-| `SPRING_DATA_MONGODB_HOST`         | localhost             | MongoDB host                                    | No       |
-| `SPRING_DATA_MONGODB_PORT`         | 27017                 | MongoDB port                                    | No       |
-| `SPRING_DATA_MONGODB_DATABASE`     | fddb                  | MongoDB database name                           | No       |
-| `SPRING_DATA_MONGODB_USERNAME`     | mongodb_fddb_user     | MongoDB username                                | No       |
-| `SPRING_DATA_MONGODB_PASSWORD`     | mongodb_fddb_password | MongoDB password                                | No       |
-| `LOGGING_LEVEL_ROOT`               | info                  | Application log level                           | No       |
+| Variable                                     | Default               | Description                                     | Required |
+|----------------------------------------------|-----------------------|-------------------------------------------------|----------|
+| `FDDB-EXPORTER_FDDB_USERNAME`                | -                     | Your FDDB.info username or email                | Yes      |
+| `FDDB-EXPORTER_FDDB_PASSWORD`                | -                     | Your FDDB.info password                         | Yes      |
+| `FDDB-EXPORTER_FDDB_URL`                     | https://fddb.info     | FDDB website URL                                | No       |
+| `FDDB-EXPORTER_FDDB_MIN-DAYS-BACK`           | 1                     | Min limit of days back export for REST API      | No       |
+| `FDDB-EXPORTER_FDDB_MAX-DAYS-BACK`           | 365                   | Max limit of days back export for REST API      | No       |
+| `FDDB-EXPORTER_SCHEDULER_ENABLED`            | true                  | Enable/disable the daily export scheduler       | No       |
+| `FDDB-EXPORTER_SCHEDULER_CRON`               | 0 0 3 * * *           | Scheduler cron expression (default: 3 AM daily) | No       |
+| `FDDB-EXPORTER_PERSISTENCE_MONGODB_ENABLED`  | true                  | Use MongoDB as persistence                      | No(*)    |
+| `FDDB-EXPORTER_PERSISTENCE_INFLUXDB_ENABLED` | false                 | Use InfluxDB as persistence                     | No(*)    |
+| `SPRING_DATA_MONGODB_HOST`                   | localhost             | MongoDB host                                    | No       |
+| `SPRING_DATA_MONGODB_PORT`                   | 27017                 | MongoDB port                                    | No       |
+| `SPRING_DATA_MONGODB_DATABASE`               | fddb                  | MongoDB database name                           | No       |
+| `SPRING_DATA_MONGODB_USERNAME`               | mongodb_fddb_user     | MongoDB username                                | No       |
+| `SPRING_DATA_MONGODB_PASSWORD`               | mongodb_fddb_password | MongoDB password                                | No       |
+| `FDDB-EXPORTER_INFLUXDB_URL`                 | http://localhost:8086 | URL to InfluxDB                                 | No       |
+| `FDDB-EXPORTER_INFLUXDB_ORG`                 | primary               | InfluxDB Org                                    | No       |
+| `FDDB-EXPORTER_INFLUXDB_TOKEN`               | <token>               | Token for authentication in InfluxDB            | No(**)   |
+| `FDDB-EXPORTER_INFLUXDB_BUCKET`              | fddb-exporter         | InfluxDB bucket                                 | No       |
+| `LOGGING_LEVEL_ROOT`                         | info                  | Application log level                           | No       |
+
+> \* at least one of the persistence options must be enabled
+
+> \** only required if InfluxDB is enabled
 
 ## Usage
 
 ### Automated Daily Export
 
-By default, the application will automatically export data for the previous day at 3 AM. You can adjust this schedule using the `FDDB-EXPORTER_SCHEDULER_CRON` environment variable.
+By default, the application will automatically export data for the previous day at 3 AM.
+You can adjust this schedule using the `FDDB-EXPORTER_SCHEDULER_CRON` environment variable.
+
+### Persistence
+
+Up to version 1.4.0 the application used only MongoDB as a persistence layer. Since version 1.5.0 the application uses
+InfluxDB as an additional persistence layer. Both persistence layers are configurable and can be used together or
+separately. MongoDB stores all data, while InfluxDB stores only the daily totals, which is more in line with a
+time-series database. Existing data from MongoDB can be migrated to InfluxDB using the REST API. Depending on the
+size of your data, this process can take up to a few minutes. The application still defaults to MongoDB, but InfluxDB
+can be enabled by setting the appropriate environment variable. See the configuration section for more details.
 
 ### REST API Documentation
 
@@ -188,6 +213,15 @@ Example responses:
 - **Description:** Retrieve the stats to the saved data.
 - **Response:** A JSON object containing the data (see [example response](./doc/example-response-stats.json)).
 
+---
+
+##### Migrate MongoDB data to InfluxDb
+
+> **POST** `/api/v1/fddbdata/migrateToInfluxDb`
+
+- **Description:** Migrates existing data from MongoDB to InfluxDb.
+- **Response:** HTTP 200 if successful.
+
 ## Privacy
 
 This application does not collect any personal data. All data is stored locally on your device. Your FDDB credentials
@@ -196,18 +230,19 @@ is to maintain it), the application sends some anonymous data to my server. The 
 used to identify you. Along with the hash of the mail address, the following data is sent: amount of documents in the
 database, what persistence layer is used, the version of the application and the environment (container, Kubernetes or
 plain java). Feel free to audit the code
-yourself [here](./src/main/java/dev/itobey/adapter/api/fddb/exporter/service/telemetry/TelemetryService.java). If you
-still have any concerns, feel free to contact me or open an issue.
+yourself [here](./src/main/java/dev/itobey/adapter/api/fddb/exporter/service/telemetry/TelemetryService.java).
+If you still have any concerns, feel free to contact me or open an issue.
 
 ## Visualization
-After gathering all the data in a database, it's easy to display graphs based on it in Grafana. These screenshots
-are from version 0.3 as this version did use Postgresql and MongoDB cannot be used with Grafana. The next version (
-1.5.0) of
-this tool will feature InfluxDB as another persistence layer and Grafana will be able to query it directly.
+
+After gathering all the data, it's easy to display graphs based on it in Grafana. As Grafana cannot use MongoDB as a
+data source, it's necessary to use InfluxDb for this. You may use my [Grafana-Dashboard](./doc/grafana-dashboard.json)
+or build your own dashboard.
 ![image](https://user-images.githubusercontent.com/22119845/131020061-a65e9b6b-6b44-4ba9-8438-10e5ef81e708.png)
 ![image](https://user-images.githubusercontent.com/22119845/131022068-6479fdb5-1926-4adf-914b-c7bdf6905c15.png)
 
 ## Roadmap
+
 I plan on implementing the following features in the future:
 - [x] Helm Chart for deployment
 - [x] product search API: to get only relevant data instead of the entire day
@@ -216,11 +251,15 @@ I plan on implementing the following features in the future:
 - [x] ARM container release
 - [ ] Alerting feature to notify when the Scheduler run failed
 - [ ] accompanying Flutter app as a frontend
-- [ ] InfluxDB as persistence layer (planned for 1.5.0)
+- [x] InfluxDB as additional persistence layer
 
 If you have another feature in mind please open up an issue or contact me.
 
 ## Changelog
+
+### 1.5.0
+
+- added InfluxDB as additional persistence layer
 
 ### 1.4.0
 
@@ -261,7 +300,7 @@ If you have another feature in mind please open up an issue or contact me.
 
 ## Resource Usage
 
-The service typically uses around 285 MB of RAM with minimal CPU usage when idle.
+The service typically uses around 300 MB of RAM with minimal CPU usage when idle.
 
 ## Contributing
 
