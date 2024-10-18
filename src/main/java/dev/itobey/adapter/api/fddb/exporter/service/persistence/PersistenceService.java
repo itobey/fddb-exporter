@@ -62,7 +62,7 @@ public class PersistenceService {
 
     private void saveToInfluxDbIfEnabled(FddbData dataToPersist) {
         if (properties.getPersistence().getInfluxdb().isEnabled()) {
-            log.info("writing point to influxdb: {}", dataToPersist);
+            log.info("writing point to influxdb: {}", dataToPersist.toDailyTotalsString());
             influxDBService.saveToInfluxDB(dataToPersist);
         }
     }

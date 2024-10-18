@@ -116,11 +116,12 @@ You can adjust this schedule using the `FDDB-EXPORTER_SCHEDULER_CRON` environmen
 ### Persistence
 
 Up to version 1.4.0 the application used only MongoDB as a persistence layer. Since version 1.5.0 the application uses
-InfluxDB as an additional persistence layer. Both persistence layers are configurable and can be used together or
-separately. MongoDB stores all data, while InfluxDB stores only the daily totals, which is more in line with a
-time-series database. Existing data from MongoDB can be migrated to InfluxDB using the REST API. Depending on the
-size of your data, this process can take up to a few minutes. The application still defaults to MongoDB, but InfluxDB
-can be enabled by setting the appropriate environment variable. See the configuration section for more details.
+InfluxDB 2 as an additional persistence layer. The application will not work with InfluxDB 1.x.
+Both persistence layers are configurable and can be used together or separately. MongoDB stores all data, while
+InfluxDB stores only the daily totals, which is more in line with a time-series database. Existing data from MongoDB
+can be migrated to InfluxDB using the REST API. Depending on the size of your data, this process can take up to a few
+minutes. The application still defaults to MongoDB, but InfluxDB can be enabled by setting the appropriate environment
+variable. See the configuration section for more details.
 
 ### REST API Documentation
 

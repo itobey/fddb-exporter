@@ -23,12 +23,12 @@ services:
     ports:
       - "8086:8086"
     environment:
-      - DOCKER_INFLUXDB_INIT_MODE=setup
-      - DOCKER_INFLUXDB_INIT_USERNAME=admin
-      - DOCKER_INFLUXDB_INIT_PASSWORD=password
-      - DOCKER_INFLUXDB_INIT_ORG=primary
-      - DOCKER_INFLUXDB_INIT_BUCKET=fddb-exporter
-      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=token
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: password
+      DOCKER_INFLUXDB_INIT_ORG: primary
+      DOCKER_INFLUXDB_INIT_BUCKET: fddb-exporter
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: token
     volumes:
       - influxdb-data:/var/lib/influxdb2
     networks:
@@ -45,12 +45,15 @@ services:
       SPRING_DATA_MONGODB_DATABASE: fddb
       SPRING_DATA_MONGODB_USERNAME: mongodb_fddb_user
       SPRING_DATA_MONGODB_PASSWORD: mongodb_fddb_password
+      FDDB-EXPORTER_PERSISTENCE_MONGODB_ENABLED: true
+      FDDB-EXPORTER_PERSISTENCE_INFLUXDB_ENABLED: true
       FDDB-EXPORTER_INFLUXDB_TOKEN: token
-      FDDB-EXPORTER_INFLUXDB_URL: influxdb:8086
+      FDDB-EXPORTER_INFLUXDB_URL: http://influxdb:8086
       FDDB-EXPORTER_INFLUXDB_ORG: primary
       FDDB-EXPORTER_INFLUXDB_BUCKET: fddb-exporter
       FDDB-EXPORTER_FDDB_USERNAME: ---
       FDDB-EXPORTER_FDDB_PASSWORD: ---
+      TZ: Europe/Berlin
     depends_on:
       - mongodb
       - influxdb

@@ -24,4 +24,16 @@ public class FddbData {
     private double totalProtein;
     private double totalFibre;
 
+    public String toDailyTotalsString() {
+        return "FddbData{" +
+                "date=" + date +
+                ", totalCalories=" + totalCalories +
+                ", totalFat=" + totalFat +
+                ", totalCarbs=" + totalCarbs +
+                ", totalSugar=" + totalSugar +
+                ", totalProtein=" + totalProtein +
+                ", totalFibre=" + totalFibre +
+                '}';
+    }
+
 }
