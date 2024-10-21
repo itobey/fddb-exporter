@@ -1,19 +1,21 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.adapter.TelemetryApi;
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.ExecutionMode;
 import dev.itobey.adapter.api.fddb.exporter.dto.telemetry.TelemetryDto;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.EnvironmentDetector;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.TelemetryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.info.BuildProperties;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,10 +35,11 @@ class TelemetryServiceTest {
     private EnvironmentDetector environmentDetector;
     @Mock
     private BuildProperties buildProperties;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private FddbExporterProperties properties;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(telemetryService, "fddbUserMail", "test@example.com");
     }
 
     @Test
@@ -45,6 +48,9 @@ class TelemetryServiceTest {
         when(persistenceService.countAllEntries()).thenReturn(10L);
         when(environmentDetector.getExecutionMode()).thenReturn(ExecutionMode.CONTAINER);
         when(buildProperties.getVersion()).thenReturn("1.0.0");
+        when(properties.getFddb().getUsername()).thenReturn("test@example.com");
+        when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(true);
+        when(properties.getPersistence().getInfluxdb().isEnabled()).thenReturn(true);
 
         // when
         telemetryService.sendTelemetryData();

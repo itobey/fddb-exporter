@@ -1,16 +1,19 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,18 +31,16 @@ class FddbDataServiceTest {
 
     @InjectMocks
     private FddbDataService fddbDataService;
-
     @Mock
     private TimeframeCalculator timeframeCalculator;
-
     @Mock
     private ExportService exportService;
-
     @Mock
     private PersistenceService persistenceService;
-
     @Mock
     private FddbDataMapper fddbDataMapper;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private FddbExporterProperties properties;
 
     private FddbData mockFddbData;
     private FddbDataDTO mockFddbDataDTO;
@@ -181,6 +182,8 @@ class FddbDataServiceTest {
 
         when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(mock(TimeframeDTO.class));
         when(exportService.exportData(any(TimeframeDTO.class))).thenReturn(mockFddbData);
+        when(properties.getFddb().getMaxDaysBack()).thenReturn(365);
+        when(properties.getFddb().getMinDaysBack()).thenReturn(1);
 
         // when
         ExportResultDTO result = fddbDataService.exportForDaysBack(days, includeToday);
@@ -199,6 +202,8 @@ class FddbDataServiceTest {
 
     @Test
     void exportForDaysBack_whenDaysOutOfRange_shouldThrowException() {
+        when(properties.getFddb().getMaxDaysBack()).thenReturn(365);
+        when(properties.getFddb().getMinDaysBack()).thenReturn(1);
         assertThrows(DateTimeException.class, () -> fddbDataService.exportForDaysBack(0, true));
         assertThrows(DateTimeException.class, () -> fddbDataService.exportForDaysBack(366, true));
         verifyNoInteractions(persistenceService);

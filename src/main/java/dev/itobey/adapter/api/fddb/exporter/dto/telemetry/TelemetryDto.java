@@ -8,6 +8,7 @@ public class TelemetryDto {
 
     private String mailHash;
     private long documentCount;
+    private long pointCount;
     private boolean mongodbEnabled;
     private boolean influxdbEnabled;
     private ExecutionMode executionMode;

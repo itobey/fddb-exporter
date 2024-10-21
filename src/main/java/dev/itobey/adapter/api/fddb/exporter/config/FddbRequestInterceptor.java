@@ -3,7 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.config;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -16,23 +16,21 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 
+@RequiredArgsConstructor
 public class FddbRequestInterceptor implements RequestInterceptor {
 
-    @Value("${fddb-exporter.fddb.username}")
-    private String username;
-    @Value("${fddb-exporter.fddb.password}")
-    private String password;
-    @Value("${fddb-exporter.fddb.url}")
-    private String fddbUrl;
+    private final FddbExporterProperties properties;
 
     private String fddbCookie;
 
     @Override
     public void apply(RequestTemplate template) {
-        if (template.feignTarget().url().startsWith(fddbUrl)) {
+        if (template.feignTarget().url().startsWith(properties.getFddb().getUrl())) {
             if (fddbCookie == null) {
                 fddbCookie = login(template.feignTarget().url());
             }
+            String password = properties.getFddb().getPassword();
+            String username = properties.getFddb().getUsername();
             template.header("Cookie", "fddb=" + fddbCookie);
             String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
             template.header("Authorization", "Basic " + auth);
@@ -45,8 +43,8 @@ public class FddbRequestInterceptor implements RequestInterceptor {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        map.add("loginemailorusername", username);
-        map.add("loginpassword", password);
+        map.add("loginemailorusername", properties.getFddb().getUsername());
+        map.add("loginpassword", properties.getFddb().getPassword());
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
 

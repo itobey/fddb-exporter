@@ -2,6 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
+import dev.itobey.adapter.api.fddb.exporter.service.DataMigrationService;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -20,12 +21,12 @@ class FddbDataResourceWebMvcTest {
 
     @Autowired
     private MockMvc mockMvc;
-
     @Autowired
     private ObjectMapper objectMapper;
-
     @MockBean
     private FddbDataService fddbDataService;
+    @MockBean
+    private DataMigrationService dataMigrationService;
 
     @Test
     @SneakyThrows

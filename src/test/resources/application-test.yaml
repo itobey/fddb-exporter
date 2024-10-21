@@ -1,0 +1,11 @@
+fddb-exporter:
+  persistence:
+    mongodb:
+      enabled: true
+    influxdb:
+      enabled: true
+  influxdb:
+    url: http://localhost:8086 # port is set in integration test
+    token: token
+    org: test-org
+    bucket: test-bucket

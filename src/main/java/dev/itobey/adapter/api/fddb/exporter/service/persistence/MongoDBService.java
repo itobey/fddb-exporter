@@ -1,11 +1,10 @@
-package dev.itobey.adapter.api.fddb.exporter.service;
+package dev.itobey.adapter.api.fddb.exporter.service.persistence;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
-import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
@@ -20,20 +19,18 @@ import java.util.Optional;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
 /**
- * Provides persistence-related services for managing {@link FddbData} objects.
+ * Provides MongoDB-related services for managing {@link FddbData} objects.
  * <p>
- * This service class is responsible for saving and retrieving {@link FddbData} objects to/from the database.
- * It provides methods to find the first {@link FddbData} object by a given date, save a new {@link FddbData} object,
- * and search for {@link FddbData} objects by product name.
+ * This does not use Lomboks constructor, because the required=false is not supported by Lombok.
  */
 @Service
-@Slf4j
-@RequiredArgsConstructor
-public class PersistenceService {
+@ConditionalOnProperty(name = "fddb-exporter.persistence.mongodb.enabled", havingValue = "true")
+public class MongoDBService {
 
-    private final FddbDataRepository fddbDataRepository;
-    private final FddbDataMapper fddbDataMapper;
-    private final MongoTemplate mongoTemplate;
+    @Autowired(required = false)
+    private FddbDataRepository fddbDataRepository;
+    @Autowired(required = false)
+    private MongoTemplate mongoTemplate;
 
     public long countAllEntries() {
         return fddbDataRepository.count();
@@ -79,28 +76,6 @@ public class PersistenceService {
                 aggregation, "fddb", ProductWithDate.class);
 
         return results.getMappedResults();
-    }
-
-    public void saveOrUpdate(FddbData dataToPersist) {
-        Optional<FddbData> optionalOfDbEntry = findByDate(dataToPersist.getDate());
-        if (optionalOfDbEntry.isPresent()) {
-            FddbData existingFddbData = optionalOfDbEntry.get();
-            log.debug("updating existing database entry for {}", dataToPersist.getDate());
-            updateDataIfNotIdentical(dataToPersist, existingFddbData);
-        } else {
-            FddbData savedEntry = fddbDataRepository.save(dataToPersist);
-            log.info("created entry: {}", savedEntry);
-        }
-    }
-
-    private void updateDataIfNotIdentical(FddbData dataToPersist, FddbData existingFddbData) {
-        if (!dataToPersist.equals(existingFddbData)) {
-            fddbDataMapper.updateFddbData(existingFddbData, dataToPersist);
-            FddbData updatedEntry = fddbDataRepository.save(existingFddbData);
-            log.info("updated entry: {}", updatedEntry);
-        } else {
-            log.info("entry already exported, skipping: {}", dataToPersist);
-        }
     }
 
 }
