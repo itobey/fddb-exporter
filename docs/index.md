@@ -6,8 +6,8 @@ hero:
   text: Export data from fddb.info to a database and query your data
   actions:
     - theme: brand
-      text: Get Started
-      link: /guide/index.md
+      text: Documentation
+      link: /introduction/index.md
     - theme: alt
       text: View on GitHub
       link: https://github.com/itobey/fddb-exporter

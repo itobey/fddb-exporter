@@ -24,11 +24,11 @@ local machine with a Java 21+ runtime environment.
 
 You can use the pre-built Docker image to quickly set up the application. You have two options here if you do **not**
 want to deploy a Helm Chart.
-More information about the Docker image can be found on this [detail page](/details/docker.md).
+More information about the Docker image configuration can be found on this [detail page](/details/docker.md).
 
 1. Pull the pre-built Docker image:
    ```
-   docker pull ghcr.io/itobey/fddb-exporter:latest
+   docker run ghcr.io/itobey/fddb-exporter:latest
    ```
 
 2. Use the provided [docker-compose.yaml](https://github.com/itobey/fddb-exporter/blob/master/docker/docker-compose.yml)
@@ -40,14 +40,14 @@ More information about the Docker image can be found on this [detail page](/deta
 
 ### Pre-built Helm Chart
 
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/search?repo=fddb-exporter)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/helm/fddb-exporter/fddb-exporter)
 
-You may also use the pre-built Helm Chart to deploy the application. More information about the Helm Chart can be
-found on this [detail page](/details/helm.md).
+You may also use the pre-built Helm Chart to deploy the application. More information about the Helm Chart
+configuration can be found on this [detail page](/details/helm.md).
 
 - Use the pre-built Helm Chart:
    ```
-   helm pull oci://ghcr.io/itobey/charts/fddb-exporter
+   helm install fddb-exporter oci://ghcr.io/itobey/charts/fddb-exporter --version 1.1.0
    ```
 
 - or checkout the [Fddb-Exporter Chart](https://github.com/itobey/charts/tree/master/fddb-exporter) yourself

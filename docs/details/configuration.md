@@ -1,5 +1,7 @@
 # Configuration
 
+## Configuration Options
+
 The FDDB Exporter application is a [Spring Boot](https://spring.io/projects/spring-boot) 3 application.
 It is pre-configured with a basic configuration embedded in the application. However, some properties need to be
 configured to make the application work for your use case and environment. The easiest way to do this is via
@@ -10,7 +12,8 @@ the [official documentation](https://docs.spring.io/spring-boot/docs/current/ref
 
 ## Environment Variables
 
-This page lists all available environment variables and their default values.
+This page lists all available environment variables and their default values. Usually, you only need to change
+the username and password for the FDDB connection and the settings for your preferred database connection.
 
 - For more information about how to configure the Docker image, please refer to
   the [Docker details](/details/docker.md).
@@ -29,7 +32,7 @@ the FDDB connection.
 
 ### Export Configuration
 
-For more information about the scheduler and how the export works, see [Export details](/details/export.md).
+For more information about the scheduler and how the export works, see [Export details](/details/exports-and-data.md).
 
 | Variable                           | Default     | Description                                                   |
 |------------------------------------|-------------|---------------------------------------------------------------|

@@ -24,7 +24,6 @@ export default {
                 text: ref,
                 items: [
                     { text: "Changelog", link: "https://github.com/itobey/fddb-exporter/blob/main/CHANGELOG.md" },
-                    { text: "Contributing", link: "https://github.com/itobey/fddb-exporter/blob/main/CONTRIBUTING.md" },
                     { text: "Issues", link: "https://github.com/itobey/fddb-exporter/issues" }
                 ]
             }
@@ -42,8 +41,8 @@ export default {
                 text: "Introduction",
                 collapsible: true,
                 items: [
-                    { text: "What is FDDB Exporter?", link: "/guide/index.html" },
-                    { text: "Getting started", link: "/guide/getting-started.html" }
+                    { text: "What is FDDB Exporter?", link: "/introduction/index.html" },
+                    { text: "Getting started", link: "/introduction/getting-started.html" }
                 ]
             },
             {
@@ -71,5 +70,6 @@ export default {
     ignoreDeadLinks: [
         // ignore all localhost links
         /^https?:\/\/localhost/,
-    ]
+    ],
+    cleanUrls: true
 }
