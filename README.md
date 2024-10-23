@@ -1,6 +1,6 @@
 # FDDB Exporter
 
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/search?repo=fddb-exporter)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/helm/fddb-exporter/fddb-exporter)
 
 ## Overview
 
@@ -49,7 +49,7 @@ An example of a stored document can be seen [here](./doc/example-document.bson).
 
 ### Option 2: Using Pre-built Helm Chart
 
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/search?repo=fddb-exporter)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/helm/fddb-exporter/fddb-exporter)
 
 - Use the pre-built Helm Chart:
    ```

@@ -10,7 +10,8 @@ the [official documentation](https://docs.spring.io/spring-boot/docs/current/ref
 
 ## Environment Variables
 
-This page lists all available environment variables and their default values.
+This page lists all available environment variables and their default values. Usually, you only need to change
+the username and password for the FDDB connection and the settings for your preferred database connection.
 
 - For more information about how to configure the Docker image, please refer to
   the [Docker details](/details/docker.md).
