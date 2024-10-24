@@ -65,6 +65,14 @@ export default {
                     { text: "Grafana Dashboard", link: "/visualization/grafana-dashboard.html" },
                     { text: "Flutter App", link: "/visualization/flutter-app.html" }
                 ]
+            },
+            {
+                text: "Examples",
+                collapsible: true,
+                items: [
+                    { text: "MongoDB document", link: "/examples/mongodb-document.html" },
+                    { text: "REST API Results", link: "/examples/rest-api-results.html" }
+                ]
             }
         ]
     },

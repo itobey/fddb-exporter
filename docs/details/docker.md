@@ -1,5 +1,7 @@
 # Docker
 
+## Docker Image
+
 The application can be run in a Docker container.
 Githubs [GHCR Repository](https://github.com/itobey/fddb-exporter/pkgs/container/fddb-exporter) currently
 hosts an amd64 and arm64 architecture official image. There is also a [Helm Chart](/details/helm.md) available for

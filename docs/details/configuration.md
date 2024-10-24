@@ -1,5 +1,7 @@
 # Configuration
 
+## Configuration Options
+
 The FDDB Exporter application is a [Spring Boot](https://spring.io/projects/spring-boot) 3 application.
 It is pre-configured with a basic configuration embedded in the application. However, some properties need to be
 configured to make the application work for your use case and environment. The easiest way to do this is via

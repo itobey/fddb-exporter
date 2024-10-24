@@ -1,5 +1,7 @@
 # Helm
 
+## Helm Chart
+
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/helm/fddb-exporter/fddb-exporter)
 
 The official Helm Chart can be used to deploy the FDDB-Exporter application to a Kubernetes cluster.
