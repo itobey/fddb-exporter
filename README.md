@@ -6,27 +6,14 @@
       <a href="https://itobey.github.io/fddb-exporter/" target="_blank"><strong>Documentation</strong></a>
    </p>
 
-   <a href="https://artifacthub.io/packages/search?repo=fddb-exporter" target="_blank" title="Artifact Hub">
-      <img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter" alt="Artifact Hub Badge" style="max-width: 100%;">
-   </a>
-   <!-- Badges -->
-   <p>
-      <a href="https://github.com/itobey/fddb-exporter/actions/workflows/ci.yml" target="_blank" title="Build Status">
-         <img src="https://img.shields.io/github/actions/workflow/status/itobey/fddb-exporter/ci.yml?style=flat-square" alt="Build Status" style="max-width: 100%;">
-      </a>
-      <a href="https://github.com/itobey/fddb-exporter/releases" target="_blank" title="Releases">
-         <img src="https://img.shields.io/github/release/itobey/fddb-exporter.svg?style=flat-square&color=9CF" alt="Release Version" style="max-width: 100%;">
-      </a>
-      <a href="https://www.gnu.org/licenses/mit.txt" target="_blank" title="License: MIT">
-         <img src="http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="MIT License" style="max-width: 100%;">
-      </a>
-      <a href="https://github.com/itobey/fddb-exporter/commits/master" target="_blank" title="GitHub Commits">
-         <img src="https://img.shields.io/github/commit-activity/m/itobey/fddb-exporter.svg?style=flat-square" alt="Commit Activity" style="max-width: 100%;">
-      </a>
-      <a href="https://github.com/itobey/fddb-exporter/commits/master" target="_blank" title="Last Commit">
-         <img src="https://img.shields.io/github/last-commit/itobey/fddb-exporter.svg?style=flat-square&color=FF9900" alt="Last Commit" style="max-width: 100%;">
-      </a>
-   </p>
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/search?repo=fddb-exporter)
+
+[![Build Status](https://img.shields.io/github/actions/workflow/status/itobey/fddb-exporter/ci.yml?style=flat-square)](https://github.com/itobey/fddb-exporter/actions/workflows/ci.yml)
+[![Release Version](https://img.shields.io/github/release/itobey/fddb-exporter.svg?style=flat-square&color=9CF)](https://github.com/itobey/fddb-exporter/releases)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://www.gnu.org/licenses/mit.txt)
+[![Commit Activity](https://img.shields.io/github/commit-activity/m/itobey/fddb-exporter.svg?style=flat-square)](https://github.com/itobey/fddb-exporter/commits/master)
+[![Last Commit](https://img.shields.io/github/last-commit/itobey/fddb-exporter.svg?style=flat-square&color=FF9900)](https://github.com/itobey/fddb-exporter/commits/master)
+
 </div>
 
 # Overview
