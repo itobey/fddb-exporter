@@ -35,7 +35,7 @@ This data could be retrieved from the product page, which would require a lot of
 this data is currently missing and only daily totals of sugar are stored.
 
 The collection contains the following fields - this is an abbreviated example. For a full example, see the
-[example data](../resources/example-document.bson).
+[example data](https://github.com/itobey/fddb-exporter/blob/master/docs/resources/example-document.bson).
 
 ```json
 {
