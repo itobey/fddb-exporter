@@ -1,0 +1,17 @@
+{
+  "name": "fddb-exporter",
+  "description": "Exports data from fddb.info to a database and supports endpoints to query the data",
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev .",
+    "docs:build": "vitepress build .",
+    "docs:serve": "vitepress serve ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com:itobey/fddb-exporter.git"
+  },
+  "devDependencies": {
+    "vitepress": "^1.4.1"
+  }
+}
