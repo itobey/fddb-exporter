@@ -23,7 +23,7 @@ export default {
             {
                 text: ref,
                 items: [
-                    { text: "Changelog", link: "https://github.com/itobey/fddb-exporter/blob/main/CHANGELOG.md" },
+                    { text: "Changelog", link: "https://github.com/itobey/fddb-exporter/blob/master/CHANGELOG.md" },
                     { text: "Issues", link: "https://github.com/itobey/fddb-exporter/issues" }
                 ]
             }
