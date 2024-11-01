@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -71,6 +72,40 @@ public class MongoDBService {
                 .and("products").as("product");
 
         Aggregation aggregation = newAggregation(match, unwind, secondMatch, project);
+
+        AggregationResults<ProductWithDate> results = mongoTemplate.aggregate(
+                aggregation, "fddb", ProductWithDate.class);
+
+        return results.getMappedResults();
+    }
+
+    public List<ProductWithDate> findByProductsWithExclusions(List<String> includeNames, List<String> excludeNames) {
+        List<AggregationOperation> operations = new ArrayList<>();
+
+        // Unwind products array first
+        operations.add(unwind("products"));
+
+        // Match stage after unwind to filter individual products
+        if (!includeNames.isEmpty()) {
+            List<Criteria> includeList = includeNames.stream()
+                    .map(name -> Criteria.where("products.name").regex(name, "i"))
+                    .toList();
+            operations.add(match(new Criteria().orOperator(includeList.toArray(new Criteria[0]))));
+        }
+
+        if (!excludeNames.isEmpty()) {
+            List<Criteria> excludeList = excludeNames.stream()
+                    .map(name -> Criteria.where("products.name").regex(name, "i"))
+                    .toList();
+            operations.add(match(new Criteria().norOperator(excludeList.toArray(new Criteria[0]))));
+        }
+
+        // Project required fields
+        operations.add(project()
+                .andExpression("date").as("date")
+                .and("products").as("product"));
+
+        Aggregation aggregation = newAggregation(operations);
 
         AggregationResults<ProductWithDate> results = mongoTemplate.aggregate(
                 aggregation, "fddb", ProductWithDate.class);
