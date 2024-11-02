@@ -62,8 +62,6 @@ public class CorrelationService {
         output.getCorrelations().setTwoDaysBefore(twoDaysPriorCorrelation);
 
         CorrelationDetail across3Days = new CorrelationDetail();
-        across3Days.setMatchedDays(sameDayCorrelation.getMatchedDays() + oneDayPriorCorrelation.getMatchedDays() + twoDaysPriorCorrelation.getMatchedDays());
-        across3Days.setPercentage(sameDayCorrelation.getPercentage() + oneDayPriorCorrelation.getPercentage() + twoDaysPriorCorrelation.getPercentage());
         List<String> combinedUniqueDatesAcross3 = Stream.of(
                         sameDayCorrelation.getMatchedDates(),
                         oneDayPriorCorrelation.getMatchedDates(),
@@ -72,12 +70,12 @@ public class CorrelationService {
                 .flatMap(List::stream)
                 .distinct()
                 .toList();
+        across3Days.setMatchedDays(combinedUniqueDatesAcross3.size());
+        across3Days.setPercentage(combinedUniqueDatesAcross3.size() / (double) matchedDates.size() * 100);
         across3Days.setMatchedDates(combinedUniqueDatesAcross3);
         correlations.setAcross3Days(across3Days);
 
         CorrelationDetail across2Days = new CorrelationDetail();
-        across2Days.setMatchedDays(sameDayCorrelation.getMatchedDays() + oneDayPriorCorrelation.getMatchedDays());
-        across2Days.setPercentage(sameDayCorrelation.getPercentage() + oneDayPriorCorrelation.getPercentage());
         List<String> combinedUniqueDatesAcross2 = Stream.of(
                         sameDayCorrelation.getMatchedDates(),
                         oneDayPriorCorrelation.getMatchedDates()
@@ -85,6 +83,8 @@ public class CorrelationService {
                 .flatMap(List::stream)
                 .distinct()
                 .toList();
+        across2Days.setMatchedDays(combinedUniqueDatesAcross2.size());
+        across2Days.setPercentage(combinedUniqueDatesAcross2.size() / (double) matchedDates.size() * 100);
         across2Days.setMatchedDates(combinedUniqueDatesAcross2);
         correlations.setAcross2Days(across2Days);
 
