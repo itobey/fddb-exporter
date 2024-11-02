@@ -11,6 +11,7 @@ public class CorrelationOutputDto {
     private Correlations correlations;
     private List<String> matchedProducts;
     private List<LocalDate> matchedDates;
-    private int totalEntriesInDatabase;
+    private int amountMatchedProducts;
+    private int amountMatchedDates;
 
 }

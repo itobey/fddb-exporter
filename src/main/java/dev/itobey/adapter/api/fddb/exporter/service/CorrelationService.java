@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -35,6 +36,15 @@ public class CorrelationService {
         Correlations correlations = new Correlations();
         output.setCorrelations(correlations);
 
+        List<String> matchedProducts = productMatches.stream()
+                .map(productWithDate -> productWithDate.getProduct().getName()).distinct().toList();
+        output.setMatchedProducts(matchedProducts);
+        List<LocalDate> matchedDates = productMatches.stream()
+                .map(ProductWithDate::getDate).distinct().toList();
+        output.setMatchedDates(matchedDates);
+        output.setAmountMatchedProducts(matchedProducts.size());
+        output.setAmountMatchedDates(matchedDates.size());
+
         // Same day correlation
         CorrelationDetail sameDayCorrelation = calculateCorrelation(productMatches, occurrenceDates, 0);
         output.getCorrelations().setSameDay(sameDayCorrelation);
@@ -46,6 +56,33 @@ public class CorrelationService {
         // Two days prior correlation
         CorrelationDetail twoDaysPriorCorrelation = calculateCorrelation(productMatches, occurrenceDates, 2);
         output.getCorrelations().setTwoDaysBefore(twoDaysPriorCorrelation);
+
+        CorrelationDetail across3Days = new CorrelationDetail();
+        across3Days.setMatchedDays(sameDayCorrelation.getMatchedDays() + oneDayPriorCorrelation.getMatchedDays() + twoDaysPriorCorrelation.getMatchedDays());
+        across3Days.setPercentage(sameDayCorrelation.getPercentage() + oneDayPriorCorrelation.getPercentage() + twoDaysPriorCorrelation.getPercentage());
+        List<String> combinedUniqueDatesAcross3 = Stream.of(
+                        sameDayCorrelation.getMatchedDates(),
+                        oneDayPriorCorrelation.getMatchedDates(),
+                        twoDaysPriorCorrelation.getMatchedDates()
+                )
+                .flatMap(List::stream)
+                .distinct()
+                .toList();
+        across3Days.setMatchedDates(combinedUniqueDatesAcross3);
+        correlations.setAcross3Days(across3Days);
+
+        CorrelationDetail across2Days = new CorrelationDetail();
+        across2Days.setMatchedDays(sameDayCorrelation.getMatchedDays() + oneDayPriorCorrelation.getMatchedDays());
+        across2Days.setPercentage(sameDayCorrelation.getPercentage() + oneDayPriorCorrelation.getPercentage());
+        List<String> combinedUniqueDatesAcross2 = Stream.of(
+                        sameDayCorrelation.getMatchedDates(),
+                        oneDayPriorCorrelation.getMatchedDates()
+                )
+                .flatMap(List::stream)
+                .distinct()
+                .toList();
+        across2Days.setMatchedDates(combinedUniqueDatesAcross2);
+        correlations.setAcross2Days(across2Days);
 
         return output;
     }
@@ -64,14 +101,19 @@ public class CorrelationService {
             }
         }
 
-        double percentage = occurrenceDates.isEmpty() ? 0 :
-                (double) matchedDates.size() / occurrenceDates.size() * 100;
+        long uniqueDatesCount = products.stream()
+                .map(ProductWithDate::getDate)
+                .distinct()
+                .count();
+
+        double percentage = uniqueDatesCount == 0 ? 0 :
+                (double) matchedDates.size() / uniqueDatesCount * 100;
 
         detail.setPercentage(percentage);
         detail.setMatchedDates(matchedDates);
+        detail.setMatchedDays(matchedDates.size());
 
         return detail;
     }
-
 
 }
