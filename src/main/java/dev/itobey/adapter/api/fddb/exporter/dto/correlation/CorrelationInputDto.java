@@ -10,5 +10,6 @@ public class CorrelationInputDto {
     private List<String> inclusionKeywords;
     private List<String> exclusionKeywords;
     private List<String> occurrenceDates;
+    private String startDate;
 
 }

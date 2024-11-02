@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,7 +56,8 @@ class CorrelationServiceTest {
 
         when(mongoDBService.findByProductsWithExclusions(
                 anyList(),
-                anyList()
+                anyList(),
+                any()
         )).thenReturn(mockProducts);
 
         // When
@@ -111,7 +113,8 @@ class CorrelationServiceTest {
 
         verify(mongoDBService).findByProductsWithExclusions(
                 input.getInclusionKeywords(),
-                input.getExclusionKeywords()
+                input.getExclusionKeywords(),
+                null
         );
     }
 
@@ -124,7 +127,7 @@ class CorrelationServiceTest {
         input.setExclusionKeywords(Collections.emptyList());
         input.setOccurrenceDates(Collections.singletonList("2024-03-15"));
 
-        when(mongoDBService.findByProductsWithExclusions(anyList(), anyList())).thenReturn(Collections.emptyList());
+        when(mongoDBService.findByProductsWithExclusions(anyList(), anyList(), null)).thenReturn(Collections.emptyList());
 
         // When
         CorrelationOutputDto result = correlationService.createCorrelation(input);

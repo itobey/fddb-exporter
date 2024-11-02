@@ -25,7 +25,11 @@ public class CorrelationService {
     public CorrelationOutputDto createCorrelation(CorrelationInputDto input) {
         List<ProductWithDate> productMatches = mongoDBService.findByProductsWithExclusions(
                 input.getInclusionKeywords(),
-                input.getExclusionKeywords()
+                input.getExclusionKeywords(),
+                switch(input.getStartDate()) {
+                    case String date -> LocalDate.parse(date);
+                    case null -> null;
+                }
         );
 
         List<LocalDate> occurrenceDates = input.getOccurrenceDates().stream()

@@ -79,10 +79,15 @@ public class MongoDBService {
         return results.getMappedResults();
     }
 
-    public List<ProductWithDate> findByProductsWithExclusions(List<String> includeNames, List<String> excludeNames) {
+    public List<ProductWithDate> findByProductsWithExclusions(List<String> includeNames, List<String> excludeNames, LocalDate startDate) {
         List<AggregationOperation> operations = new ArrayList<>();
 
-        // Unwind products array first
+        // Add date filter first
+        if (startDate != null) {
+            operations.add(match(Criteria.where("date").gte(startDate)));
+        }
+
+        // Unwind products array
         operations.add(unwind("products"));
 
         // Match stage after unwind to filter individual products
