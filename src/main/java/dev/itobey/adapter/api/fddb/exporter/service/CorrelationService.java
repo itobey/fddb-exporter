@@ -26,7 +26,7 @@ public class CorrelationService {
         List<ProductWithDate> productMatches = mongoDBService.findByProductsWithExclusions(
                 input.getInclusionKeywords(),
                 input.getExclusionKeywords(),
-                switch(input.getStartDate()) {
+                switch (input.getStartDate()) {
                     case String date -> LocalDate.parse(date);
                     case null -> null;
                 }
@@ -71,7 +71,12 @@ public class CorrelationService {
                 .distinct()
                 .toList();
         across3Days.setMatchedDays(combinedUniqueDatesAcross3.size());
-        across3Days.setPercentage(combinedUniqueDatesAcross3.size() / (double) matchedDates.size() * 100);
+        double percentage = combinedUniqueDatesAcross3.size() / (double) matchedDates.size() * 100;
+        if (combinedUniqueDatesAcross3.isEmpty()) {
+            across3Days.setPercentage(0);
+        } else {
+            across3Days.setPercentage(percentage);
+        }
         across3Days.setMatchedDates(combinedUniqueDatesAcross3);
         correlations.setAcross3Days(across3Days);
 
@@ -84,7 +89,12 @@ public class CorrelationService {
                 .distinct()
                 .toList();
         across2Days.setMatchedDays(combinedUniqueDatesAcross2.size());
-        across2Days.setPercentage(combinedUniqueDatesAcross2.size() / (double) matchedDates.size() * 100);
+        double percentage1 = combinedUniqueDatesAcross2.size() / (double) matchedDates.size() * 100;
+        if (combinedUniqueDatesAcross2.isEmpty()) {
+            across2Days.setPercentage(0);
+        } else {
+            across2Days.setPercentage(percentage1);
+        }
         across2Days.setMatchedDates(combinedUniqueDatesAcross2);
         correlations.setAcross2Days(across2Days);
 
