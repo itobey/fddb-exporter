@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -23,87 +22,124 @@ public class CorrelationService {
     private final MongoDBService mongoDBService;
 
     public CorrelationOutputDto createCorrelation(CorrelationInputDto input) {
-        List<ProductWithDate> productMatches = mongoDBService.findByProductsWithExclusions(
-                input.getInclusionKeywords(),
-                input.getExclusionKeywords(),
-                switch(input.getStartDate()) {
-                    case String date -> LocalDate.parse(date);
-                    case null -> null;
-                }
-        );
-
-        List<LocalDate> occurrenceDates = input.getOccurrenceDates().stream()
-                .map(LocalDate::parse)
-                .toList();
+        List<ProductWithDate> productMatches = getProductMatches(input);
+        List<LocalDate> occurrenceDates = parseOccurrenceDates(input);
 
         CorrelationOutputDto output = new CorrelationOutputDto();
-        Correlations correlations = new Correlations();
-        output.setCorrelations(correlations);
+        output.setCorrelations(calculateAllCorrelations(productMatches, occurrenceDates));
 
-        List<String> matchedProducts = productMatches.stream()
-                .map(productWithDate -> productWithDate.getProduct().getName()).distinct().toList();
-        output.setMatchedProducts(matchedProducts);
-        List<LocalDate> matchedDates = productMatches.stream()
-                .map(ProductWithDate::getDate).distinct().toList();
-        output.setMatchedDates(matchedDates);
-        output.setAmountMatchedProducts(matchedProducts.size());
-        output.setAmountMatchedDates(matchedDates.size());
-
-        // Same day correlation
-        CorrelationDetail sameDayCorrelation = calculateCorrelation(productMatches, occurrenceDates, 0);
-        output.getCorrelations().setSameDay(sameDayCorrelation);
-
-        // One day prior correlation
-        CorrelationDetail oneDayPriorCorrelation = calculateCorrelation(productMatches, occurrenceDates, 1);
-        output.getCorrelations().setOneDayBefore(oneDayPriorCorrelation);
-
-        // Two days prior correlation
-        CorrelationDetail twoDaysPriorCorrelation = calculateCorrelation(productMatches, occurrenceDates, 2);
-        output.getCorrelations().setTwoDaysBefore(twoDaysPriorCorrelation);
-
-        CorrelationDetail across3Days = new CorrelationDetail();
-        across3Days.setMatchedDays(sameDayCorrelation.getMatchedDays() + oneDayPriorCorrelation.getMatchedDays() + twoDaysPriorCorrelation.getMatchedDays());
-        across3Days.setPercentage(sameDayCorrelation.getPercentage() + oneDayPriorCorrelation.getPercentage() + twoDaysPriorCorrelation.getPercentage());
-        List<String> combinedUniqueDatesAcross3 = Stream.of(
-                        sameDayCorrelation.getMatchedDates(),
-                        oneDayPriorCorrelation.getMatchedDates(),
-                        twoDaysPriorCorrelation.getMatchedDates()
-                )
-                .flatMap(List::stream)
-                .distinct()
-                .toList();
-        across3Days.setMatchedDates(combinedUniqueDatesAcross3);
-        correlations.setAcross3Days(across3Days);
-
-        CorrelationDetail across2Days = new CorrelationDetail();
-        across2Days.setMatchedDays(sameDayCorrelation.getMatchedDays() + oneDayPriorCorrelation.getMatchedDays());
-        across2Days.setPercentage(sameDayCorrelation.getPercentage() + oneDayPriorCorrelation.getPercentage());
-        List<String> combinedUniqueDatesAcross2 = Stream.of(
-                        sameDayCorrelation.getMatchedDates(),
-                        oneDayPriorCorrelation.getMatchedDates()
-                )
-                .flatMap(List::stream)
-                .distinct()
-                .toList();
-        across2Days.setMatchedDates(combinedUniqueDatesAcross2);
-        correlations.setAcross2Days(across2Days);
+        setMatchedProductsAndDates(output, productMatches);
 
         return output;
     }
 
-    private CorrelationDetail calculateCorrelation(List<ProductWithDate> products, List<LocalDate> occurrenceDates, int daysOffset) {
-        CorrelationDetail detail = new CorrelationDetail();
-        List<String> matchedDates = new ArrayList<>();
+    private List<ProductWithDate> getProductMatches(CorrelationInputDto input) {
+        LocalDate startDate = (input.getStartDate() != null && !input.getStartDate().isEmpty()) ?
+                LocalDate.parse(input.getStartDate()) : null;
 
-        for (LocalDate occurrenceDate : occurrenceDates) {
-            LocalDate targetDate = occurrenceDate.minusDays(daysOffset);
-            boolean hasMatch = products.stream()
-                    .anyMatch(product -> product.getDate().equals(targetDate));
+        return mongoDBService.findByProductsWithExclusions(
+                input.getInclusionKeywords(),
+                input.getExclusionKeywords(),
+                startDate
+        );
+    }
 
-            if (hasMatch) {
-                matchedDates.add(targetDate.toString());
+    private List<LocalDate> parseOccurrenceDates(CorrelationInputDto input) {
+        return input.getOccurrenceDates().stream()
+                .map(LocalDate::parse)
+                .toList();
+    }
+
+    private Correlations calculateAllCorrelations(List<ProductWithDate> products, List<LocalDate> occurrenceDates) {
+        Correlations correlations = new Correlations();
+
+        correlations.setSameDay(calculateCorrelation(products, occurrenceDates, 0));
+        correlations.setOneDayBefore(calculateCorrelation(products, occurrenceDates, 1));
+        correlations.setTwoDaysBefore(calculateCorrelation(products, occurrenceDates, 2));
+
+        correlations.setAcross2Days(calculateAcrossNDaysCorrelation(products,
+                List.of(correlations.getSameDay(), correlations.getOneDayBefore())));
+        correlations.setAcross3Days(calculateAcrossNDaysCorrelation(products,
+                List.of(correlations.getSameDay(), correlations.getOneDayBefore(), correlations.getTwoDaysBefore())));
+
+        return correlations;
+    }
+
+    private void setMatchedProductsAndDates(CorrelationOutputDto output, List<ProductWithDate> productMatches) {
+        List<String> matchedProducts = productMatches.stream()
+                .map(productWithDate -> productWithDate.getProduct().getName())
+                .distinct()
+                .toList();
+        List<LocalDate> matchedDates = productMatches.stream()
+                .map(ProductWithDate::getDate)
+                .distinct()
+                .toList();
+
+        output.setMatchedProducts(matchedProducts);
+        output.setMatchedDates(matchedDates);
+        output.setAmountMatchedProducts(matchedProducts.size());
+        output.setAmountMatchedDates(matchedDates.size());
+    }
+
+    private CorrelationDetail calculateAcrossNDaysCorrelation(List<ProductWithDate> products,
+                                                              List<CorrelationDetail> correlations) {
+
+        List<String> filteredDates = new ArrayList<>();
+        List<String> allDates = correlations.stream()
+                .map(CorrelationDetail::getMatchedDates)
+                .flatMap(List::stream)
+                .sorted()
+                .distinct()
+                .toList();
+
+        for (String date : allDates) {
+            boolean hasConsecutiveDate = isHasConsecutiveDate(correlations, date, filteredDates);
+
+            if (!hasConsecutiveDate) {
+                filteredDates.add(date);
             }
         }
+
+        long uniqueDatesCount = products.stream()
+                .map(ProductWithDate::getDate)
+                .distinct()
+                .count();
+
+        List<String> filteredDistinctDates = filteredDates.stream().distinct().toList();
+        double percentage = uniqueDatesCount == 0 ? 0 :
+                (double) filteredDistinctDates.size() / uniqueDatesCount * 100;
+
+        CorrelationDetail acrossDays = new CorrelationDetail();
+        acrossDays.setMatchedDays(filteredDistinctDates.size());
+        acrossDays.setPercentage(percentage);
+        acrossDays.setMatchedDates(allDates);
+
+        return acrossDays;
+    }
+
+    private static boolean isHasConsecutiveDate(List<CorrelationDetail> correlations, String date, List<String> filteredDates) {
+        LocalDate currentDate = LocalDate.parse(date);
+        boolean hasConsecutiveDate = false;
+
+        // Check for consecutive dates based on correlation size (2 or 3 days)
+        if (correlations.size() == 2) {
+            hasConsecutiveDate = filteredDates.contains(currentDate.minusDays(1).toString());
+        } else if (correlations.size() == 3) {
+            hasConsecutiveDate = filteredDates.contains(currentDate.minusDays(1).toString())
+                    || filteredDates.contains(currentDate.minusDays(2).toString());
+        }
+        return hasConsecutiveDate;
+    }
+
+
+    private CorrelationDetail calculateCorrelation(List<ProductWithDate> products, List<LocalDate> occurrenceDates, int daysOffset) {
+        List<String> matchedDates = occurrenceDates.stream()
+                .map(occurrenceDate -> occurrenceDate.minusDays(daysOffset))
+                .filter(targetDate -> products.stream()
+                        .anyMatch(product -> product.getDate().equals(targetDate)))
+                .map(LocalDate::toString)
+                .distinct()
+                .toList();
 
         long uniqueDatesCount = products.stream()
                 .map(ProductWithDate::getDate)
@@ -113,6 +149,7 @@ public class CorrelationService {
         double percentage = uniqueDatesCount == 0 ? 0 :
                 (double) matchedDates.size() / uniqueDatesCount * 100;
 
+        CorrelationDetail detail = new CorrelationDetail();
         detail.setPercentage(percentage);
         detail.setMatchedDates(matchedDates);
         detail.setMatchedDays(matchedDates.size());
