@@ -6,7 +6,6 @@ import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationInputDto;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationOutputDto;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.Correlations;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.MongoDBService;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -118,10 +117,7 @@ class CorrelationServiceTest {
         );
     }
 
-
     @Test
-    @Disabled
-        // TODO: fix this test
     void createCorrelation_WithNoMatches_ReturnsZeroCorrelations() {
         // Given
         CorrelationInputDto input = new CorrelationInputDto();
