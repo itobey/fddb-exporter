@@ -62,6 +62,7 @@ I plan on implementing the following features in the future:
 - [x] Helm Chart for deployment
 - [x] product search API: to get only relevant data instead of the entire day
 - [ ] product search API: limit search by date or weekday instead of searching and returning every day
+- [x] correlation API: find products correlating with given dates
 - [x] new stats endpoint: display some stats of your data
 - [x] ARM container release
 - [ ] Alerting feature to notify when the Scheduler run failed

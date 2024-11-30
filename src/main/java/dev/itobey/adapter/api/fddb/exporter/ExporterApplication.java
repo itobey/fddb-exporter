@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter;
 
+import com.ulisesbocchio.jasyptspringboot.annotation.EnableEncryptableProperties;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -18,6 +19,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableFeignClients
 @EnableConfigurationProperties(FddbExporterProperties.class)
+@EnableEncryptableProperties
 public class ExporterApplication {
 
     public static void main(String[] args) {
