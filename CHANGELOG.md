@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0
+
+- added correlation API
+
 ## 1.5.0
 
 - added InfluxDB as additional persistence layer
