@@ -56,9 +56,15 @@ public class StatsService {
     }
 
     private LocalDate getFirstEntryDate() {
+        if (mongoTemplate == null) {
+            throw new IllegalStateException("MongoDB is not configured");
+        }
         Query query = new Query().with(Sort.by(Sort.Direction.ASC, "date")).limit(1);
         FddbData firstDocument = mongoTemplate.findOne(query, FddbData.class, COLLECTION_NAME);
-        return firstDocument != null ? firstDocument.getDate() : null;
+        if (firstDocument == null) {
+            throw new IllegalStateException("No entries found in database");
+        }
+        return firstDocument.getDate();
     }
 
     private StatsDTO.Averages getAverageTotals() {
@@ -85,6 +91,10 @@ public class StatsService {
     }
 
     private StatsDTO.Averages getAverages(Criteria criteria) {
+        if (mongoTemplate == null) {
+            throw new IllegalStateException("MongoDB is not configured");
+        }
+
         List<AggregationOperation> operations = new ArrayList<>();
 
         if (criteria != null) {
@@ -102,7 +112,13 @@ public class StatsService {
 
         Aggregation aggregation = newAggregation(operations);
         AggregationResults<StatsDTO.Averages> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, StatsDTO.Averages.class);
-        return results.getUniqueMappedResult();
+
+        StatsDTO.Averages averages = results.getUniqueMappedResult();
+        if (averages == null) {
+            throw new IllegalStateException("No data available for averaging");
+        }
+
+        return averages;
     }
 
     private double calculateEntryPercentage(LocalDate givenDate, long documentCount) {
