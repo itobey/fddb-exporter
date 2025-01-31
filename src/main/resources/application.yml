@@ -61,6 +61,11 @@ fddb-exporter:
     token: ---
     org: primary
     bucket: fddb-exporter
+  notification:
+    enabled: true
+    telegram:
+      token: ---
+      chatId: ---
 
 logging:
   level:
