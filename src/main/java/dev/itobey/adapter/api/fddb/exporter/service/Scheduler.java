@@ -21,6 +21,7 @@ public class Scheduler implements SchedulingConfigurer {
     private final FddbDataService fddbDataService;
     private final TelemetryService telemetryService;
     private final FddbExporterProperties properties;
+    private final TelegramService telegramService;
 
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
@@ -42,7 +43,11 @@ public class Scheduler implements SchedulingConfigurer {
         } catch (AuthenticationException authenticationException) {
             log.error("not logged in - skipping job execution");
         } catch (ParseException parseException) {
-            log.warn("data for yesterday cannot be parsed, skipping this day");
+            String errorMessage = "data for yesterday cannot be parsed, skipping this day";
+            log.warn(errorMessage, parseException);
+            if (properties.getNotification().isEnabled()) {
+                telegramService.sendMessage(errorMessage);
+            }
         }
     }
 }

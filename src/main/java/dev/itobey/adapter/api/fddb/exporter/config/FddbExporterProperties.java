@@ -12,6 +12,7 @@ public class FddbExporterProperties {
     private Telemetry telemetry;
     private Persistence persistence;
     private Influxdb influxdb;
+    private Notification notification;
 
     @Data
     public static class Fddb {
@@ -59,4 +60,17 @@ public class FddbExporterProperties {
         private String org;
         private String bucket;
     }
+
+    @Data
+    public static class Notification {
+        private Telegram telegram;
+        private boolean enabled;
+
+        @Data
+        public static class Telegram {
+            private String token;
+            private String chatId;
+        }
+    }
+
 }
