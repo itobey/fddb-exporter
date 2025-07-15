@@ -30,6 +30,7 @@ Additionally, it is very handy if you want to query your data to see on which da
 - Stores detailed information on consumed products, including name, amount, nutritional values, and link to the product page
 - Supports scheduled daily exports and manual exports for specific date ranges
 - Provides a RESTful API for data retrieval and export operations
+- A special API endpoint to find correlations to matching dates for checking food allergies
 
 # Prerequisites
 
