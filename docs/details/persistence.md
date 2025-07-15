@@ -9,7 +9,7 @@ Only InfluxDB 2.x is supported, as the application uses the new InfluxDB 2.x API
 Because of missing AVX instruction support of an older NUC model, MongoDB has been tested with the ancient version
 `4.4.13`.
 In principle, the application should work with any newer version of MongoDB. Integration-tests have been performed with
-MongoDB `7.0.9`.
+MongoDB `8.0.11`.
 
 You can enable each persistence layer with an environment variable set to `true`.
 
