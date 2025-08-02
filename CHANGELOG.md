@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1
+
+- fixed issue with null amount database entries in API
+
 ## 1.6.0
 
 - added correlation API
