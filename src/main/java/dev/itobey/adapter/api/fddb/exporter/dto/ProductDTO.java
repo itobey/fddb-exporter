@@ -17,4 +17,9 @@ public class ProductDTO {
     private double protein;
     private String link;
 
+    // default to "0 g" if the amount is null, to have a consistent API.
+    public String getAmount() {
+        return amount == null ? "0 g" : amount;
+    }
+
 }
