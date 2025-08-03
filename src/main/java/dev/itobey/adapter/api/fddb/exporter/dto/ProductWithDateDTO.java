@@ -1,6 +1,5 @@
 package dev.itobey.adapter.api.fddb.exporter.dto;
 
-import dev.itobey.adapter.api.fddb.exporter.domain.Product;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -9,6 +8,6 @@ import java.time.LocalDate;
 public class ProductWithDateDTO {
 
     private LocalDate date;
-    private Product product;
+    private ProductDTO product;
 
 }
