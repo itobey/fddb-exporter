@@ -2,6 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -34,11 +35,13 @@ public class StatsService {
         StatsDTO.Averages averageTotals = getAverageTotals();
         StatsDTO.Averages last7DaysAverage = getLast7DaysAverage();
         StatsDTO.Averages last30DaysAverage = getLast30DaysAverage();
+        long uniqueProducts = getUniqueProductsCount();
 
         return StatsDTO.builder()
                 .amountEntries(amountEntries)
                 .firstEntryDate(firstEntryDate)
                 .entryPercentage(entryPercentage)
+                .uniqueProducts(uniqueProducts)
                 .averageTotals(averageTotals)
                 .last7DaysAverage(last7DaysAverage)
                 .last30DaysAverage(last30DaysAverage)
@@ -118,6 +121,14 @@ public class StatsService {
             throw new IllegalStateException("No data available for averaging");
         }
 
+        // Round all averages to one decimal place
+        averages.setAvgTotalCalories(round1(averages.getAvgTotalCalories()));
+        averages.setAvgTotalFat(round1(averages.getAvgTotalFat()));
+        averages.setAvgTotalCarbs(round1(averages.getAvgTotalCarbs()));
+        averages.setAvgTotalSugar(round1(averages.getAvgTotalSugar()));
+        averages.setAvgTotalProtein(round1(averages.getAvgTotalProtein()));
+        averages.setAvgTotalFibre(round1(averages.getAvgTotalFibre()));
+
         return averages;
     }
 
@@ -125,4 +136,24 @@ public class StatsService {
         long daysSince = ChronoUnit.DAYS.between(givenDate, LocalDate.now());
         return (double) documentCount / daysSince * 100;
     }
+
+    private double round1(double value) {
+        return Math.round(value * 10.0) / 10.0;
+    }
+
+    private long getUniqueProductsCount() {
+        Aggregation aggregation = newAggregation(
+                unwind("products"),
+                group("products.name"),
+                count().as("uniqueCount")
+        );
+        AggregationResults<Document> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, Document.class);
+        Document doc = results.getUniqueMappedResult();
+        if (doc == null) {
+            return 0L;
+        }
+        Object val = doc.get("uniqueCount");
+        return val instanceof Number ? ((Number) val).longValue() : 0L;
+    }
+
 }

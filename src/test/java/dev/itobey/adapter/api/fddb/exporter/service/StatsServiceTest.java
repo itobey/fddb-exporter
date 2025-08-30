@@ -62,6 +62,12 @@ class StatsServiceTest {
         when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.DayStats.class)))
                 .thenReturn(mockDayStatsResults);
 
+        // mock unique products count
+        Document uniqueCountDoc = new Document("uniqueCount", 42L);
+        AggregationResults<Document> mockUniqueResults = new AggregationResults<>(Collections.singletonList(uniqueCountDoc), rawResults);
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(Document.class)))
+                .thenReturn(mockUniqueResults);
+
         // when
         StatsDTO result = statsService.getStats();
 
@@ -70,6 +76,7 @@ class StatsServiceTest {
         assertThat(result.getAmountEntries()).isEqualTo(100L);
         assertThat(result.getFirstEntryDate()).isEqualTo(LocalDate.of(2023, 1, 1));
         assertThat(result.getEntryPercentage()).isGreaterThan(0);
+        assertThat(result.getUniqueProducts()).isEqualTo(42L);
         assertThat(result.getAverageTotals()).isEqualTo(mockAverages);
         assertThat(result.getLast7DaysAverage()).isEqualTo(mockAverages);
         assertThat(result.getLast30DaysAverage()).isEqualTo(mockAverages);

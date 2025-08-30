@@ -12,6 +12,7 @@ public class StatsDTO {
     long amountEntries;
     LocalDate firstEntryDate;
     double entryPercentage;
+    long uniqueProducts;
     Averages averageTotals;
     Averages last7DaysAverage;
     Averages last30DaysAverage;
