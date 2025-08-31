@@ -1,14 +1,10 @@
 <div align="center">
   <img src="docs/FDDB-Exporter-Logo.jpg" width=1000/>
-  <p>Export data from FDDB.info with ease and flexibility</p>
+  <p><i>Export data from FDDB.info with ease and flexibility</i></p>
 
-  <p align="center">
-    <a href="https://itobey.github.io/fddb-exporter/" target="_blank"><strong><h2>Documentation</h2></strong></a>
-  </p>
-  <hr>
+## [Documentation](https://itobey.github.io/fddb-exporter/)
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/search?repo=fddb-exporter)
-
 [![Build Status](https://img.shields.io/github/actions/workflow/status/itobey/fddb-exporter/ci.yml?style=flat-square)](https://github.com/itobey/fddb-exporter/actions/workflows/ci.yml)
 [![Release Version](https://img.shields.io/github/release/itobey/fddb-exporter.svg?style=flat-square&color=9CF)](https://github.com/itobey/fddb-exporter/releases)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://www.gnu.org/licenses/mit.txt)
