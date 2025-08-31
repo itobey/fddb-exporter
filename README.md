@@ -1,10 +1,11 @@
 <div align="center">
-   <h1>FDDB Exporter</h1>
-   <p>Export data from FDDB.info with ease and flexibility</p>
+  <img src="docs/FDDB-Exporter-Logo.jpg" width=1000/>
+  <p>Export data from FDDB.info with ease and flexibility</p>
 
-   <p align="center">
-      <a href="https://itobey.github.io/fddb-exporter/" target="_blank"><strong>Documentation</strong></a>
-   </p>
+  <p align="center">
+    <a href="https://itobey.github.io/fddb-exporter/" target="_blank"><strong><h2>Documentation</h2></strong></a>
+  </p>
+  <hr>
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fddb-exporter)](https://artifacthub.io/packages/search?repo=fddb-exporter)
 
@@ -23,11 +24,14 @@ MongoDB/InfluxDB database.
 This application is especially useful for individuals who want to keep their FDDB diaries for themselves.
 FDDB only stores entries for up to 2 years for premium members, and even less for free users.
 Additionally, it is very handy if you want to query your data to see on which days you have entered specific products.
+See the [documentation](https://itobey.github.io/fddb-exporter/) for a deep dive.
+There is also a [Flutter app](https://github.com/itobey/fddb-exporter-app) available as a frontend.
 
 # Key Features
 
 - Exports daily nutritional totals: calories, fat, carbohydrates, sugar, protein, and fiber
-- Stores detailed information on consumed products, including name, amount, nutritional values, and link to the product page
+- Stores detailed information on consumed products, including name, amount, nutritional values, and link to the product
+  page
 - Supports scheduled daily exports and manual exports for specific date ranges
 - Provides a RESTful API for data retrieval and export operations
 - A special API endpoint to find correlations to matching dates for checking food allergies
@@ -36,8 +40,9 @@ Additionally, it is very handy if you want to query your data to see on which da
 
 - Docker or Java 21+ runtime environment
 - A valid FDDB.info account
-- MongoDB instance (can be run using the provided Docker Compose file)
-- InfluxDB instance (optional, but recommended for storing daily totals)
+- A running database (MongoDB and/or InfluxDB)
+  - MongoDB instance (used for storing all data)
+  - InfluxDB instance (used for storing daily totals)
 
 # Technology Stack
 
@@ -60,6 +65,7 @@ If you still have any concerns, feel free to contact me or open an issue.
 # Roadmap
 
 I plan on implementing the following features in the future:
+
 - [x] Helm Chart for deployment
 - [x] product search API: to get only relevant data instead of the entire day
 - [ ] product search API: limit search by date or weekday instead of searching and returning every day
@@ -67,7 +73,7 @@ I plan on implementing the following features in the future:
 - [x] new stats endpoint: display some stats of your data
 - [x] ARM container release
 - [ ] Alerting feature to notify when the Scheduler run failed
-- [ ] accompanying Flutter app as a frontend
+- [x] accompanying Flutter app as a frontend
 - [x] InfluxDB as additional persistence layer
 
 If you have another feature in mind please open up an issue or contact me.
