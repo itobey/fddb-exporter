@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.3
+
+- dependency updates
+
 ## 1.6.2
 
 - fixed the issue originally targeted for 1.6.1 but missed due to incomplete fix
