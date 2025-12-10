@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21
+FROM eclipse-temurin:25
 RUN mkdir /opt/app
 COPY target/fddbexporter-*.jar /opt/app/app.jar
 
