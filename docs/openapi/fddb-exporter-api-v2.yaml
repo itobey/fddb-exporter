@@ -1,50 +1,98 @@
 openapi: 3.0.3
 info:
-  title: FDDB Exporter API v2
+  title: FDDB Exporter API
   description: |
-    REST API for the FDDB Exporter application - Version 2.
+    REST API for exporting, querying, and analyzing FDDB (Fddb.info) nutrition data.
     
     This API provides endpoints for:
-    - Querying FDDB nutrition data entries
-    - Exporting data from FDDB for specified date ranges
-    - Retrieving statistics and rolling averages
-    - Managing data migrations between storage backends
-    - Calculating correlations between data series
+    - Exporting FDDB nutrition data to a database
+    - Querying stored nutrition data
+    - Calculating statistics and rolling averages
+    - Performing correlation analysis
+    - Migrating data between storage backends
     
-    For migration from v1, see: /docs/migration/v1-to-v2.md
-  version: '2.0.0'
+    ## Storage Backends
+    The API supports multiple storage backends:
+    - **MongoDB**: Primary storage for nutrition data
+    - **InfluxDB**: Time-series database for analytics
+    
+    ## Authentication
+    Currently, no authentication is required for API access.
+
+  version: 2.0.0
   contact:
     name: FDDB Exporter
     url: https://github.com/itobey/fddb-exporter
   license:
-    name: MIT
+    name: MIT License
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: http://localhost:8080/api/v2
-    description: Local development server (v2)
-  - url: https://api.example.com/api/v2
-    description: Production server (v2)
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
 
 tags:
-  - name: fddb-data-query
-    description: Query FDDB nutrition data entries
-  - name: fddb-data-export
+  - name: FDDB Data Export
     description: Export FDDB data for specified date ranges
-  - name: fddb-data-stats
+  - name: FDDB Data Query
+    description: Query FDDB nutrition data entries
+  - name: FDDB Data Statistics
     description: Statistics and analytics for FDDB data
-  - name: fddb-data-migration
+  - name: FDDB Data Migration
     description: Data migration operations between storage backends
-  - name: correlation
+  - name: Correlation Analysis
     description: Correlation analysis between data series
 
 paths:
-  /fddbdata:
+  /api/v2/fddbdata:
+    post:
+      tags:
+        - FDDB Data Export
+      summary: Export data for a date range
+      description: Export FDDB data for all days in the specified timeframe
+      operationId: exportForTimerange
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DateRangeDTO'
+            examples:
+              dateRange:
+                summary: Export data for January 2024
+                value:
+                  fromDate: "2024-01-01"
+                  toDate: "2024-01-31"
+      responses:
+        '200':
+          description: Export completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResultDTO'
+              examples:
+                success:
+                  summary: Successful export
+                  value:
+                    successfulDays:
+                      - "2024-01-01"
+                      - "2024-01-02"
+                      - "2024-01-03"
+                    unsuccessfulDays: [ ]
+        '400':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     get:
       tags:
-        - fddb-data-query
+        - FDDB Data Query
       summary: Get all FDDB data entries
-      description: Retrieves all FDDB nutrition data entries from the database
+      description: Retrieves all FDDB nutrition data entries from the database. Requires MongoDB to be available.
       operationId: findAllEntries
       responses:
         '200':
@@ -57,106 +105,33 @@ paths:
                   $ref: '#/components/schemas/FddbDataDTO'
         '503':
           description: MongoDB not available
-
-    post:
-      tags:
-        - fddb-data-export
-      summary: Export data for a date range
-      description: Export FDDB data for all days in the specified timeframe
-      operationId: exportForTimerange
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DateRangeDTO'
-      responses:
-        '200':
-          description: Export completed successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExportResultDTO'
-        '400':
-          description: Invalid date range
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /fddbdata/{date}:
+  /api/v2/fddbdata/export:
     get:
       tags:
-        - fddb-data-query
-      summary: Get FDDB data for a specific date
-      description: Retrieves FDDB data entries for the specified date
-      operationId: findByDate
-      parameters:
-        - name: date
-          in: path
-          required: true
-          description: Date in YYYY-MM-DD format
-          schema:
-            type: string
-            pattern: '^\d{4}-\d{2}-\d{2}$'
-            example: '2024-12-22'
-      responses:
-        '200':
-          description: Data found for the specified date
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FddbDataDTO'
-        '400':
-          description: Invalid date format
-        '404':
-          description: No data found for the specified date
-        '503':
-          description: MongoDB not available
-
-  /fddbdata/products:
-    get:
-      tags:
-        - fddb-data-query
-      summary: Search products by name
-      description: Search for FDDB products by name across all dates
-      operationId: findByProduct
-      parameters:
-        - name: name
-          in: query
-          required: true
-          description: Product name to search for
-          schema:
-            type: string
-            example: 'Banana'
-      responses:
-        '200':
-          description: Search results
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProductWithDateDTO'
-        '503':
-          description: MongoDB not available
-
-  /fddbdata/export:
-    get:
-      tags:
-        - fddb-data-export
+        - FDDB Data Export
       summary: Export data for recent days
-      description: Export FDDB data for a specified number of days back from today
+      description: |
+        Export FDDB data for a specified number of days back from today.
+        If includeToday is true, the current day will be exported as well.
       operationId: exportForDaysBack
       parameters:
         - name: days
           in: query
-          required: true
           description: Number of days to export
+          required: true
           schema:
             type: integer
             minimum: 1
             example: 7
         - name: includeToday
           in: query
-          required: false
           description: Whether to include today in the export
+          required: false
           schema:
             type: boolean
             default: false
@@ -168,12 +143,82 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExportResultDTO'
 
-  /stats:
+  /api/v2/fddbdata/{date}:
     get:
       tags:
-        - fddb-data-stats
+        - FDDB Data Query
+      summary: Get FDDB data for a specific date
+      description: Retrieves FDDB data entries for the specified date. Requires MongoDB to be available.
+      operationId: findByDate
+      parameters:
+        - name: date
+          in: path
+          description: Date in YYYY-MM-DD format
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+            example: "2024-12-22"
+      responses:
+        '200':
+          description: Data found for the specified date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FddbDataDTO'
+        '400':
+          description: Invalid date format
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "Date must be in the format YYYY-MM-DD"
+        '404':
+          description: No data found for the specified date
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/fddbdata/products:
+    get:
+      tags:
+        - FDDB Data Query
+      summary: Search products by name
+      description: Search for FDDB products by name across all dates. Requires MongoDB to be available.
+      operationId: findByProduct
+      parameters:
+        - name: name
+          in: query
+          description: Product name to search for
+          required: true
+          schema:
+            type: string
+            example: "Banana"
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductWithDateDTO'
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/stats:
+    get:
+      tags:
+        - FDDB Data Statistics
       summary: Get overall statistics
-      description: Retrieves overall statistics for FDDB data
+      description: Retrieves overall statistics for FDDB data. Requires MongoDB to be available.
       operationId: getStats
       responses:
         '200':
@@ -184,31 +229,35 @@ paths:
                 $ref: '#/components/schemas/StatsDTO'
         '503':
           description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /stats/averages:
+  /api/v2/stats/averages:
     get:
       tags:
-        - fddb-data-stats
+        - FDDB Data Statistics
       summary: Get rolling averages
-      description: Calculate rolling averages for a specified date range
+      description: Calculate rolling averages for a specified date range. Requires MongoDB to be available.
       operationId: getRollingAverages
       parameters:
         - name: fromDate
           in: query
-          required: true
           description: Start date in YYYY-MM-DD format
+          required: true
           schema:
             type: string
             pattern: '^\d{4}-\d{2}-\d{2}$'
-            example: '2024-01-01'
+            example: "2024-01-01"
         - name: toDate
           in: query
-          required: true
           description: End date in YYYY-MM-DD format
+          required: true
           schema:
             type: string
             pattern: '^\d{4}-\d{2}-\d{2}$'
-            example: '2024-12-31'
+            example: "2024-01-31"
       responses:
         '200':
           description: Rolling averages calculated successfully
@@ -218,16 +267,25 @@ paths:
                 $ref: '#/components/schemas/RollingAveragesDTO'
         '400':
           description: Invalid date range
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "Invalid date range"
         '503':
           description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /migration/toInfluxDb:
+  /api/v2/migration/toInfluxDb:
     post:
       tags:
-        - fddb-data-migration
+        - FDDB Data Migration
       summary: Migrate data to InfluxDB
-      description: Migrate all MongoDB entries to InfluxDB
-      operationId: migrateToInfluxDb
+      description: Migrate all MongoDB entries to InfluxDB. Requires both MongoDB and InfluxDB to be available.
+      operationId: migrateMongoDbEntriesToInfluxDb
       responses:
         '200':
           description: Migration completed successfully
@@ -235,16 +293,27 @@ paths:
             application/json:
               schema:
                 type: string
-                example: 'Migrated 150 entries to InfluxDB'
+                example: "Migrated 365 entries to InfluxDB"
         '503':
           description: MongoDB or InfluxDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /correlation:
+  /api/v2/correlation:
     post:
       tags:
-        - correlation
+        - Correlation Analysis
       summary: Create correlation analysis
-      description: Calculate correlation between two data series
+      description: |
+        Calculate correlation between two data series based on product consumption patterns.
+        
+        The analysis identifies correlations between:
+        - Products matching inclusion keywords
+        - Dates when specific events occurred
+        
+        Products matching exclusion keywords are filtered out from the analysis.
       operationId: createCorrelation
       requestBody:
         required: true
@@ -252,6 +321,20 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CorrelationInputDto'
+            examples:
+              correlation:
+                summary: Analyze correlation between dairy products and specific dates
+                value:
+                  inclusionKeywords:
+                    - "milk"
+                    - "cheese"
+                  exclusionKeywords:
+                    - "lactose-free"
+                  occurrenceDates:
+                    - "2024-01-05"
+                    - "2024-01-12"
+                    - "2024-01-19"
+                  startDate: "2024-01-01"
       responses:
         '200':
           description: Correlation calculated successfully
@@ -262,118 +345,234 @@ paths:
 
 components:
   schemas:
-    FddbDataDTO:
-      type: object
-      description: FDDB nutrition data for a specific date
-      properties:
-        date:
-          type: string
-          format: date
-          example: '2024-12-22'
-        products:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProductDTO'
-        totalCalories:
-          type: number
-          format: double
-        totalProtein:
-          type: number
-          format: double
-        totalCarbs:
-          type: number
-          format: double
-        totalFat:
-          type: number
-          format: double
-
-    ProductDTO:
-      type: object
-      description: A single food product with nutritional information
-      properties:
-        name:
-          type: string
-          example: 'Banana'
-        amount:
-          type: number
-          format: double
-        unit:
-          type: string
-          example: 'g'
-        calories:
-          type: number
-          format: double
-        protein:
-          type: number
-          format: double
-        carbs:
-          type: number
-          format: double
-        fat:
-          type: number
-          format: double
-
-    ProductWithDateDTO:
-      type: object
-      description: Product with the date it was consumed
-      properties:
-        date:
-          type: string
-          format: date
-        product:
-          $ref: '#/components/schemas/ProductDTO'
-
     DateRangeDTO:
       type: object
-      description: Date range specification
+      description: Date range with from and to dates
       required:
         - fromDate
         - toDate
       properties:
         fromDate:
           type: string
-          format: date
-          example: '2024-01-01'
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+          description: Start date in YYYY-MM-DD format
+          example: "2024-01-01"
         toDate:
           type: string
-          format: date
-          example: '2024-12-31'
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+          description: End date in YYYY-MM-DD format
+          example: "2024-01-31"
 
     ExportResultDTO:
       type: object
       description: Result of an export operation
       properties:
-        savedEntries:
-          type: integer
-          description: Number of new entries saved
-        updatedEntries:
-          type: integer
-          description: Number of existing entries updated
-        errors:
+        successfulDays:
           type: array
+          description: Dates that were successfully exported
           items:
             type: string
+          example: [ "2024-12-20", "2024-12-21" ]
+        unsuccessfulDays:
+          type: array
+          description: Dates that failed to export
+          items:
+            type: string
+          example: [ "2024-12-22" ]
+
+    FddbDataDTO:
+      type: object
+      description: FDDB nutrition data for a specific day
+      properties:
+        id:
+          type: string
+          description: Unique identifier
+          example: "507f1f77bcf86cd799439011"
+        date:
+          type: string
+          format: date
+          description: Date of the entry
+          example: "2024-12-22"
+        products:
+          type: array
+          description: List of products consumed on this day
+          items:
+            $ref: '#/components/schemas/ProductDTO'
+        totalCalories:
+          type: number
+          format: double
+          description: Total calories for the day
+          example: 2000.5
+        totalFat:
+          type: number
+          format: double
+          description: Total fat in grams
+          example: 65.3
+        totalCarbs:
+          type: number
+          format: double
+          description: Total carbs in grams
+          example: 250.2
+        totalSugar:
+          type: number
+          format: double
+          description: Total sugar in grams
+          example: 50.1
+        totalProtein:
+          type: number
+          format: double
+          description: Total protein in grams
+          example: 80.4
+        totalFibre:
+          type: number
+          format: double
+          description: Total fibre in grams
+          example: 25.6
+
+    ProductDTO:
+      type: object
+      description: A consumed product with nutritional information
+      properties:
+        name:
+          type: string
+          description: Product name
+          example: "Banana"
+        amount:
+          type: string
+          description: Amount consumed
+          example: "100 g"
+        calories:
+          type: number
+          format: double
+          description: Calories
+          example: 89.0
+        fat:
+          type: number
+          format: double
+          description: Fat in grams
+          example: 0.3
+        carbs:
+          type: number
+          format: double
+          description: Carbs in grams
+          example: 23.0
+        protein:
+          type: number
+          format: double
+          description: Protein in grams
+          example: 1.1
+        link:
+          type: string
+          description: Link to product page on FDDB
+          example: "https://fddb.info/db/de/lebensmittel/..."
+
+    ProductWithDateDTO:
+      type: object
+      description: A product with its consumption date
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date when the product was consumed
+          example: "2024-12-22"
+        product:
+          $ref: '#/components/schemas/ProductDTO'
 
     StatsDTO:
       type: object
-      description: Overall statistics for FDDB data
+      description: Statistics about FDDB data entries
       properties:
-        totalEntries:
+        amountEntries:
           type: integer
-        totalProducts:
+          format: int64
+          description: Total number of entries in the database
+          example: 365
+        firstEntryDate:
+          type: string
+          format: date
+          description: Date of the first entry
+          example: "2024-01-01"
+        entryPercentage:
+          type: number
+          format: double
+          description: Percentage of days with entries
+          example: 95.5
+        uniqueProducts:
           type: integer
-        averageCaloriesPerDay:
+          format: int64
+          description: Number of unique products consumed
+          example: 150
+        averageTotals:
+          $ref: '#/components/schemas/Averages'
+        highestCaloriesDay:
+          $ref: '#/components/schemas/DayStats'
+        highestFatDay:
+          $ref: '#/components/schemas/DayStats'
+        highestCarbsDay:
+          $ref: '#/components/schemas/DayStats'
+        highestProteinDay:
+          $ref: '#/components/schemas/DayStats'
+        highestFibreDay:
+          $ref: '#/components/schemas/DayStats'
+        highestSugarDay:
+          $ref: '#/components/schemas/DayStats'
+        mostRecentMissingDay:
+          description: Most recent day with no entry (excluding today). Returns date or 'only available with MongoDB' when MongoDB is not configured
+          oneOf:
+            - type: string
+              format: date
+            - type: string
+          example: "2024-12-20"
+
+    Averages:
+      type: object
+      description: Average nutritional values
+      properties:
+        avgTotalCalories:
           type: number
           format: double
-        averageProteinPerDay:
+          description: Average calories per day
+          example: 2000.5
+        avgTotalFat:
           type: number
           format: double
-        averageCarbsPerDay:
+          description: Average fat per day in grams
+          example: 65.3
+        avgTotalCarbs:
           type: number
           format: double
-        averageFatPerDay:
+          description: Average carbs per day in grams
+          example: 250.2
+        avgTotalSugar:
           type: number
           format: double
+          description: Average sugar per day in grams
+          example: 50.1
+        avgTotalProtein:
+          type: number
+          format: double
+          description: Average protein per day in grams
+          example: 80.4
+        avgTotalFibre:
+          type: number
+          format: double
+          description: Average fibre per day in grams
+          example: 25.6
+
+    DayStats:
+      type: object
+      description: Statistics for a specific day
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date of the entry
+          example: "2024-12-22"
+        total:
+          type: number
+          format: double
+          description: Total value for that day
+          example: 2500.5
 
     RollingAveragesDTO:
       type: object
@@ -381,60 +580,115 @@ components:
       properties:
         fromDate:
           type: string
-          format: date
+          description: Start date of the range
+          example: "2024-01-01"
         toDate:
           type: string
-          format: date
-        averageCalories:
-          type: number
-          format: double
-        averageProtein:
-          type: number
-          format: double
-        averageCarbs:
-          type: number
-          format: double
-        averageFat:
-          type: number
-          format: double
-        dataPoints:
-          type: integer
-          description: Number of days included in the calculation
+          description: End date of the range
+          example: "2024-12-31"
+        averages:
+          $ref: '#/components/schemas/Averages'
 
     CorrelationInputDto:
       type: object
-      description: Input for correlation analysis
+      description: Input data for correlation analysis
       properties:
-        seriesA:
+        inclusionKeywords:
           type: array
+          description: Keywords to match products for inclusion in the analysis
           items:
-            type: number
-            format: double
-        seriesB:
+            type: string
+          example: [ "milk", "cheese" ]
+        exclusionKeywords:
           type: array
+          description: Keywords to match products for exclusion from the analysis
           items:
-            type: number
-            format: double
-        method:
+            type: string
+          example: [ "lactose-free" ]
+        occurrenceDates:
+          type: array
+          description: Dates when specific events occurred
+          items:
+            type: string
+          example: [ "2024-01-05", "2024-01-12", "2024-01-19" ]
+        startDate:
           type: string
-          enum: [ PEARSON, SPEARMAN ]
-          default: PEARSON
+          description: Start date for the analysis
+          example: "2024-01-01"
 
     CorrelationOutputDto:
       type: object
       description: Result of correlation analysis
       properties:
-        correlationCoefficient:
-          type: number
-          format: double
-          description: Correlation coefficient between -1 and 1
-        pValue:
-          type: number
-          format: double
-          description: Statistical significance
-        method:
-          type: string
-          enum: [ PEARSON, SPEARMAN ]
-        sampleSize:
+        correlations:
+          $ref: '#/components/schemas/Correlations'
+        matchedProducts:
+          type: array
+          description: List of products that matched the criteria
+          items:
+            type: string
+        matchedDates:
+          type: array
+          description: List of dates that matched the criteria
+          items:
+            type: string
+            format: date
+        amountMatchedProducts:
           type: integer
+          description: Number of products that matched
+          example: 15
+        amountMatchedDates:
+          type: integer
+          description: Number of dates that matched
+          example: 12
+
+    Correlations:
+      type: object
+      description: Correlation details for different time windows
+      properties:
+        across3Days:
+          $ref: '#/components/schemas/CorrelationDetail'
+        across2Days:
+          $ref: '#/components/schemas/CorrelationDetail'
+        sameDay:
+          $ref: '#/components/schemas/CorrelationDetail'
+        oneDayBefore:
+          $ref: '#/components/schemas/CorrelationDetail'
+        twoDaysBefore:
+          $ref: '#/components/schemas/CorrelationDetail'
+
+    CorrelationDetail:
+      type: object
+      description: Detailed correlation information for a specific time window
+      properties:
+        percentage:
+          type: number
+          format: double
+          description: Correlation percentage
+          example: 75.5
+        matchedDates:
+          type: array
+          description: Dates that matched in this time window
+          items:
+            type: string
+        matchedDays:
+          type: integer
+          description: Number of days that matched
+          example: 9
+
+    ErrorResponse:
+      type: object
+      description: Error response
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: "MongoDB not available"
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the error
+        path:
+          type: string
+          description: Request path that caused the error
 

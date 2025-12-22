@@ -1,14 +1,16 @@
 {
   "amountEntries": 606,
   "firstEntryDate": "2023-01-01",
-  "entryPercentage": 95.13343799058084,
+  "mostRecentMissingDay": "2024-12-20",
+  "entryPercentage": 95.1,
+  "uniqueProducts": 150,
   "averageTotals": {
-    "avgTotalCalories": 2505.651815181518,
-    "avgTotalFat": 125.65561056105611,
-    "avgTotalCarbs": 204.4245874587459,
-    "avgTotalSugar": 63.448019801980195,
-    "avgTotalProtein": 117.9844884488449,
-    "avgTotalFibre": 18.43102310231023
+    "avgTotalCalories": 2505.7,
+    "avgTotalFat": 125.7,
+    "avgTotalCarbs": 204.4,
+    "avgTotalSugar": 63.4,
+    "avgTotalProtein": 118.0,
+    "avgTotalFibre": 18.4
   },
   "highestCaloriesDay": {
     "date": "2024-07-31",

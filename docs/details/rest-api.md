@@ -209,14 +209,16 @@ Example responses:
     {
       "amountEntries": 606,
       "firstEntryDate": "2023-01-01",
-      "entryPercentage": 95.13343799058084,
+      "mostRecentMissingDay": "2024-12-20",
+      "entryPercentage": 95.1,
+      "uniqueProducts": 150,
       "averageTotals": {
-        "avgTotalCalories": 2505.651815181518,
-        "avgTotalFat": 125.65561056105611,
-        "avgTotalCarbs": 204.4245874587459,
-        "avgTotalSugar": 63.448019801980195,
-        "avgTotalProtein": 117.9844884488449,
-        "avgTotalFibre": 18.43102310231023
+        "avgTotalCalories": 2505.7,
+        "avgTotalFat": 125.7,
+        "avgTotalCarbs": 204.4,
+        "avgTotalSugar": 63.4,
+        "avgTotalProtein": 118.0,
+        "avgTotalFibre": 18.4
       },
       "highestCaloriesDay": {
         "date": "2024-07-31",
@@ -265,12 +267,12 @@ Example responses:
       "fromDate": "2024-01-01",
       "toDate": "2024-01-31",
       "averages": {
-        "avgTotalCalories": 3054.4285714285716,
-        "avgTotalFat": 123.92857142857143,
-        "avgTotalCarbs": 303.75714285714287,
-        "avgTotalSugar": 85.65714285714286,
-        "avgTotalProtein": 136.18571428571428,
-        "avgTotalFibre": 25.82857142857143
+        "avgTotalCalories": 3054.4,
+        "avgTotalFat": 123.9,
+        "avgTotalCarbs": 303.7,
+        "avgTotalSugar": 85.6,
+        "avgTotalProtein": 136.8,
+        "avgTotalFibre": 25.8
       }
     }
     ```
