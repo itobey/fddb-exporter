@@ -23,6 +23,9 @@ public class StatsDTO {
     @Schema(description = "Percentage of days with entries", example = "95.5")
     double entryPercentage;
 
+    @Schema(description = "Number of unique products consumed", example = "150")
+    long uniqueProducts;
+
     @Schema(description = "Average nutritional values across all entries")
     Averages averageTotals;
 

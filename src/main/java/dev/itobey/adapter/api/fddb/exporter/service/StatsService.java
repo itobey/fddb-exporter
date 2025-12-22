@@ -2,6 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -32,11 +33,13 @@ public class StatsService {
         LocalDate firstEntryDate = getFirstEntryDate();
         double entryPercentage = roundToOneDecimal(calculateEntryPercentage(firstEntryDate, amountEntries));
         StatsDTO.Averages averageTotals = roundAverages(getAverageTotals());
+        long uniqueProducts = getUniqueProductsCount();
 
         return StatsDTO.builder()
                 .amountEntries(amountEntries)
                 .firstEntryDate(firstEntryDate)
                 .entryPercentage(entryPercentage)
+                .uniqueProducts(uniqueProducts)
                 .averageTotals(averageTotals)
                 .highestCaloriesDay(roundDayStats(getDayWithHighestTotal("totalCalories")))
                 .highestFatDay(roundDayStats(getDayWithHighestTotal("totalFat")))
@@ -114,6 +117,22 @@ public class StatsService {
         }
 
         return averages;
+    }
+
+
+    private long getUniqueProductsCount() {
+        Aggregation aggregation = newAggregation(
+                unwind("products"),
+                group("products.name"),
+                count().as("uniqueCount")
+        );
+        AggregationResults<Document> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, Document.class);
+        Document doc = results.getUniqueMappedResult();
+        if (doc == null) {
+            return 0L;
+        }
+        Object val = doc.get("uniqueCount");
+        return val instanceof Number ? ((Number) val).longValue() : 0L;
     }
 
     private double calculateEntryPercentage(LocalDate givenDate, long documentCount) {
