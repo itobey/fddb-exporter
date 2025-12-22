@@ -1,10 +1,11 @@
-package dev.itobey.adapter.api.fddb.exporter.rest;
+package dev.itobey.adapter.api.fddb.exporter.rest.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.itobey.adapter.api.fddb.exporter.config.TestConfig;
 import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -21,10 +22,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Integration test for deprecated v1 API compatibility.
+ *
+ * @deprecated Tests deprecated v1 API endpoints. Create new tests for v2 controllers.
+ */
+@Deprecated
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestConfig.class)
+@Tag("v1-compat")
 class FddbDataResourceIT {
 
     @Autowired

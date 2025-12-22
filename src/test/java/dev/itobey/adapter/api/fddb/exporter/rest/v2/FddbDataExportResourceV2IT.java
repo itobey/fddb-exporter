@@ -1,0 +1,74 @@
+package dev.itobey.adapter.api.fddb.exporter.rest.v2;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.itobey.adapter.api.fddb.exporter.config.TestConfig;
+import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * Integration test for v2 Export API.
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Import(TestConfig.class)
+@Tag("v2")
+class FddbDataExportResourceV2IT {
+
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    @SuppressWarnings("unused")
+    private PersistenceService persistenceService;
+
+    @Test
+    @SneakyThrows
+    void exportForTimerange_fromDateAfterToDate_shouldThrowException() {
+        DateRangeDTO invalidBatchExport = DateRangeDTO.builder()
+                .fromDate("2023-01-01")
+                .toDate("2022-01-01")
+                .build();
+
+        mockMvc.perform(post("/api/v2/fddbdata")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidBatchExport)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.dateTimeError")
+                        .value("The 'from' date cannot be after the 'to' date"));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "0, true",
+            "0, false",
+            "366, true",
+            "366, false"
+    })
+    @SneakyThrows
+    void exportForDaysBack_whenDayOutsidePermittedRange_shouldThrowException(int days, boolean includeToday) {
+        mockMvc.perform(get("/api/v2/fddbdata/export?days=" + days + "&includeToday=" + includeToday))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.dateTimeError")
+                        .value("Days back must be between 1 and 365"));
+    }
+}
+
