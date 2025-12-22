@@ -112,14 +112,14 @@ class FddbDataServiceTest {
     @SneakyThrows
     void exportForTimerange_whenPayloadValid_shouldReturnSuccessfulDays() {
         // given
-        ExportRequestDTO exportRequestDTO = new ExportRequestDTO("2021-08-15", "2021-08-16");
+        DateRangeDTO dateRangeDTO = new DateRangeDTO("2021-08-15", "2021-08-16");
         TimeframeDTO timeframeDTO = new TimeframeDTO(1628985600, 1629072000);
 
         when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(timeframeDTO);
         when(exportService.exportData(timeframeDTO)).thenReturn(mockFddbData);
 
         // when
-        ExportResultDTO result = fddbDataService.exportForTimerange(exportRequestDTO);
+        ExportResultDTO result = fddbDataService.exportForTimerange(dateRangeDTO);
 
         // then
         assertEquals(2, result.getSuccessfulDays().size());
@@ -135,7 +135,7 @@ class FddbDataServiceTest {
     @SneakyThrows
     void exportForTimerange_whenExportFails_shouldReturnUnsuccessfulDays() {
         // given
-        ExportRequestDTO exportRequestDTO = new ExportRequestDTO("2021-08-15", "2021-08-16");
+        DateRangeDTO dateRangeDTO = new DateRangeDTO("2021-08-15", "2021-08-16");
         TimeframeDTO timeframeDTO = new TimeframeDTO(1628985600, 1629072000);
 
         when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(timeframeDTO);
@@ -144,7 +144,7 @@ class FddbDataServiceTest {
                 .thenThrow(new ParseException("Failed to parse"));
 
         // when
-        ExportResultDTO result = fddbDataService.exportForTimerange(exportRequestDTO);
+        ExportResultDTO result = fddbDataService.exportForTimerange(dateRangeDTO);
 
         // then
         assertEquals(1, result.getSuccessfulDays().size());
@@ -159,11 +159,11 @@ class FddbDataServiceTest {
     @Test
     void exportForTimerange_whenFromIsAfterTo_shouldThrowException() {
         // given
-        ExportRequestDTO exportRequestDTO = new ExportRequestDTO("2023-01-20", "2023-01-15");
+        DateRangeDTO dateRangeDTO = new DateRangeDTO("2023-01-20", "2023-01-15");
 
         // when & then
         DateTimeException exception = assertThrows(DateTimeException.class,
-                () -> fddbDataService.exportForTimerange(exportRequestDTO));
+                () -> fddbDataService.exportForTimerange(dateRangeDTO));
         assertEquals("The 'from' date cannot be after the 'to' date", exception.getMessage());
         verifyNoInteractions(persistenceService);
     }

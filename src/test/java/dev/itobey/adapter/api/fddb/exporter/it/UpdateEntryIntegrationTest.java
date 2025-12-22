@@ -9,7 +9,7 @@ import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 import dev.itobey.adapter.api.fddb.exporter.config.TestConfig;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
@@ -104,11 +104,11 @@ class UpdateEntryIntegrationTest {
     void testSaveOrUpdateUpdatesExistingEntry() {
         stubFddbResponse();
 
-        ExportRequestDTO exportRequestDTO = ExportRequestDTO.builder()
+        DateRangeDTO dateRangeDTO = DateRangeDTO.builder()
                 .fromDate("2024-09-06")
                 .toDate("2024-09-06")
                 .build();
-        ExportResultDTO exportResultDTO = fddbDataService.exportForTimerange(exportRequestDTO);
+        ExportResultDTO exportResultDTO = fddbDataService.exportForTimerange(dateRangeDTO);
 
         assertMongoDbEntries(exportResultDTO);
         assertInfluxDbEntries();
@@ -139,11 +139,12 @@ class UpdateEntryIntegrationTest {
     }
 
     private void assertInfluxDbEntries() {
-        String query = "from(bucket:\"test-bucket\")\n" +
-                "  |> range(start: 0)\n" +
-                "  |> filter(fn: (r) => r._measurement == \"dailyTotals\")\n" +
-                "  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n" +
-                "  |> yield(name: \"result\")";
+        String query = """
+                from(bucket:"test-bucket")
+                  |> range(start: 0)
+                  |> filter(fn: (r) => r._measurement == "dailyTotals")
+                  |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+                  |> yield(name: "result")""";
 
         List<FluxTable> tables = influxDBClient.getQueryApi().query(query);
 

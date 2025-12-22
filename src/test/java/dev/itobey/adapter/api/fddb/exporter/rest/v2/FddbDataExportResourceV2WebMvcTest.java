@@ -1,10 +1,10 @@
-package dev.itobey.adapter.api.fddb.exporter.rest;
+package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
-import dev.itobey.adapter.api.fddb.exporter.service.DataMigrationService;
+import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -16,27 +16,31 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(FddbDataResource.class)
-class FddbDataResourceWebMvcTest {
+/**
+ * WebMvc test for v2 Export API.
+ */
+@WebMvcTest(FddbDataExportResourceV2.class)
+@Tag("v2")
+@SuppressWarnings("deprecation")
+class FddbDataExportResourceV2WebMvcTest {
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
     @MockBean
+    @SuppressWarnings("unused")
     private FddbDataService fddbDataService;
-    @MockBean
-    private DataMigrationService dataMigrationService;
 
     @Test
     @SneakyThrows
     void exportForTimerange_InvalidInput() {
-        ExportRequestDTO invalidBatchExport = ExportRequestDTO.builder()
+        DateRangeDTO invalidBatchExport = DateRangeDTO.builder()
                 .fromDate("2023/01/01")  // Invalid format
                 .toDate(null)  // Null value
                 .build();
 
-        mockMvc.perform(post("/api/v1/fddbdata")
+        mockMvc.perform(post("/api/v2/fddbdata")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidBatchExport)))
                 .andExpect(status().isBadRequest())
@@ -44,3 +48,4 @@ class FddbDataResourceWebMvcTest {
                 .andExpect(jsonPath("$.toDate").value("To date cannot be null"));
     }
 }
+

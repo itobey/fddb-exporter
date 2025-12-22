@@ -8,13 +8,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Contains the dates which should be processed in a batch export.
+ * Contains a date range with from and to dates.
+ * Used for batch exports and date range queries.
  */
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Data
-public class ExportRequestDTO {
+public class DateRangeDTO {
 
     @NotNull(message = "From date cannot be null")
     @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "From date must be in the format YYYY-MM-DD")

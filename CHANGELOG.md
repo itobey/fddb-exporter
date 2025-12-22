@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **BREAKING**: Removed `last7DaysAverage` and `last30DaysAverage` fields from `/api/v1/fddbdata/stats` endpoint
+- Stats endpoint now returns only total averages and highest values per category
+
+### Added
+
+- New `/api/v1/fddbdata/stats/averages` endpoint to calculate rolling averages for an explicit date range (use
+  `fromDate` and `toDate`, format YYYY-MM-DD)
+
+### Migration Guide
+
+If you were using the `last7DaysAverage` or `last30DaysAverage` fields:
+
+- Replace with calls to `/api/v1/fddbdata/stats/averages?fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD` (for example, to get the
+  last 7 full days set `toDate` to yesterday and `fromDate` to 7 days before yesterday)
+
 ## 1.6.3
 
 - dependency updates

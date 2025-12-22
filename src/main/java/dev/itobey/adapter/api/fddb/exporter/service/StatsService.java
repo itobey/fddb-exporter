@@ -2,6 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -30,24 +31,23 @@ public class StatsService {
     public StatsDTO getStats() {
         long amountEntries = getAmountEntries();
         LocalDate firstEntryDate = getFirstEntryDate();
-        double entryPercentage = calculateEntryPercentage(firstEntryDate, amountEntries);
-        StatsDTO.Averages averageTotals = getAverageTotals();
-        StatsDTO.Averages last7DaysAverage = getLast7DaysAverage();
-        StatsDTO.Averages last30DaysAverage = getLast30DaysAverage();
+        double entryPercentage = roundToOneDecimal(calculateEntryPercentage(firstEntryDate, amountEntries));
+        StatsDTO.Averages averageTotals = roundAverages(getAverageTotals());
+        long uniqueProducts = getUniqueProductsCount();
 
         return StatsDTO.builder()
                 .amountEntries(amountEntries)
                 .firstEntryDate(firstEntryDate)
+                .mostRecentMissingDay(getMostRecentMissingDay())
                 .entryPercentage(entryPercentage)
+                .uniqueProducts(uniqueProducts)
                 .averageTotals(averageTotals)
-                .last7DaysAverage(last7DaysAverage)
-                .last30DaysAverage(last30DaysAverage)
-                .highestCaloriesDay(getDayWithHighestTotal("totalCalories"))
-                .highestFatDay(getDayWithHighestTotal("totalFat"))
-                .highestCarbsDay(getDayWithHighestTotal("totalCarbs"))
-                .highestProteinDay(getDayWithHighestTotal("totalProtein"))
-                .highestFibreDay(getDayWithHighestTotal("totalFibre"))
-                .highestSugarDay(getDayWithHighestTotal("totalSugar"))
+                .highestCaloriesDay(roundDayStats(getDayWithHighestTotal("totalCalories")))
+                .highestFatDay(roundDayStats(getDayWithHighestTotal("totalFat")))
+                .highestCarbsDay(roundDayStats(getDayWithHighestTotal("totalCarbs")))
+                .highestProteinDay(roundDayStats(getDayWithHighestTotal("totalProtein")))
+                .highestFibreDay(roundDayStats(getDayWithHighestTotal("totalFibre")))
+                .highestSugarDay(roundDayStats(getDayWithHighestTotal("totalSugar")))
                 .build();
     }
 
@@ -71,14 +71,13 @@ public class StatsService {
         return getAverages(null);
     }
 
-    private StatsDTO.Averages getLast7DaysAverage() {
-        LocalDate sevenDaysAgo = LocalDate.now().minusDays(7);
-        return getAverages(Criteria.where("date").gte(sevenDaysAgo));
-    }
+    public StatsDTO.Averages getAveragesForDateRange(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate.isAfter(toDate)) {
+            throw new IllegalArgumentException("The 'from' date cannot be after the 'to' date");
+        }
 
-    private StatsDTO.Averages getLast30DaysAverage() {
-        LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
-        return getAverages(Criteria.where("date").gte(thirtyDaysAgo));
+        Criteria criteria = Criteria.where("date").gte(fromDate).lte(toDate);
+        return roundAverages(getAverages(criteria));
     }
 
     private StatsDTO.DayStats getDayWithHighestTotal(String totalField) {
@@ -121,8 +120,96 @@ public class StatsService {
         return averages;
     }
 
+
+    private long getUniqueProductsCount() {
+        Aggregation aggregation = newAggregation(
+                unwind("products"),
+                group("products.name"),
+                count().as("uniqueCount")
+        );
+        AggregationResults<Document> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, Document.class);
+        Document doc = results.getUniqueMappedResult();
+        if (doc == null) {
+            return 0L;
+        }
+        Object val = doc.get("uniqueCount");
+        return val instanceof Number ? ((Number) val).longValue() : 0L;
+    }
+
     private double calculateEntryPercentage(LocalDate givenDate, long documentCount) {
         long daysSince = ChronoUnit.DAYS.between(givenDate, LocalDate.now());
         return (double) documentCount / daysSince * 100;
+    }
+
+    private double roundToOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
+    }
+
+    private StatsDTO.Averages roundAverages(StatsDTO.Averages averages) {
+        return StatsDTO.Averages.builder()
+                .avgTotalCalories(roundToOneDecimal(averages.getAvgTotalCalories()))
+                .avgTotalFat(roundToOneDecimal(averages.getAvgTotalFat()))
+                .avgTotalCarbs(roundToOneDecimal(averages.getAvgTotalCarbs()))
+                .avgTotalSugar(roundToOneDecimal(averages.getAvgTotalSugar()))
+                .avgTotalProtein(roundToOneDecimal(averages.getAvgTotalProtein()))
+                .avgTotalFibre(roundToOneDecimal(averages.getAvgTotalFibre()))
+                .build();
+    }
+
+    private StatsDTO.DayStats roundDayStats(StatsDTO.DayStats dayStats) {
+        if (dayStats == null) {
+            return null;
+        }
+        return StatsDTO.DayStats.builder()
+                .date(dayStats.getDate())
+                .total(roundToOneDecimal(dayStats.getTotal()))
+                .build();
+    }
+
+    private Object getMostRecentMissingDay() {
+        if (mongoTemplate == null) {
+            return "only available with MongoDB";
+        }
+
+        try {
+            LocalDate firstEntryDate = getFirstEntryDate();
+            LocalDate today = LocalDate.now();
+            LocalDate yesterday = today.minusDays(1);
+
+            // Get all dates from first entry to yesterday that have entries with calories > 0
+            Query query = new Query(Criteria.where("date")
+                    .gte(firstEntryDate)
+                    .lte(yesterday)
+                    .and("totalCalories").gt(0))
+                    .with(Sort.by(Sort.Direction.DESC, "date"));
+
+            List<FddbData> entries = mongoTemplate.find(query, FddbData.class, COLLECTION_NAME);
+
+            if (entries.isEmpty()) {
+                // All days are missing
+                return yesterday;
+            }
+
+            // Build a set of existing dates for fast lookup
+            java.util.Set<LocalDate> existingDates = new java.util.HashSet<>();
+            for (FddbData entry : entries) {
+                existingDates.add(entry.getDate());
+            }
+
+            // Check from yesterday backwards to find the first missing date
+            LocalDate checkDate = yesterday;
+            while (!checkDate.isBefore(firstEntryDate)) {
+                if (!existingDates.contains(checkDate)) {
+                    return checkDate;
+                }
+
+                checkDate = checkDate.minusDays(1);
+            }
+
+            // No missing days found
+            return null;
+        } catch (Exception e) {
+            return "only available with MongoDB";
+        }
     }
 }

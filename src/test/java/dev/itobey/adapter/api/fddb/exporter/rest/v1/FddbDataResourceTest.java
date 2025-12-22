@@ -1,10 +1,11 @@
-package dev.itobey.adapter.api.fddb.exporter.rest;
+package dev.itobey.adapter.api.fddb.exporter.rest.v1;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,14 +21,21 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
+/**
+ * Test for deprecated v1 API compatibility.
+ *
+ * @deprecated Tests deprecated v1 API. See FddbDataQueryResourceV2Test, FddbDataExportResourceV2Test, etc.
+ */
+@Deprecated
 @ExtendWith(MockitoExtension.class)
+@Tag("v1-compat")
 class FddbDataResourceTest {
 
     @Mock
     private FddbDataService fddbDataService;
 
     @InjectMocks
-    private FddbDataResource fddbDataResource;
+    private FddbDataResourceV1 fddbDataResource;
 
     @Test
     void testFindAllEntries() {
@@ -86,7 +94,7 @@ class FddbDataResourceTest {
 
     @Test
     void testExportForTimerange() {
-        ExportRequestDTO mockRequest = new ExportRequestDTO();
+        DateRangeDTO mockRequest = new DateRangeDTO();
         ExportResultDTO mockResult = new ExportResultDTO();
         when(fddbDataService.exportForTimerange(mockRequest)).thenReturn(mockResult);
 
