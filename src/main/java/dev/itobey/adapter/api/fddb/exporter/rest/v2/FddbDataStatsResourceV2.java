@@ -27,12 +27,12 @@ import org.springframework.web.bind.annotation.RestController;
  * - Retrieving overall statistics
  * - Calculating rolling averages for a date range
  * <p>
- * The API endpoints are mapped to the "/api/v2/fddbdata/stats" path.
+ * The API endpoints are mapped to the "/api/v2/stats" path.
  *
  * @since 2.0.0
  */
 @RestController
-@RequestMapping("/api/v2/fddbdata/stats")
+@RequestMapping("/api/v2/stats")
 @Slf4j
 @Validated
 @RequiredArgsConstructor
@@ -62,7 +62,7 @@ public class FddbDataStatsResourceV2 {
     /**
      * Get rolling averages for a specified date range.
      * <p>
-     * Example: /api/v2/fddbdata/stats/averages?fromDate=2024-01-01&toDate=2024-01-31
+     * Example: /api/v2/stats/averages?fromDate=2024-01-01&toDate=2024-01-31
      *
      * @param dateRangeDTO the date range for which to calculate averages (including both from and to dates)
      * @return rolling averages for the specified date range

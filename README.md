@@ -30,6 +30,7 @@ There is also a [Flutter app](https://github.com/itobey/fddb-exporter-app) avail
   page
 - Supports scheduled daily exports and manual exports for specific date ranges
 - Provides a RESTful API for data retrieval and export operations
+- Interactive Swagger UI for easy API exploration and testing
 - A special API endpoint to find correlations to matching dates for checking food allergies
 
 # Prerequisites
@@ -39,6 +40,14 @@ There is also a [Flutter app](https://github.com/itobey/fddb-exporter-app) avail
 - A running database (MongoDB and/or InfluxDB)
   - MongoDB instance (used for storing all data)
   - InfluxDB instance (used for storing daily totals)
+
+# Quick Start
+
+Once the application is running, you can access the interactive API documentation at:
+
+**Swagger UI:** `http://localhost:8080/swagger-ui.html`
+
+See [Swagger UI Setup Guide](docs/SWAGGER-UI-SETUP.md) for detailed documentation.
 
 # Technology Stack
 

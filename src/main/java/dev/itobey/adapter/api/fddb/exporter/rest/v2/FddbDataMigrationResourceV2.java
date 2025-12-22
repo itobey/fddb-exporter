@@ -22,12 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
  * Provides endpoints for:
  * - Migrating data from MongoDB to InfluxDB
  * <p>
- * The API endpoints are mapped to the "/api/v2/fddbdata/migration" path.
+ * The API endpoints are mapped to the "/api/v2/migration" path.
  *
  * @since 2.0.0
  */
 @RestController
-@RequestMapping("/api/v2/fddbdata/migration")
+@RequestMapping("/api/v2/migration")
 @Slf4j
 @Validated
 @Tag(name = "FDDB Data Migration", description = "Data migration operations between storage backends")
@@ -56,4 +56,3 @@ public class FddbDataMigrationResourceV2 {
         return ResponseEntity.ok("Migrated " + amountEntries + " entries to InfluxDB");
     }
 }
-

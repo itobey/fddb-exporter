@@ -1,0 +1,440 @@
+openapi: 3.0.3
+info:
+  title: FDDB Exporter API v2
+  description: |
+    REST API for the FDDB Exporter application - Version 2.
+    
+    This API provides endpoints for:
+    - Querying FDDB nutrition data entries
+    - Exporting data from FDDB for specified date ranges
+    - Retrieving statistics and rolling averages
+    - Managing data migrations between storage backends
+    - Calculating correlations between data series
+    
+    For migration from v1, see: /docs/migration/v1-to-v2.md
+  version: '2.0.0'
+  contact:
+    name: FDDB Exporter
+    url: https://github.com/itobey/fddb-exporter
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api/v2
+    description: Local development server (v2)
+  - url: https://api.example.com/api/v2
+    description: Production server (v2)
+
+tags:
+  - name: fddb-data-query
+    description: Query FDDB nutrition data entries
+  - name: fddb-data-export
+    description: Export FDDB data for specified date ranges
+  - name: fddb-data-stats
+    description: Statistics and analytics for FDDB data
+  - name: fddb-data-migration
+    description: Data migration operations between storage backends
+  - name: correlation
+    description: Correlation analysis between data series
+
+paths:
+  /fddbdata:
+    get:
+      tags:
+        - fddb-data-query
+      summary: Get all FDDB data entries
+      description: Retrieves all FDDB nutrition data entries from the database
+      operationId: findAllEntries
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FddbDataDTO'
+        '503':
+          description: MongoDB not available
+
+    post:
+      tags:
+        - fddb-data-export
+      summary: Export data for a date range
+      description: Export FDDB data for all days in the specified timeframe
+      operationId: exportForTimerange
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DateRangeDTO'
+      responses:
+        '200':
+          description: Export completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResultDTO'
+        '400':
+          description: Invalid date range
+
+  /fddbdata/{date}:
+    get:
+      tags:
+        - fddb-data-query
+      summary: Get FDDB data for a specific date
+      description: Retrieves FDDB data entries for the specified date
+      operationId: findByDate
+      parameters:
+        - name: date
+          in: path
+          required: true
+          description: Date in YYYY-MM-DD format
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+            example: '2024-12-22'
+      responses:
+        '200':
+          description: Data found for the specified date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FddbDataDTO'
+        '400':
+          description: Invalid date format
+        '404':
+          description: No data found for the specified date
+        '503':
+          description: MongoDB not available
+
+  /fddbdata/products:
+    get:
+      tags:
+        - fddb-data-query
+      summary: Search products by name
+      description: Search for FDDB products by name across all dates
+      operationId: findByProduct
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: Product name to search for
+          schema:
+            type: string
+            example: 'Banana'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductWithDateDTO'
+        '503':
+          description: MongoDB not available
+
+  /fddbdata/export:
+    get:
+      tags:
+        - fddb-data-export
+      summary: Export data for recent days
+      description: Export FDDB data for a specified number of days back from today
+      operationId: exportForDaysBack
+      parameters:
+        - name: days
+          in: query
+          required: true
+          description: Number of days to export
+          schema:
+            type: integer
+            minimum: 1
+            example: 7
+        - name: includeToday
+          in: query
+          required: false
+          description: Whether to include today in the export
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Export completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResultDTO'
+
+  /stats:
+    get:
+      tags:
+        - fddb-data-stats
+      summary: Get overall statistics
+      description: Retrieves overall statistics for FDDB data
+      operationId: getStats
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsDTO'
+        '503':
+          description: MongoDB not available
+
+  /stats/averages:
+    get:
+      tags:
+        - fddb-data-stats
+      summary: Get rolling averages
+      description: Calculate rolling averages for a specified date range
+      operationId: getRollingAverages
+      parameters:
+        - name: fromDate
+          in: query
+          required: true
+          description: Start date in YYYY-MM-DD format
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+            example: '2024-01-01'
+        - name: toDate
+          in: query
+          required: true
+          description: End date in YYYY-MM-DD format
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+            example: '2024-12-31'
+      responses:
+        '200':
+          description: Rolling averages calculated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RollingAveragesDTO'
+        '400':
+          description: Invalid date range
+        '503':
+          description: MongoDB not available
+
+  /migration/toInfluxDb:
+    post:
+      tags:
+        - fddb-data-migration
+      summary: Migrate data to InfluxDB
+      description: Migrate all MongoDB entries to InfluxDB
+      operationId: migrateToInfluxDb
+      responses:
+        '200':
+          description: Migration completed successfully
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'Migrated 150 entries to InfluxDB'
+        '503':
+          description: MongoDB or InfluxDB not available
+
+  /correlation:
+    post:
+      tags:
+        - correlation
+      summary: Create correlation analysis
+      description: Calculate correlation between two data series
+      operationId: createCorrelation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CorrelationInputDto'
+      responses:
+        '200':
+          description: Correlation calculated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrelationOutputDto'
+
+components:
+  schemas:
+    FddbDataDTO:
+      type: object
+      description: FDDB nutrition data for a specific date
+      properties:
+        date:
+          type: string
+          format: date
+          example: '2024-12-22'
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductDTO'
+        totalCalories:
+          type: number
+          format: double
+        totalProtein:
+          type: number
+          format: double
+        totalCarbs:
+          type: number
+          format: double
+        totalFat:
+          type: number
+          format: double
+
+    ProductDTO:
+      type: object
+      description: A single food product with nutritional information
+      properties:
+        name:
+          type: string
+          example: 'Banana'
+        amount:
+          type: number
+          format: double
+        unit:
+          type: string
+          example: 'g'
+        calories:
+          type: number
+          format: double
+        protein:
+          type: number
+          format: double
+        carbs:
+          type: number
+          format: double
+        fat:
+          type: number
+          format: double
+
+    ProductWithDateDTO:
+      type: object
+      description: Product with the date it was consumed
+      properties:
+        date:
+          type: string
+          format: date
+        product:
+          $ref: '#/components/schemas/ProductDTO'
+
+    DateRangeDTO:
+      type: object
+      description: Date range specification
+      required:
+        - fromDate
+        - toDate
+      properties:
+        fromDate:
+          type: string
+          format: date
+          example: '2024-01-01'
+        toDate:
+          type: string
+          format: date
+          example: '2024-12-31'
+
+    ExportResultDTO:
+      type: object
+      description: Result of an export operation
+      properties:
+        savedEntries:
+          type: integer
+          description: Number of new entries saved
+        updatedEntries:
+          type: integer
+          description: Number of existing entries updated
+        errors:
+          type: array
+          items:
+            type: string
+
+    StatsDTO:
+      type: object
+      description: Overall statistics for FDDB data
+      properties:
+        totalEntries:
+          type: integer
+        totalProducts:
+          type: integer
+        averageCaloriesPerDay:
+          type: number
+          format: double
+        averageProteinPerDay:
+          type: number
+          format: double
+        averageCarbsPerDay:
+          type: number
+          format: double
+        averageFatPerDay:
+          type: number
+          format: double
+
+    RollingAveragesDTO:
+      type: object
+      description: Rolling averages for a date range
+      properties:
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        averageCalories:
+          type: number
+          format: double
+        averageProtein:
+          type: number
+          format: double
+        averageCarbs:
+          type: number
+          format: double
+        averageFat:
+          type: number
+          format: double
+        dataPoints:
+          type: integer
+          description: Number of days included in the calculation
+
+    CorrelationInputDto:
+      type: object
+      description: Input for correlation analysis
+      properties:
+        seriesA:
+          type: array
+          items:
+            type: number
+            format: double
+        seriesB:
+          type: array
+          items:
+            type: number
+            format: double
+        method:
+          type: string
+          enum: [ PEARSON, SPEARMAN ]
+          default: PEARSON
+
+    CorrelationOutputDto:
+      type: object
+      description: Result of correlation analysis
+      properties:
+        correlationCoefficient:
+          type: number
+          format: double
+          description: Correlation coefficient between -1 and 1
+        pValue:
+          type: number
+          format: double
+          description: Statistical significance
+        method:
+          type: string
+          enum: [ PEARSON, SPEARMAN ]
+        sampleSize:
+          type: integer
+
