@@ -30,20 +30,20 @@ public class StatsService {
     public StatsDTO getStats() {
         long amountEntries = getAmountEntries();
         LocalDate firstEntryDate = getFirstEntryDate();
-        double entryPercentage = calculateEntryPercentage(firstEntryDate, amountEntries);
-        StatsDTO.Averages averageTotals = getAverageTotals();
+        double entryPercentage = roundToOneDecimal(calculateEntryPercentage(firstEntryDate, amountEntries));
+        StatsDTO.Averages averageTotals = roundAverages(getAverageTotals());
 
         return StatsDTO.builder()
                 .amountEntries(amountEntries)
                 .firstEntryDate(firstEntryDate)
                 .entryPercentage(entryPercentage)
                 .averageTotals(averageTotals)
-                .highestCaloriesDay(getDayWithHighestTotal("totalCalories"))
-                .highestFatDay(getDayWithHighestTotal("totalFat"))
-                .highestCarbsDay(getDayWithHighestTotal("totalCarbs"))
-                .highestProteinDay(getDayWithHighestTotal("totalProtein"))
-                .highestFibreDay(getDayWithHighestTotal("totalFibre"))
-                .highestSugarDay(getDayWithHighestTotal("totalSugar"))
+                .highestCaloriesDay(roundDayStats(getDayWithHighestTotal("totalCalories")))
+                .highestFatDay(roundDayStats(getDayWithHighestTotal("totalFat")))
+                .highestCarbsDay(roundDayStats(getDayWithHighestTotal("totalCarbs")))
+                .highestProteinDay(roundDayStats(getDayWithHighestTotal("totalProtein")))
+                .highestFibreDay(roundDayStats(getDayWithHighestTotal("totalFibre")))
+                .highestSugarDay(roundDayStats(getDayWithHighestTotal("totalSugar")))
                 .build();
     }
 
@@ -73,7 +73,7 @@ public class StatsService {
         }
 
         Criteria criteria = Criteria.where("date").gte(fromDate).lte(toDate);
-        return getAverages(criteria);
+        return roundAverages(getAverages(criteria));
     }
 
     private StatsDTO.DayStats getDayWithHighestTotal(String totalField) {
@@ -119,5 +119,30 @@ public class StatsService {
     private double calculateEntryPercentage(LocalDate givenDate, long documentCount) {
         long daysSince = ChronoUnit.DAYS.between(givenDate, LocalDate.now());
         return (double) documentCount / daysSince * 100;
+    }
+
+    private double roundToOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
+    }
+
+    private StatsDTO.Averages roundAverages(StatsDTO.Averages averages) {
+        return StatsDTO.Averages.builder()
+                .avgTotalCalories(roundToOneDecimal(averages.getAvgTotalCalories()))
+                .avgTotalFat(roundToOneDecimal(averages.getAvgTotalFat()))
+                .avgTotalCarbs(roundToOneDecimal(averages.getAvgTotalCarbs()))
+                .avgTotalSugar(roundToOneDecimal(averages.getAvgTotalSugar()))
+                .avgTotalProtein(roundToOneDecimal(averages.getAvgTotalProtein()))
+                .avgTotalFibre(roundToOneDecimal(averages.getAvgTotalFibre()))
+                .build();
+    }
+
+    private StatsDTO.DayStats roundDayStats(StatsDTO.DayStats dayStats) {
+        if (dayStats == null) {
+            return null;
+        }
+        return StatsDTO.DayStats.builder()
+                .date(dayStats.getDate())
+                .total(roundToOneDecimal(dayStats.getTotal()))
+                .build();
     }
 }
