@@ -62,8 +62,8 @@ class StatsServiceTest {
         when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.DayStats.class)))
                 .thenReturn(mockDayStatsResults);
 
-        Document uniqueProductsDoc = new Document("uniqueCount", 42L);
-        AggregationResults<Document> mockUniqueProductsResults = new AggregationResults<>(Collections.singletonList(uniqueProductsDoc), rawResults);
+        AggregationResults<Document> mockUniqueProductsResults = new AggregationResults<>(
+                Collections.singletonList(new Document("uniqueCount", 42L)), rawResults);
         when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(Document.class)))
                 .thenReturn(mockUniqueProductsResults);
 
@@ -83,6 +83,7 @@ class StatsServiceTest {
         assertThat(result.getHighestProteinDay()).isEqualTo(mockDayStats);
         assertThat(result.getHighestFibreDay()).isEqualTo(mockDayStats);
         assertThat(result.getHighestSugarDay()).isEqualTo(mockDayStats);
+        assertThat(result.getMostRecentMissingDay()).isNotNull();
     }
 
 }

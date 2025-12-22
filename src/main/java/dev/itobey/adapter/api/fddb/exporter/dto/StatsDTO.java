@@ -47,6 +47,9 @@ public class StatsDTO {
     @Schema(description = "Day with highest sugar intake")
     DayStats highestSugarDay;
 
+    @Schema(description = "Most recent day with no entry (excluding today). Returns date or 'only available with MongoDB' when MongoDB is not configured", example = "2024-12-20")
+    Object mostRecentMissingDay;
+
     @Data
     @Builder
     @NoArgsConstructor

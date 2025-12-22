@@ -38,6 +38,7 @@ public class StatsService {
         return StatsDTO.builder()
                 .amountEntries(amountEntries)
                 .firstEntryDate(firstEntryDate)
+                .mostRecentMissingDay(getMostRecentMissingDay())
                 .entryPercentage(entryPercentage)
                 .uniqueProducts(uniqueProducts)
                 .averageTotals(averageTotals)
@@ -163,5 +164,52 @@ public class StatsService {
                 .date(dayStats.getDate())
                 .total(roundToOneDecimal(dayStats.getTotal()))
                 .build();
+    }
+
+    private Object getMostRecentMissingDay() {
+        if (mongoTemplate == null) {
+            return "only available with MongoDB";
+        }
+
+        try {
+            LocalDate firstEntryDate = getFirstEntryDate();
+            LocalDate today = LocalDate.now();
+            LocalDate yesterday = today.minusDays(1);
+
+            // Get all dates from first entry to yesterday that have entries with calories > 0
+            Query query = new Query(Criteria.where("date")
+                    .gte(firstEntryDate)
+                    .lte(yesterday)
+                    .and("totalCalories").gt(0))
+                    .with(Sort.by(Sort.Direction.DESC, "date"));
+
+            List<FddbData> entries = mongoTemplate.find(query, FddbData.class, COLLECTION_NAME);
+
+            if (entries.isEmpty()) {
+                // All days are missing
+                return yesterday;
+            }
+
+            // Build a set of existing dates for fast lookup
+            java.util.Set<LocalDate> existingDates = new java.util.HashSet<>();
+            for (FddbData entry : entries) {
+                existingDates.add(entry.getDate());
+            }
+
+            // Check from yesterday backwards to find the first missing date
+            LocalDate checkDate = yesterday;
+            while (!checkDate.isBefore(firstEntryDate)) {
+                if (!existingDates.contains(checkDate)) {
+                    return checkDate;
+                }
+
+                checkDate = checkDate.minusDays(1);
+            }
+
+            // No missing days found
+            return null;
+        } catch (Exception e) {
+            return "only available with MongoDB";
+        }
     }
 }
