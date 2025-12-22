@@ -83,12 +83,12 @@ public class FddbDataResource {
     /**
      * Export data for all days contained in the given timeframe as a batch.
      *
-     * @param exportRequestDTO the data which should be exported
+     * @param dateRangeDTO the date range which should be exported
      * @return HTTP 200 and 'ok' when everything went smoothly, error messages when it did not
      */
     @PostMapping
-    public ResponseEntity<ExportResultDTO> exportForTimerange(@Valid @RequestBody ExportRequestDTO exportRequestDTO) {
-        ExportResultDTO result = fddbDataService.exportForTimerange(exportRequestDTO);
+    public ResponseEntity<ExportResultDTO> exportForTimerange(@Valid @RequestBody DateRangeDTO dateRangeDTO) {
+        ExportResultDTO result = fddbDataService.exportForTimerange(dateRangeDTO);
         return ResponseEntity.ok(result);
     }
 
@@ -114,6 +114,24 @@ public class FddbDataResource {
     @RequiresMongoDb
     public ResponseEntity<StatsDTO> getStats() {
         return ResponseEntity.ok(fddbDataService.getStats());
+    }
+
+    /**
+     * Get rolling averages for a specified date range.
+     * example: /api/v1/fddbdata/stats/averages?fromDate=2024-01-01&toDate=2024-01-31
+     *
+     * @param dateRangeDTO the date range for which to calculate averages (including both from and to dates)
+     * @return rolling averages for the specified date range
+     */
+    @GetMapping("/stats/averages")
+    @RequiresMongoDb
+    public ResponseEntity<?> getRollingAverages(@Valid DateRangeDTO dateRangeDTO) {
+        try {
+            RollingAveragesDTO result = fddbDataService.getRollingAverages(dateRangeDTO);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
+        }
     }
 
     @PostMapping("/migrateToInfluxDb")

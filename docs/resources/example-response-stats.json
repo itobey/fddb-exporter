@@ -10,22 +10,6 @@
     "avgTotalProtein": 117.9844884488449,
     "avgTotalFibre": 18.43102310231023
   },
-  "last7DaysAverage": {
-    "avgTotalCalories": 3054.4285714285716,
-    "avgTotalFat": 123.92857142857143,
-    "avgTotalCarbs": 303.75714285714287,
-    "avgTotalSugar": 85.65714285714286,
-    "avgTotalProtein": 136.18571428571428,
-    "avgTotalFibre": 25.82857142857143
-  },
-  "last30DaysAverage": {
-    "avgTotalCalories": 2833.3333333333335,
-    "avgTotalFat": 120.11333333333333,
-    "avgTotalCarbs": 286.4,
-    "avgTotalSugar": 81.34333333333333,
-    "avgTotalProtein": 127.08,
-    "avgTotalFibre": 19.363333333333333
-  },
   "highestCaloriesDay": {
     "date": "2024-07-31",
     "total": 5317.0

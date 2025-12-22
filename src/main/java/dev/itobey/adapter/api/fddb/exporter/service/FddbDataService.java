@@ -49,9 +49,9 @@ public class FddbDataService {
         return fddbDataOptional.map(fddbDataMapper::toFddbDataDTO);
     }
 
-    public ExportResultDTO exportForTimerange(ExportRequestDTO exportRequestDTO) {
-        LocalDate from = LocalDate.parse(exportRequestDTO.getFromDate());
-        LocalDate to = LocalDate.parse(exportRequestDTO.getToDate());
+    public ExportResultDTO exportForTimerange(DateRangeDTO dateRangeDTO) {
+        LocalDate from = LocalDate.parse(dateRangeDTO.getFromDate());
+        LocalDate to = LocalDate.parse(dateRangeDTO.getToDate());
 
         if (from.isAfter(to)) {
             throw new DateTimeException("The 'from' date cannot be after the 'to' date");
@@ -91,7 +91,7 @@ public class FddbDataService {
         LocalDate to = includeToday ? LocalDate.now() : LocalDate.now().minusDays(1);
         LocalDate from = to.minusDays(days - 1);
 
-        ExportRequestDTO timeframe = ExportRequestDTO.builder()
+        DateRangeDTO timeframe = DateRangeDTO.builder()
                 .fromDate(from.toString())
                 .toDate(to.toString())
                 .build();
@@ -101,6 +101,18 @@ public class FddbDataService {
 
     public StatsDTO getStats() {
         return statsService.getStats();
+    }
+
+    public RollingAveragesDTO getRollingAverages(DateRangeDTO dateRangeDTO) {
+        LocalDate fromDate = LocalDate.parse(dateRangeDTO.getFromDate());
+        LocalDate toDate = LocalDate.parse(dateRangeDTO.getToDate());
+
+        StatsDTO.Averages averages = statsService.getAveragesForDateRange(fromDate, toDate);
+        return RollingAveragesDTO.builder()
+                .fromDate(dateRangeDTO.getFromDate())
+                .toDate(dateRangeDTO.getToDate())
+                .averages(averages)
+                .build();
     }
 
     private void exportForDate(LocalDate date) throws ParseException, AuthenticationException {

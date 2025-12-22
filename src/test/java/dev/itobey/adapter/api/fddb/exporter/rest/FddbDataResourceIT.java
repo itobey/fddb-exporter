@@ -2,7 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.itobey.adapter.api.fddb.exporter.config.TestConfig;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ class FddbDataResourceIT {
     @Test
     @SneakyThrows
     void exportForTimerange_fromDateAfterToDate_shouldThrowException() {
-        ExportRequestDTO invalidBatchExport = ExportRequestDTO.builder()
+        DateRangeDTO invalidBatchExport = DateRangeDTO.builder()
                 .fromDate("2023-01-01")
                 .toDate("2022-01-01")
                 .build();

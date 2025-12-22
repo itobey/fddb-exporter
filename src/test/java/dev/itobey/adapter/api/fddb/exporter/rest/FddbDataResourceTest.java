@@ -1,6 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.rest;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
@@ -86,7 +86,7 @@ class FddbDataResourceTest {
 
     @Test
     void testExportForTimerange() {
-        ExportRequestDTO mockRequest = new ExportRequestDTO();
+        DateRangeDTO mockRequest = new DateRangeDTO();
         ExportResultDTO mockResult = new ExportResultDTO();
         when(fddbDataService.exportForTimerange(mockRequest)).thenReturn(mockResult);
 

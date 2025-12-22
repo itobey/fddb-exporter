@@ -32,16 +32,12 @@ public class StatsService {
         LocalDate firstEntryDate = getFirstEntryDate();
         double entryPercentage = calculateEntryPercentage(firstEntryDate, amountEntries);
         StatsDTO.Averages averageTotals = getAverageTotals();
-        StatsDTO.Averages last7DaysAverage = getLast7DaysAverage();
-        StatsDTO.Averages last30DaysAverage = getLast30DaysAverage();
 
         return StatsDTO.builder()
                 .amountEntries(amountEntries)
                 .firstEntryDate(firstEntryDate)
                 .entryPercentage(entryPercentage)
                 .averageTotals(averageTotals)
-                .last7DaysAverage(last7DaysAverage)
-                .last30DaysAverage(last30DaysAverage)
                 .highestCaloriesDay(getDayWithHighestTotal("totalCalories"))
                 .highestFatDay(getDayWithHighestTotal("totalFat"))
                 .highestCarbsDay(getDayWithHighestTotal("totalCarbs"))
@@ -71,14 +67,13 @@ public class StatsService {
         return getAverages(null);
     }
 
-    private StatsDTO.Averages getLast7DaysAverage() {
-        LocalDate sevenDaysAgo = LocalDate.now().minusDays(7);
-        return getAverages(Criteria.where("date").gte(sevenDaysAgo));
-    }
+    public StatsDTO.Averages getAveragesForDateRange(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate.isAfter(toDate)) {
+            throw new IllegalArgumentException("The 'from' date cannot be after the 'to' date");
+        }
 
-    private StatsDTO.Averages getLast30DaysAverage() {
-        LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
-        return getAverages(Criteria.where("date").gte(thirtyDaysAgo));
+        Criteria criteria = Criteria.where("date").gte(fromDate).lte(toDate);
+        return getAverages(criteria);
     }
 
     private StatsDTO.DayStats getDayWithHighestTotal(String totalField) {

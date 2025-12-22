@@ -183,6 +183,8 @@ Example responses:
 > **GET** `/api/v1/fddbdata/stats`
 
 - **Description:** Retrieve the stats to the saved data.
+- **Note:** The `last7DaysAverage` and `last30DaysAverage` fields have been removed from this endpoint. Use the new
+  rolling averages endpoint for flexible period-based averages.
 - **Response:** A JSON object containing the data (see [example response](../resources/example-response-stats.json)).
 
     ```json
@@ -197,22 +199,6 @@ Example responses:
         "avgTotalSugar": 63.448019801980195,
         "avgTotalProtein": 117.9844884488449,
         "avgTotalFibre": 18.43102310231023
-      },
-      "last7DaysAverage": {
-        "avgTotalCalories": 3054.4285714285716,
-        "avgTotalFat": 123.92857142857143,
-        "avgTotalCarbs": 303.75714285714287,
-        "avgTotalSugar": 85.65714285714286,
-        "avgTotalProtein": 136.18571428571428,
-        "avgTotalFibre": 25.82857142857143
-      },
-      "last30DaysAverage": {
-        "avgTotalCalories": 2833.3333333333335,
-        "avgTotalFat": 120.11333333333333,
-        "avgTotalCarbs": 286.4,
-        "avgTotalSugar": 81.34333333333333,
-        "avgTotalProtein": 127.08,
-        "avgTotalFibre": 19.363333333333333
       },
       "highestCaloriesDay": {
         "date": "2024-07-31",
@@ -240,6 +226,39 @@ Example responses:
       }
     }
     ```
+
+---
+
+### Retrieve Rolling Averages
+
+> **GET** `/api/v1/fddbdata/stats/averages?fromDate={startDate}&toDate={endDate}`
+
+- **Description:** Retrieve rolling averages for a specified date range. This endpoint calculates averages for all
+  entries between the from and to dates (inclusive).
+- **Query Parameters:**
+  - `fromDate` _(required)_: The start date in `YYYY-MM-DD` format.
+  - `toDate` _(required)_: The end date in `YYYY-MM-DD` format.
+- **Example:** `/api/v1/fddbdata/stats/averages?fromDate=2024-01-01&toDate=2024-01-31`
+- **Response:** A JSON object containing the rolling averages (
+  see [example response](../resources/example-response-rolling-averages.json)).
+
+    ```json
+    {
+      "fromDate": "2024-01-01",
+      "toDate": "2024-01-31",
+      "averages": {
+        "avgTotalCalories": 3054.4285714285716,
+        "avgTotalFat": 123.92857142857143,
+        "avgTotalCarbs": 303.75714285714287,
+        "avgTotalSugar": 85.65714285714286,
+        "avgTotalProtein": 136.18571428571428,
+        "avgTotalFibre": 25.82857142857143
+      }
+    }
+    ```
+- **Error Responses:**
+  - Returns HTTP 400 Bad Request if `fromDate` is after `toDate`.
+  - Returns HTTP 400 Bad Request if dates are not in the format `YYYY-MM-DD`.
 
 ---
 

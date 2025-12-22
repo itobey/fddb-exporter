@@ -13,8 +13,6 @@ public class StatsDTO {
     LocalDate firstEntryDate;
     double entryPercentage;
     Averages averageTotals;
-    Averages last7DaysAverage;
-    Averages last30DaysAverage;
     DayStats highestCaloriesDay;
     DayStats highestFatDay;
     DayStats highestCarbsDay;

@@ -1,7 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExportRequestDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.DataMigrationService;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import lombok.SneakyThrows;
@@ -31,7 +31,7 @@ class FddbDataResourceWebMvcTest {
     @Test
     @SneakyThrows
     void exportForTimerange_InvalidInput() {
-        ExportRequestDTO invalidBatchExport = ExportRequestDTO.builder()
+        DateRangeDTO invalidBatchExport = DateRangeDTO.builder()
                 .fromDate("2023/01/01")  // Invalid format
                 .toDate(null)  // Null value
                 .build();
