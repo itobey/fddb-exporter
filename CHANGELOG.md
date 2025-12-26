@@ -7,7 +7,7 @@
 - **BREAKING**: Removed `last7DaysAverage` and `last30DaysAverage` fields from `/api/v1/fddbdata/stats` endpoint
 - Stats endpoint now returns only total averages and highest values per category
 - **BREAKING**: Introduction of the new v2 API with significant changes to endpoints and structure. Please consult the
-  documentation for details: [v2 API Documentation - link to be added]
+  documentation for details: [REST-API](https://itobey.github.io/fddb-exporter/details/rest-api)
 - The v1 API is now **deprecated** and will be removed on **30.06.2026**. Migrate to v2 as soon as possible.
 
 ### Added
