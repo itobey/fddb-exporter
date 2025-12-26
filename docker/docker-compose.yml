@@ -3,10 +3,10 @@ version: '3.8'
 
 services:
   mongodb:
-    image: mongo:8.2.2
+    image: mongo:8.2.3
     container_name: mongodb
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"  # Bind to localhost only for security
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: adminpassword
@@ -16,12 +16,29 @@ services:
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
       - container_network
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
 
   influxdb:
     image: influxdb:2.8
     container_name: influxdb
     ports:
-      - "8086:8086"
+      - "127.0.0.1:8086:8086"  # Bind to localhost only for security
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: admin
@@ -33,12 +50,29 @@ services:
       - influxdb-data:/var/lib/influxdb2
     networks:
       - container_network
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "influx", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
 
   fddb-exporter:
     image: ghcr.io/itobey/fddb-exporter
     container_name: fddb-exporter
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"  # Bind to localhost only for security
     environment:
       SPRING_DATA_MONGODB_HOST: mongodb
       SPRING_DATA_MONGODB_PORT: 27017
@@ -55,11 +89,33 @@ services:
       FDDB-EXPORTER_FDDB_PASSWORD: ---
       TZ: Europe/Berlin
     depends_on:
-      - mongodb
-      - influxdb
-
+      mongodb:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
     networks:
       - container_network
+    security_opt:
+      - no-new-privileges:true
+    # Uncomment for read-only root filesystem (ensure /tmp is writable)
+    # read_only: true
+    tmpfs:
+      - /tmp:mode=1777,size=100m
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 384M
 
 networks:
   container_network:
