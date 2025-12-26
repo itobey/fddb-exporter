@@ -13,8 +13,8 @@ This documentation now references the v2 API. The main changes are:
 
 **Important dates:**
 
-- **v2 Release:** 2025-01-01
-- **v1 Deprecation:** 2025-01-01 (deprecated but still functional)
+- **v2 Release:** 2025-12-26
+- **v1 Deprecation:** 2025-12-26 (deprecated but still functional)
 - **v1 Removal:** 2026-06-30 (v1 will be completely removed)
 
 ## Overview
