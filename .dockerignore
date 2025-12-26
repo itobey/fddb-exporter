@@ -1,0 +1,41 @@
+# Ignore IDE files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# Ignore version control
+.git/
+.gitignore
+.gitattributes
+
+# Ignore documentation and non-essential files
+docs/
+*.md
+LICENSE.txt
+CHANGELOG.md
+DEPRECATION-REMOVAL-GUIDE.md
+*.prompt.md
+
+# Ignore test files (tests run during build)
+src/test/
+
+# Ignore CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+renovate.json
+
+# Ignore environment files
+.env
+.env.*
+*.log
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
