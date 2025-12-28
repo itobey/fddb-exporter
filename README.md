@@ -80,6 +80,7 @@ I plan on implementing the following features in the future:
 - [ ] Alerting feature to notify when the Scheduler run failed
 - [x] accompanying Flutter app as a frontend
 - [x] InfluxDB as additional persistence layer
+- [ ] embedded Vaadin Frontend UI
 
 If you have another feature in mind please open up an issue or contact me.
 
