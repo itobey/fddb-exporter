@@ -1,0 +1,719 @@
+/* FDDB Exporter - Modern Dark Theme
+ * This file is integrated with the global styles.css
+ * Main accent: #4e619b
+ * Note: Lumo is Vaadin's design system
+ */
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+/* Additional theme customizations - the main styles are in frontend/styles/styles.css */
+
+/* Material Design Variables */
+html {
+    /* Material Design Colors */
+    --md-calories: #ef5350;
+    --md-fat: #ffa726;
+    --md-carbs: #66bb6a;
+    --md-sugar: #ec407a;
+    --md-protein: #ab47bc;
+    --md-fibre: #26c6da;
+
+    /* Material Design Primary Colors */
+    --md-primary-main: #4e619b;
+    --md-primary-light: #5d72b3;
+    --md-primary-dark: #3f4e7d;
+    --md-primary-contrast: #ffffff;
+
+    /* Material Design Border Radius */
+    --md-radius-sm: 4px;
+    --md-radius-md: 8px;
+    --md-radius-lg: 12px;
+    --md-radius-xl: 16px;
+
+    /* Material Design Transitions */
+    --md-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --md-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --md-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Material Design Elevations */
+    --md-elevation-1: 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --md-elevation-2: 0 4px 6px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+    --md-elevation-3: 0 10px 15px rgba(0, 0, 0, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+    --md-elevation-4: 0 20px 25px rgba(0, 0, 0, 0.5), 0 10px 10px rgba(0, 0, 0, 0.3);
+
+    /* Material Design Surface Colors */
+    --md-surface: #1e1e1e;
+    --md-surface-variant: #2d2d2d;
+    --md-on-surface: #e0e0e0;
+    --md-on-surface-variant: #a0a0a0;
+}
+
+/* Dark Theme Colors - Lumo theme overrides (Lumo is Vaadin's design system) */
+[theme~="dark"] {
+    /* Override Lumo Dark Theme */
+    --lumo-base-color: #1e1e1e;
+    --lumo-body-text-color: #e0e0e0;
+    --lumo-header-text-color: #ffffff;
+    --lumo-secondary-text-color: #a0a0a0;
+    --lumo-primary-color: #4e619b;
+    --lumo-primary-color-50pct: rgba(66, 165, 245, 0.5);
+    --lumo-primary-color-10pct: rgba(66, 165, 245, 0.1);
+    --lumo-contrast-5pct: rgba(255, 255, 255, 0.05);
+    --lumo-contrast-10pct: rgba(255, 255, 255, 0.1);
+    --lumo-contrast-20pct: rgba(255, 255, 255, 0.2);
+    --lumo-contrast-80pct: rgba(255, 255, 255, 0.8);
+}
+
+/* Base Layout */
+body {
+    background-color: var(--md-surface);
+    color: var(--md-on-surface);
+}
+
+/* App Layout - Material Design */
+vaadin-app-layout {
+    --vaadin-app-layout-navbar-background: var(--md-primary-main);
+    --vaadin-app-layout-drawer-background: var(--md-surface-variant);
+}
+
+vaadin-app-layout::part(navbar) {
+    box-shadow: var(--md-elevation-2);
+    border-bottom: none;
+}
+
+vaadin-app-layout::part(drawer) {
+    border-right: none;
+    box-shadow: var(--md-elevation-3);
+}
+
+vaadin-app-layout h1 {
+    color: var(--md-primary-contrast) !important;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* Side Navigation - Material Design */
+vaadin-side-nav {
+    padding: 8px;
+}
+
+vaadin-side-nav-item {
+    border-radius: var(--md-radius-md);
+    margin: 4px 0;
+    transition: all var(--md-transition-fast);
+    font-weight: 500;
+}
+
+vaadin-side-nav-item:hover:not([active]) {
+    background: rgba(66, 165, 245, 0.08);
+    transform: translateX(4px);
+}
+
+vaadin-side-nav-item[active] {
+    background: var(--md-primary-main);
+    color: white;
+    box-shadow: var(--md-elevation-2);
+}
+
+vaadin-side-nav-item[active]::part(content) {
+    color: white;
+}
+
+/* Material Design Cards */
+.stat-card,
+.nutrient-card {
+    background: var(--md-surface);
+    border-radius: var(--md-radius-lg);
+    box-shadow: var(--md-elevation-2);
+    padding: 20px;
+    transition: all var(--md-transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before,
+.nutrient-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--md-primary-main), var(--md-primary-light));
+    opacity: 0;
+    transition: opacity var(--md-transition-fast);
+}
+
+.stat-card:hover,
+.nutrient-card:hover {
+    box-shadow: var(--md-elevation-3);
+    transform: translateY(-4px);
+}
+
+.stat-card:hover::before,
+.nutrient-card:hover::before {
+    opacity: 1;
+}
+
+/* Material Design Buttons */
+vaadin-button {
+    border-radius: var(--md-radius-md);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all var(--md-transition-fast);
+}
+
+vaadin-button[theme~="primary"] {
+    background: var(--md-primary-main);
+    box-shadow: var(--md-elevation-2);
+}
+
+vaadin-button[theme~="primary"]:hover:not([disabled]) {
+    background: var(--md-primary-dark);
+    box-shadow: var(--md-elevation-3);
+    transform: translateY(-2px);
+}
+
+vaadin-button[theme~="primary"]:active:not([disabled]) {
+    box-shadow: var(--md-elevation-1);
+    transform: translateY(0);
+}
+
+/* Grid - Material Design */
+vaadin-grid {
+    border-radius: var(--md-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--md-elevation-2);
+    border: none;
+}
+
+vaadin-grid::part(header-cell) {
+    background: var(--md-primary-main);
+    color: white;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.875rem;
+}
+
+vaadin-grid::part(row) {
+    transition: background var(--md-transition-fast);
+}
+
+vaadin-grid::part(row):hover {
+    background: var(--lumo-primary-color-10pct);
+}
+
+/* Form Elements - Material Design */
+vaadin-text-field,
+vaadin-text-area,
+vaadin-date-picker,
+vaadin-integer-field,
+vaadin-select {
+    --vaadin-input-field-border-radius: var(--md-radius-md);
+}
+
+vaadin-text-field::part(input-field),
+vaadin-text-area::part(input-field),
+vaadin-date-picker::part(input-field),
+vaadin-integer-field::part(input-field) {
+    background: var(--md-surface-variant);
+    border: 1px solid transparent;
+    transition: all var(--md-transition-fast);
+}
+
+vaadin-text-field::part(input-field):hover,
+vaadin-text-area::part(input-field):hover,
+vaadin-date-picker::part(input-field):hover,
+vaadin-integer-field::part(input-field):hover {
+    border-color: var(--md-primary-main);
+    box-shadow: 0 0 0 2px rgba(66, 165, 245, 0.1);
+}
+
+/* Tabs - Material Design */
+vaadin-tab {
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all var(--md-transition-fast);
+}
+
+/* Global selected tab style (other views can override if needed) */
+vaadin-tab[selected] {
+    color: var(--lumo-primary-text-color);
+    border-bottom: 2px solid var(--lumo-primary-text-color);
+}
+
+/* Notifications - Material Design */
+vaadin-notification-card {
+    border-radius: var(--md-radius-lg);
+    box-shadow: none !important;
+    border-left: 0 !important; /* disable left border */
+}
+
+vaadin-notification-card::before,
+vaadin-notification-card::after {
+    box-shadow: none !important;
+}
+
+vaadin-notification-container {
+    box-shadow: none !important;
+}
+
+vaadin-notification-card * {
+    box-shadow: none !important;
+    border-left: 0 !important;
+}
+
+/* Confirm Dialog - Material Design */
+vaadin-confirm-dialog::part(overlay) {
+    border-radius: var(--md-radius-xl);
+    box-shadow: var(--md-elevation-4);
+}
+
+/* Custom Component Styles */
+[class*="background-contrast-5"] {
+    background: var(--md-surface-variant) !important;
+    border-radius: var(--md-radius-lg);
+    box-shadow: var(--md-elevation-1);
+}
+
+[class*="background-primary-10"] {
+    background: rgba(66, 165, 245, 0.1) !important;
+    border: 1px solid rgba(66, 165, 245, 0.2);
+    border-radius: var(--md-radius-lg);
+}
+
+[class*="background-success-10"] {
+    background: rgba(102, 187, 106, 0.1) !important;
+    border: 1px solid rgba(102, 187, 106, 0.2);
+    border-radius: var(--md-radius-md);
+}
+
+[class*="background-error-10"] {
+    background: rgba(239, 83, 80, 0.1) !important;
+    border: 1px solid rgba(239, 83, 80, 0.2);
+    border-radius: var(--md-radius-md);
+}
+
+[class*="background-warning-10"] {
+    background: rgba(255, 167, 38, 0.1) !important;
+    border: 1px solid rgba(255, 167, 38, 0.2);
+    border-radius: var(--md-radius-md);
+}
+
+/* Nutrient-specific colors */
+.nutrient-calories {
+    color: var(--md-calories);
+}
+
+.nutrient-fat {
+    color: var(--md-fat);
+}
+
+.nutrient-carbs {
+    color: var(--md-carbs);
+}
+
+.nutrient-sugar {
+    color: var(--md-sugar);
+}
+
+.nutrient-protein {
+    color: var(--md-protein);
+}
+
+.nutrient-fibre {
+    color: var(--md-fibre);
+}
+
+/* Progress bars */
+.nutrient-progress {
+    height: 8px;
+    border-radius: var(--md-radius-sm);
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* View Containers */
+.dashboard-view,
+.data-export-view,
+.data-query-view,
+.correlation-view,
+.migration-view,
+.rolling-averages-view {
+    max-width: 1400px;
+    animation: fadeInUp var(--md-transition-normal);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.fade-in {
+    animation: fadeIn var(--md-transition-normal);
+}
+
+.fade-in-up {
+    animation: fadeInUp var(--md-transition-slow);
+}
+
+.slide-in-right {
+    animation: slideInRight var(--md-transition-slow);
+}
+
+/* Material Design Ripple Effect (Visual feedback) */
+vaadin-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width var(--md-transition-fast), height var(--md-transition-fast);
+}
+
+vaadin-button:active::before {
+    width: 100%;
+    height: 100%;
+}
+
+/* Scrollbar - Material Design */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--md-surface-variant);
+    border-radius: var(--md-radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--md-primary-main);
+    border-radius: var(--md-radius-sm);
+    border: 2px solid var(--md-surface-variant);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--md-primary-dark);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .stat-card,
+    .nutrient-card {
+        padding: 16px;
+    }
+
+    vaadin-app-layout::part(drawer) {
+        width: 100%;
+    }
+
+    vaadin-side-nav-item {
+        font-size: 0.875rem;
+    }
+}
+
+/* Focus States - Material Design */
+*:focus-visible {
+    outline: 2px solid var(--md-primary-main);
+    outline-offset: 2px;
+    border-radius: var(--md-radius-sm);
+}
+
+/* Loading State */
+.loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin: -12px 0 0 -12px;
+    border: 3px solid var(--md-primary-main);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Elevation Classes for Manual Use */
+.elevation-0 {
+    box-shadow: none;
+}
+
+.elevation-1 {
+    box-shadow: var(--md-elevation-1);
+}
+
+.elevation-2 {
+    box-shadow: var(--md-elevation-2);
+}
+
+.elevation-3 {
+    box-shadow: var(--md-elevation-3);
+}
+
+.elevation-4 {
+    box-shadow: var(--md-elevation-4);
+}
+
+/* Typography Utilities */
+.material-heading {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+}
+
+.material-body {
+    font-weight: 400;
+    line-height: 1.6;
+    color: var(--md-on-surface-variant);
+}
+
+/* Chip/Badge Style */
+.material-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 16px;
+    background: var(--md-primary-light);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: var(--md-elevation-1);
+}
+
+/* ========================================
+   Mobile Responsive Styles
+   ======================================== */
+
+/* Mobile breakpoints */
+@media (max-width: 768px) {
+    /* Main Layout - Better mobile drawer */
+    vaadin-app-layout::part(drawer) {
+        width: 280px;
+    }
+
+    /* Reduce padding on mobile */
+    .dashboard-view,
+    .data-query-view,
+    .rolling-averages-view,
+    .data-export-view,
+    .correlation-view,
+    .migration-view {
+        padding: 0.5rem !important;
+    }
+
+    /* Headers */
+    h1, h2 {
+        font-size: clamp(1.25rem, 5vw, 2rem) !important;
+    }
+
+    h3 {
+        font-size: clamp(1rem, 4vw, 1.5rem) !important;
+    }
+
+    /* Grids - Better mobile scrolling */
+    vaadin-grid {
+        font-size: 0.875rem;
+    }
+
+    vaadin-grid::part(cell) {
+        padding: 0.5rem 0.25rem;
+    }
+
+    /* Forms - Stack on mobile */
+    vaadin-form-layout[responsive-steps] {
+        --vaadin-form-layout-column-spacing: 0.5rem;
+    }
+
+    /* Buttons - Full width on very small screens */
+    vaadin-button {
+        white-space: normal;
+        text-align: center;
+    }
+
+    /* Cards - Better mobile spacing */
+    .card,
+    [class*="card"] {
+        margin: 0.5rem 0;
+    }
+
+    /* Tab sheets - Better mobile tabs */
+    vaadin-tab-sheet {
+        font-size: 0.875rem;
+    }
+
+    vaadin-tabs {
+        overflow-x: auto;
+    }
+
+    /* Date pickers - Full width on mobile */
+    vaadin-date-picker {
+        width: 100%;
+    }
+
+    /* Text fields - Full width on mobile */
+    vaadin-text-field,
+    vaadin-text-area {
+        width: 100%;
+    }
+}
+
+/* Extra small devices (phones in portrait, less than 576px) */
+@media (max-width: 576px) {
+    /* Further reduce spacing */
+    .dashboard-view,
+    .data-query-view,
+    .rolling-averages-view,
+    .data-export-view,
+    .correlation-view,
+    .migration-view {
+        padding: 0.25rem !important;
+    }
+
+    /* Stack all horizontal layouts */
+    vaadin-horizontal-layout {
+        flex-direction: column !important;
+    }
+
+    /* Full width buttons */
+    vaadin-button {
+        width: 100%;
+        margin: 0.25rem 0;
+    }
+
+    /* Smaller cards */
+    [class*="card"] {
+        min-width: 100px !important;
+        font-size: 0.875rem;
+    }
+
+    /* Grid - Show fewer columns */
+    vaadin-grid::part(cell) {
+        font-size: 0.75rem;
+        padding: 0.25rem;
+    }
+
+    /* Better touch targets */
+    vaadin-button,
+    vaadin-tab,
+    a {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Tablet devices (landscape phones and portrait tablets, 577px to 991px) */
+@media (min-width: 577px) and (max-width: 991px) {
+    /* Moderate spacing */
+    .dashboard-view,
+    .data-query-view,
+    .rolling-averages-view,
+    .data-export-view,
+    .correlation-view,
+    .migration-view {
+        padding: 1rem !important;
+    }
+
+    /* 2 column layouts on tablet */
+    vaadin-horizontal-layout[class*="cards"] > * {
+        flex: 1 1 calc(50% - 1rem);
+    }
+}
+
+/* Touch-friendly improvements for all mobile devices */
+@media (hover: none) and (pointer: coarse) {
+    /* Increase touch target sizes */
+    vaadin-button,
+    vaadin-tab,
+    a {
+        min-height: 48px;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Better spacing for touch */
+    vaadin-horizontal-layout,
+    vaadin-vertical-layout {
+        gap: 0.75rem;
+    }
+
+    /* Remove hover effects on touch devices */
+    *:hover {
+        transform: none !important;
+    }
+}
+
+/* Landscape orientation optimizations */
+@media (max-width: 991px) and (orientation: landscape) {
+    /* Reduce vertical spacing in landscape */
+    vaadin-vertical-layout {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    h1, h2, h3 {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    vaadin-app-layout::part(navbar),
+    vaadin-app-layout::part(drawer) {
+        display: none;
+    }
+
+    .dashboard-view,
+    .data-query-view,
+    .rolling-averages-view {
+        padding: 0;
+    }
+}

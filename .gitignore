@@ -13,3 +13,7 @@ out/
 .classpath
 .factorypath
 src/main/resources/application-nuc.yml
+src/main/frontend/generated/
+node_modules
+vite.generated.ts
+src/main/bundles/

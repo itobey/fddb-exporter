@@ -13,6 +13,7 @@ public class FddbExporterProperties {
     private Persistence persistence;
     private Influxdb influxdb;
     private Notification notification;
+    private Ui ui;
 
     @Data
     public static class Fddb {
@@ -71,6 +72,11 @@ public class FddbExporterProperties {
             private String token;
             private String chatId;
         }
+    }
+
+    @Data
+    public static class Ui {
+        private String fddbLinkPrefix;
     }
 
 }

@@ -1,0 +1,553 @@
+/*
+ * FDDB Exporter - Modern Dark Theme
+ * Accent: #4e619b
+ *
+ * Note: This stylesheet uses Vaadin Web Components (custom elements with vaadin-* prefix)
+ * and Lumo design system variables. Lumo is Vaadin's theming system.
+ * IDE warnings about "unknown elements" for vaadin-* selectors are expected and can be ignored.
+ * These are valid Web Component selectors that work at runtime.
+ */
+
+/* ============================================
+   CSS Custom Properties & Lumo Overrides
+   ============================================ */
+html {
+    /* Accent color */
+    --accent: #4e619b;
+    --accent-hover: #5d72b3;
+    --accent-active: #3f4e7d;
+    --accent-contrast: #ffffff;
+
+    /* Override Lumo primary color with accent */
+    --lumo-primary-color: var(--accent);
+    --lumo-primary-color-50pct: rgba(78, 97, 155, 0.5);
+    --lumo-primary-color-10pct: rgba(78, 97, 155, 0.1);
+    --lumo-primary-text-color: var(--accent-contrast);
+
+    /* Deep dark backgrounds */
+    --lumo-base-color: #0f0f11;
+    --lumo-tint-5pct: rgba(255, 255, 255, 0.03);
+    --lumo-tint-10pct: rgba(255, 255, 255, 0.05);
+    --lumo-tint-20pct: rgba(255, 255, 255, 0.08);
+    --lumo-tint-30pct: rgba(255, 255, 255, 0.12);
+    --lumo-tint-40pct: rgba(255, 255, 255, 0.16);
+    --lumo-tint-50pct: rgba(255, 255, 255, 0.2);
+    --lumo-tint-60pct: rgba(255, 255, 255, 0.25);
+    --lumo-tint-70pct: rgba(255, 255, 255, 0.3);
+    --lumo-tint-80pct: rgba(255, 255, 255, 0.4);
+    --lumo-tint-90pct: rgba(255, 255, 255, 0.5);
+    --lumo-tint: #ffffff;
+
+    --lumo-shade-5pct: rgba(0, 0, 0, 0.05);
+    --lumo-shade-10pct: rgba(0, 0, 0, 0.1);
+    --lumo-shade-20pct: rgba(0, 0, 0, 0.2);
+    --lumo-shade-30pct: rgba(0, 0, 0, 0.3);
+    --lumo-shade-40pct: rgba(0, 0, 0, 0.4);
+    --lumo-shade-50pct: rgba(0, 0, 0, 0.5);
+    --lumo-shade-60pct: rgba(0, 0, 0, 0.6);
+    --lumo-shade-70pct: rgba(0, 0, 0, 0.7);
+    --lumo-shade-80pct: rgba(0, 0, 0, 0.8);
+    --lumo-shade-90pct: rgba(0, 0, 0, 0.9);
+    --lumo-shade: #000000;
+
+    /* Contrast colors for cards/surfaces */
+    --lumo-contrast-5pct: rgba(255, 255, 255, 0.04);
+    --lumo-contrast-10pct: rgba(255, 255, 255, 0.06);
+    --lumo-contrast-20pct: rgba(255, 255, 255, 0.1);
+    --lumo-contrast-30pct: rgba(255, 255, 255, 0.15);
+    --lumo-contrast-40pct: rgba(255, 255, 255, 0.2);
+    --lumo-contrast-50pct: rgba(255, 255, 255, 0.25);
+    --lumo-contrast-60pct: rgba(255, 255, 255, 0.3);
+    --lumo-contrast-70pct: rgba(255, 255, 255, 0.4);
+    --lumo-contrast-80pct: rgba(255, 255, 255, 0.5);
+    --lumo-contrast-90pct: rgba(255, 255, 255, 0.7);
+    --lumo-contrast: #ffffff;
+
+    /* Body text color */
+    --lumo-body-text-color: rgba(255, 255, 255, 0.87);
+    --lumo-secondary-text-color: rgba(255, 255, 255, 0.6);
+    --lumo-tertiary-text-color: rgba(255, 255, 255, 0.4);
+    --lumo-disabled-text-color: rgba(255, 255, 255, 0.35);
+
+    /* Headers and surfaces */
+    --lumo-header-text-color: rgba(255, 255, 255, 0.95);
+
+    /* Flat shadows - minimal elevation */
+    --lumo-box-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --lumo-box-shadow-s: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --lumo-box-shadow-m: 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.25);
+    --lumo-box-shadow-l: 0 4px 12px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+    --lumo-box-shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
+
+    /* Border radius - flat design */
+    --lumo-border-radius-s: 4px;
+    --lumo-border-radius-m: 6px;
+    --lumo-border-radius-l: 8px;
+
+    /* Spacing scale - 8px base */
+    --lumo-space-xs: 4px;
+    --lumo-space-s: 8px;
+    --lumo-space-m: 16px;
+    --lumo-space-l: 24px;
+    --lumo-space-xl: 32px;
+
+    /* Card surface color */
+    --card-surface: rgba(255, 255, 255, 0.06);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --card-hover-surface: rgba(255, 255, 255, 0.08);
+
+    /* Transition timing */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   Typography
+   ============================================ */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--lumo-body-text-color);
+    background-color: var(--lumo-base-color);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--lumo-header-text-color);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+/* ============================================
+   App Header
+   ============================================ */
+.app-header {
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.app-title {
+    font-size: clamp(1rem, 5vw, 1.5rem);
+    font-weight: 600;
+    color: var(--lumo-header-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ============================================
+   Drawer / Side Navigation
+   ============================================ */
+vaadin-side-nav-item {
+    --_lumo-item-selected-background: rgba(78, 97, 155, 0.15);
+    border-radius: var(--lumo-border-radius-m);
+    margin: 2px 0;
+    transition: background-color var(--transition-fast);
+}
+
+vaadin-side-nav-item::part(link) {
+    border-radius: var(--lumo-border-radius-m);
+    padding: 8px 12px;
+}
+
+vaadin-side-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+vaadin-side-nav-item[selected] {
+    background: var(--_lumo-item-selected-background);
+    border-left: 4px solid var(--accent);
+    padding-left: 8px;
+}
+
+vaadin-side-nav-item[selected]::part(link) {
+    color: var(--accent-contrast);
+    font-weight: 500;
+}
+
+/* ============================================
+   Cards Grid
+   ============================================ */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    width: 100%;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 600px) {
+    .cards-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .cards-grid {
+        gap: 20px;
+    }
+}
+
+/* ============================================
+   Card Component
+   ============================================ */
+.card {
+    background: var(--card-surface);
+    border: 1px solid var(--card-border);
+    border-radius: var(--lumo-border-radius-l);
+    padding: 16px;
+    transition: transform var(--transition-normal),
+    box-shadow var(--transition-normal),
+    background-color var(--transition-fast);
+    box-shadow: var(--lumo-box-shadow-xs);
+    box-sizing: border-box;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--lumo-box-shadow-m);
+    background: var(--card-hover-surface);
+}
+
+/* Highlighted card (for highest values) */
+.card--highlight {
+    cursor: pointer;
+}
+
+.card--highlight:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 6px 16px rgba(78, 97, 155, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.card--highlight .card__value {
+    color: var(--accent-hover);
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+vaadin-button[theme~="primary"] {
+    background: var(--accent);
+    color: var(--accent-contrast);
+    border-radius: var(--lumo-border-radius-m);
+    font-weight: 500;
+    transition: background-color var(--transition-fast),
+    transform var(--transition-fast);
+    box-shadow: var(--lumo-box-shadow-xs);
+}
+
+vaadin-button[theme~="primary"]:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--lumo-box-shadow-s);
+}
+
+vaadin-button[theme~="primary"]:active {
+    background: var(--accent-active);
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+vaadin-button {
+    border-radius: var(--lumo-border-radius-m);
+    transition: all var(--transition-fast);
+}
+
+/* ============================================
+   Date Badges & Small Labels
+   ============================================ */
+.date-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: rgba(78, 97, 155, 0.12);
+    color: var(--lumo-body-text-color);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+.label-small {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    color: var(--lumo-secondary-text-color);
+}
+
+/* ============================================
+   Form Elements
+   ============================================ */
+vaadin-text-field,
+vaadin-text-area,
+vaadin-date-picker,
+vaadin-integer-field,
+vaadin-select {
+    --lumo-contrast-10pct: rgba(255, 255, 255, 0.08);
+}
+
+vaadin-text-field::part(input-field),
+vaadin-text-area::part(input-field),
+vaadin-date-picker::part(input-field),
+vaadin-integer-field::part(input-field) {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--lumo-border-radius-m);
+    transition: border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+vaadin-text-field:hover::part(input-field),
+vaadin-text-area:hover::part(input-field),
+vaadin-date-picker:hover::part(input-field),
+vaadin-integer-field:hover::part(input-field) {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+vaadin-text-field[focused]::part(input-field),
+vaadin-text-area[focused]::part(input-field),
+vaadin-date-picker[focused]::part(input-field),
+vaadin-integer-field[focused]::part(input-field) {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 2px rgba(78, 97, 155, 0.2);
+}
+
+/* ============================================
+   Notifications
+   ============================================ */
+vaadin-notification-card {
+    display: inline-flex;
+    align-items: center;
+    width: auto !important;
+    max-width: min(90vw, 640px);
+    padding: 0 !important; /* removed padding for debugging */
+    box-sizing: border-box;
+    border-radius: var(--lumo-border-radius-l);
+    box-shadow: none !important;
+}
+
+/* Prevent children from stretching to fill the notification's flex container */
+vaadin-notification-card > * {
+    flex: 0 0 auto !important;
+}
+
+vaadin-notification-card::before,
+vaadin-notification-card::after {
+    box-shadow: none !important;
+}
+
+vaadin-notification-card[theme~="success"] {
+    background: rgba(76, 175, 80, 0.15);
+    /* removed border-left to avoid extra colored bar */
+    box-shadow: none !important;
+}
+
+vaadin-notification-card[theme~="error"] {
+    background: rgba(244, 67, 54, 0.15);
+    /* removed border-left to avoid extra colored bar */
+    box-shadow: none !important;
+}
+
+vaadin-notification-card[theme~="warning"] {
+    background: rgba(255, 152, 0, 0.15);
+    /* removed border-left to avoid extra colored bar */
+    box-shadow: none !important;
+}
+
+/* Remove any potential overlay shadows */
+vaadin-notification-container {
+    box-shadow: none !important;
+}
+
+vaadin-notification-card * {
+    box-shadow: none !important;
+}
+
+/* ============================================
+   Charts & Visualizations
+   ============================================ */
+.chart-container {
+    background: var(--card-surface);
+    border: 1px solid var(--card-border);
+    border-radius: var(--lumo-border-radius-l);
+    padding: 20px;
+    box-shadow: var(--lumo-box-shadow-xs);
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+.text-accent {
+    color: var(--accent) !important;
+}
+
+.bg-accent {
+    background-color: var(--accent) !important;
+}
+
+.bg-accent-subtle {
+    background-color: rgba(78, 97, 155, 0.12) !important;
+}
+
+.border-accent {
+    border-color: var(--accent) !important;
+}
+
+.surface-elevated {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ============================================
+   Accessibility - Reduced Motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .card:hover,
+    .card--highlight:hover,
+    vaadin-button:hover {
+        transform: none !important;
+    }
+}
+
+/* ============================================
+   Scrollbar Styling
+   ============================================ */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* ============================================
+   Drawer Styling
+   ============================================ */
+vaadin-app-layout::part(drawer) {
+    /* Use solid background instead of transparent for better readability on mobile */
+    background: var(--lumo-base-color);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    /* Ensure drawer has solid background on mobile */
+    backdrop-filter: none;
+}
+
+/* ============================================
+   Progress Bar & Loading States
+   ============================================ */
+vaadin-progress-bar {
+    --lumo-primary-color: var(--accent);
+}
+
+vaadin-progress-bar::part(bar) {
+    background: var(--accent);
+}
+
+/* ============================================
+   Tables
+   ============================================ */
+vaadin-grid {
+    border-radius: var(--lumo-border-radius-l);
+    overflow: hidden;
+}
+
+vaadin-grid::part(cell) {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+vaadin-grid::part(row):hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* ============================================
+   Tabs
+   ============================================ */
+vaadin-tabs {
+    /* keep the selected color variable in case components read it */
+    --_lumo-item-selected-color: var(--accent);
+}
+
+/* Default (unselected) tab text should be white */
+vaadin-tab {
+    color: #ffffff; /* white for inactive/unselected tabs */
+}
+
+/* Selected / active tab should use the primary text color */
+vaadin-tab[selected],
+vaadin-tab[active],
+vaadin-tab.active {
+    color: var(--lumo-primary-text-color) !important;
+    border-bottom-color: var(--lumo-primary-text-color) !important;
+}
+
+/* ============================================
+   Grid / Table Improvements for Mobile
+   ============================================ */
+vaadin-grid {
+    /* Enable horizontal scrolling on mobile if needed */
+    overflow-x: auto;
+}
+
+/* Allow text wrapping in grid cells for better mobile display */
+vaadin-grid-cell-content {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.4;
+}
+
+/* ============================================
+   Mobile Spacing & Safe Areas
+   ============================================ */
+/* Add safe spacing on mobile to prevent content from touching edges */
+@media (max-width: 768px) {
+    /* Main content area */
+    vaadin-app-layout [slot="drawer"] {
+        padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+    }
+
+    /* Add minimum padding to all views on mobile */
+    vaadin-vertical-layout:not([theme~="padding-false"]) {
+        padding-left: max(0.5rem, env(safe-area-inset-left, 0.5rem)) !important;
+        padding-right: max(0.5rem, env(safe-area-inset-right, 0.5rem)) !important;
+        padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem)) !important;
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem)) !important;
+    }
+
+    /* Ensure H2 headings have spacing from edges */
+    h2, h3 {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+
+    /* Ensure cards have spacing */
+    .card, .cards-grid {
+        margin-left: 0.25rem;
+        margin-right: 0.25rem;
+    }
+}
+
