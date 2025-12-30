@@ -105,7 +105,7 @@
         <dependency>
             <groupId>com.github.ulisesbocchio</groupId>
             <artifactId>jasypt-spring-boot-starter</artifactId>
-            <version>3.0.5</version>
+            <version>4.0.3</version>
         </dependency>
         <dependency>
             <groupId>com.github.pengrad</groupId>
