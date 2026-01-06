@@ -22,6 +22,7 @@ public class Scheduler implements SchedulingConfigurer {
     private final TelemetryService telemetryService;
     private final FddbExporterProperties properties;
     private final TelegramService telegramService;
+    private final VersionCheckService versionCheckService;
 
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
@@ -29,11 +30,17 @@ public class Scheduler implements SchedulingConfigurer {
             taskRegistrar.addCronTask(this::runFddbExportForYesterday, properties.getScheduler().getCron());
         }
         taskRegistrar.addCronTask(this::sendTelemetryData, properties.getTelemetry().getCron());
+        taskRegistrar.addCronTask(this::checkForNewVersion, properties.getTelemetry().getCron());
     }
 
     private void sendTelemetryData() {
         log.debug("sending telemetry data");
         telemetryService.sendTelemetryData();
+    }
+
+    private void checkForNewVersion() {
+        log.debug("checking for new version");
+        versionCheckService.checkForNewVersion();
     }
 
     private void runFddbExportForYesterday() {
