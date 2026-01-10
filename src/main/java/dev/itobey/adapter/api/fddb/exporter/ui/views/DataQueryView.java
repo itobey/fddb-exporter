@@ -445,6 +445,8 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         VerticalLayout headerSection = new VerticalLayout();
         headerSection.setPadding(false);
         headerSection.setSpacing(false);
+        // Ensure header content is left-aligned (prevents centering on narrow viewports)
+        headerSection.setAlignItems(FlexComponent.Alignment.START);
         headerSection.getStyle().set("margin-bottom", "12px");
 
         Paragraph nameText = new Paragraph(product.getName() != null ? product.getName() : "");
@@ -492,7 +494,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
 
     /**
      * Create a card for a product with date item (mobile view)
-     * Modern design with date on top right, pill-style macros with emoji icons
+     * Modern design with date next to amount, pill-style macros with emoji icons
      */
     private VerticalLayout createProductWithDateCard(ProductWithDateDTO productWithDate) {
         VerticalLayout card = new VerticalLayout();
@@ -523,21 +525,15 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                     .set("cursor", "pointer");
         }
 
-        // Header: Product name/amount on left, date badge on top right
-        HorizontalLayout headerRow = new HorizontalLayout();
-        headerRow.setWidthFull();
-        headerRow.setPadding(false);
-        headerRow.setSpacing(true);
-        headerRow.setAlignItems(FlexComponent.Alignment.START);
-        headerRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        headerRow.getStyle().set("margin-bottom", "12px");
+        // Header section - Product name and amount/date on same line
+        VerticalLayout headerSection = new VerticalLayout();
+        headerSection.setPadding(false);
+        headerSection.setSpacing(false);
+        // Ensure header content is left-aligned (prevents centering on narrow viewports)
+        headerSection.setAlignItems(FlexComponent.Alignment.START);
+        headerSection.getStyle().set("margin-bottom", "12px");
 
-        // Left side: Product name and amount
-        VerticalLayout nameSection = new VerticalLayout();
-        nameSection.setPadding(false);
-        nameSection.setSpacing(false);
-        nameSection.getStyle().set("flex", "1");
-
+        // Product name
         Paragraph nameText = new Paragraph(product.getName() != null ? product.getName() : "");
         nameText.getStyle()
                 .set("font-weight", "600")
@@ -547,20 +543,35 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 .set("line-height", "1.4")
                 .set("word-wrap", "break-word");
 
-        nameSection.add(nameText);
+        headerSection.add(nameText);
+
+        // Amount and date on the same horizontal line
+        HorizontalLayout amountDateRow = new HorizontalLayout();
+        amountDateRow.setPadding(false);
+        amountDateRow.setSpacing(true);
+        amountDateRow.getStyle()
+                .set("gap", "8px")
+                .set("align-items", "center");
+        // Prevent the amount and date from wrapping to the next line on narrow (portrait) viewports
+        amountDateRow.getStyle().set("flex-wrap", "nowrap").set("white-space", "nowrap");
+        // add class for CSS targeting
+        amountDateRow.addClassName("amount-date-row");
 
         if (product.getAmount() != null && !product.getAmount().isEmpty()) {
-            Paragraph amountText = new Paragraph(product.getAmount());
+            Span amountText = new Span(product.getAmount());
+            amountText.addClassName("product-amount");
             amountText.getStyle()
                     .set("font-size", "13px")
-                    .set("color", "var(--lumo-secondary-text-color)")
-                    .set("margin", "0");
-            nameSection.add(amountText);
+                    .set("color", "var(--lumo-secondary-text-color)");
+            amountDateRow.add(amountText);
         }
 
-        // Right side: Date badge (top right)
-        Div dateBadge = new Div();
+        // Date badge next to amount
         if (productWithDate.getDate() != null) {
+            Div dateBadge = new Div();
+            // add date badge class so CSS can style it inline next to amount
+            dateBadge.addClassName("date-badge");
+            dateBadge.addClassName("product-date-badge");
             Span dateText = new Span(productWithDate.getDate().toString());
             dateText.getStyle()
                     .set("font-size", "11px")
@@ -572,20 +583,20 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                     .set("padding", "4px 8px")
                     .set("background", "var(--lumo-contrast-5pct)")
                     .set("border", "1px solid var(--lumo-contrast-10pct)")
-                    .set("border-radius", "8px")
-                    .set("flex-shrink", "0")
-                    .set("align-self", "flex-start");  // Keep at top even if name wraps
+                    .set("border-radius", "8px");
+
+            amountDateRow.add(dateBadge);
         }
 
-        headerRow.add(nameSection, dateBadge);
-        card.add(headerRow);
+        headerSection.add(amountDateRow);
+        card.add(headerSection);
 
         // Nutrition pills - centered horizontal wrap layout
         Div nutritionPills = new Div();
         nutritionPills.getStyle()
                 .set("display", "flex")
                 .set("flex-wrap", "wrap")
-                .set("gap", "8px")  // Increased from 6px for better spacing with larger pills
+                .set("gap", "8px")
                 .set("justify-content", "center")
                 .set("margin-top", "8px");
 

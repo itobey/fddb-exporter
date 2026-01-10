@@ -559,6 +559,27 @@ vaadin-grid-cell-content {
         box-sizing: border-box;
     }
 
+    /* Ensure amount and date appear inline next to each other on mobile cards */
+    .mobile-data-card .amount-date-row {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        justify-content: flex-start !important;
+        width: 100%;
+    }
+
+    .mobile-data-card .product-amount {
+        display: inline-block !important;
+        margin: 0 !important;
+        color: var(--lumo-secondary-text-color) !important;
+    }
+
+    .mobile-data-card .product-date-badge {
+        display: inline-block !important;
+        margin-left: 4px !important;
+        vertical-align: middle !important;
+    }
+
     /* Enhanced hover effect for clickable cards */
     .mobile-data-card[style*="cursor: pointer"]:hover,
     .mobile-data-card:hover {
@@ -572,6 +593,60 @@ vaadin-grid-cell-content {
     .mobile-data-card:active {
         transform: translateY(0);
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    }
+}
+
+/* Extra small devices (phones in portrait, less than 576px) */
+@media (max-width: 576px) {
+    /* Further reduce spacing */
+    .dashboard-view,
+    .data-query-view,
+    .rolling-averages-view,
+    .data-export-view,
+    .correlation-view,
+    .migration-view {
+        padding: 0.25rem !important;
+    }
+
+    /* Stack all horizontal layouts */
+    vaadin-horizontal-layout {
+        flex-direction: column !important;
+    }
+
+    /* Keep our amount-date-row as a row even on the smallest screens */
+    vaadin-horizontal-layout.amount-date-row,
+    .mobile-data-card .amount-date-row {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        white-space: nowrap !important;
+    }
+
+    /* Full width buttons */
+    vaadin-button {
+        width: 100%;
+        margin: 0.25rem 0;
+    }
+
+    /* Smaller cards */
+    [class*="card"] {
+        min-width: 100px !important;
+        font-size: 0.875rem;
+    }
+
+    /* Grid - Show fewer columns */
+    vaadin-grid::part(cell) {
+        font-size: 0.75rem;
+        padding: 0.25rem;
+    }
+
+    /* Better touch targets */
+    vaadin-button,
+    vaadin-tab,
+    a {
+        min-height: 44px;
+        min-width: 44px;
     }
 }
 
@@ -630,4 +705,3 @@ vaadin-grid-cell-content {
         padding-right: 0 !important;
     }
 }
-

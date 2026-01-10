@@ -446,6 +446,22 @@ vaadin-button:active::before {
     vaadin-side-nav-item {
         font-size: 0.875rem;
     }
+
+    /* Ensure product date badge sits inline next to the amount in mobile cards */
+    .mobile-data-card .amount-date-row {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+
+    .mobile-data-card .product-date-badge {
+        margin-left: 4px !important;
+        padding: 4px 8px !important;
+        border-radius: 8px !important;
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid rgba(255, 255, 255, 0.04) !important;
+        white-space: nowrap;
+    }
 }
 
 /* Focus States - Material Design */
@@ -604,6 +620,22 @@ vaadin-button:active::before {
     vaadin-text-area {
         width: 100%;
     }
+
+    /* Ensure product date badge sits inline next to the amount in mobile cards */
+    .mobile-data-card .amount-date-row {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+
+    .mobile-data-card .product-date-badge {
+        margin-left: 4px !important;
+        padding: 4px 8px !important;
+        border-radius: 8px !important;
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid rgba(255, 255, 255, 0.04) !important;
+        white-space: nowrap;
+    }
 }
 
 /* Extra small devices (phones in portrait, less than 576px) */
@@ -621,6 +653,16 @@ vaadin-button:active::before {
     /* Stack all horizontal layouts */
     vaadin-horizontal-layout {
         flex-direction: column !important;
+    }
+
+    /* Keep our amount-date-row as a row even on the smallest screens */
+    vaadin-horizontal-layout.amount-date-row,
+    .mobile-data-card .amount-date-row {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        white-space: nowrap !important;
     }
 
     /* Full width buttons */
