@@ -521,6 +521,61 @@ vaadin-grid-cell-content {
 }
 
 /* ============================================
+   Data Query View - Grid Sizing
+   ============================================ */
+/* Desktop: Limit grid height to prevent viewport overflow */
+@media (min-width: 769px) {
+    .data-query-view .data-query-grid {
+        max-height: calc(100vh - 350px);
+    }
+
+    /* Hide cards on desktop */
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+/* Mobile: Show cards instead of tables */
+@media (max-width: 768px) {
+    /* Hide grids on mobile */
+    .desktop-only {
+        display: none !important;
+    }
+
+    /* Show cards on mobile */
+    .mobile-only {
+        display: flex !important;
+    }
+
+    /* Card container styles */
+    .cards-container {
+        width: 100%;
+        padding: 0.5rem;
+    }
+
+    /* Mobile data card styles */
+    .mobile-data-card {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Enhanced hover effect for clickable cards */
+    .mobile-data-card[style*="cursor: pointer"]:hover,
+    .mobile-data-card:hover {
+        background: var(--card-hover-surface) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Active/tap state for better mobile feedback */
+    .mobile-data-card[style*="cursor: pointer"]:active,
+    .mobile-data-card:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    }
+}
+
+/* ============================================
    Mobile Spacing & Safe Areas
    ============================================ */
 /* Add safe spacing on mobile to prevent content from touching edges */
@@ -548,6 +603,31 @@ vaadin-grid-cell-content {
     .card, .cards-grid {
         margin-left: 0.25rem;
         margin-right: 0.25rem;
+    }
+
+    /* Data Query View - Full width tables on mobile */
+    .data-query-view .data-query-grid {
+        /* Counteract all parent padding to span full width */
+        margin-left: calc(-1 * max(0.5rem, env(safe-area-inset-left, 0.5rem)));
+        margin-right: calc(-1 * max(0.5rem, env(safe-area-inset-right, 0.5rem)));
+        width: 100vw;
+        max-width: 100vw;
+        /* Remove max-height on mobile to show all entries without scrolling */
+        max-height: none !important;
+        min-height: 450px; /* Minimum height to fit ~10 items in landscape */
+    }
+
+    /* Add padding to search forms and buttons on mobile so they're not flush against edges */
+    .data-query-tab-layout > vaadin-horizontal-layout,
+    .data-query-tab-layout > vaadin-button {
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+    }
+
+    /* Remove padding from data query view tab content layouts on mobile */
+    .data-query-view vaadin-tabsheet vaadin-scroller vaadin-vertical-layout {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 }
 

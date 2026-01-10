@@ -5,11 +5,10 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
@@ -104,19 +103,30 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         }
     }
 
+    // Card containers for mobile view (only for detail views with smaller datasets)
+    private VerticalLayout dateProductsCardsContainer;
+    private VerticalLayout productSearchCardsContainer;
+
     private VerticalLayout createAllEntriesTab() {
         VerticalLayout layout = new VerticalLayout();
         layout.setPadding(true);
         layout.setSpacing(true);
         layout.setSizeFull();
-        // Minimum padding on mobile
-        layout.getStyle().set("padding", "clamp(0.5rem, 2vw, 1rem)");
+        layout.addClassName("data-query-tab-layout");
+        // Responsive padding: minimal top/bottom, zero horizontal on mobile for full-width tables
+        layout.getStyle()
+                .set("padding-left", "clamp(0rem, 2vw, 1rem)")
+                .set("padding-right", "clamp(0rem, 2vw, 1rem)")
+                .set("padding-top", "0.5rem")
+                .set("padding-bottom", "0.5rem");
 
         Button loadButton = new Button("Load All Entries");
         loadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         loadButton.addClickListener(e -> loadAllEntries());
 
         allEntriesGrid = new Grid<>(FddbDataDTO.class, false);
+        allEntriesGrid.addClassName("data-query-grid");
+        // Note: No desktop-only class here - Grid works well for large datasets on both desktop and mobile
         allEntriesGrid.addColumn(FddbDataDTO::getDate).setHeader("Date").setSortable(true).setAutoWidth(true);
         allEntriesGrid.addColumn(dto -> dto.getProducts() != null ? dto.getProducts().size() : 0)
                 .setHeader("Products").setSortable(true).setAutoWidth(true);
@@ -130,8 +140,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         allEntriesGrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         allEntriesGrid.setVisible(false); // Hide initially
         allEntriesGrid.setAllRowsVisible(true); // Adjust height based on content
-        // Set max height to prevent viewport overflow - accounts for navbar, header, tabs, form, and spacing
-        allEntriesGrid.getStyle().set("max-height", "calc(100vh - 350px)");
+        // Max height is handled by CSS responsively (desktop only)
 
         // Navigate to date search tab when a row is clicked
         allEntriesGrid.addItemClickListener(event -> {
@@ -154,8 +163,13 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         layout.setPadding(true);
         layout.setSpacing(true);
         layout.setSizeFull();
-        // Minimum padding on mobile
-        layout.getStyle().set("padding", "clamp(0.5rem, 2vw, 1rem)");
+        layout.addClassName("data-query-tab-layout");
+        // Responsive padding: minimal top/bottom, zero horizontal on mobile for full-width tables
+        layout.getStyle()
+                .set("padding-left", "clamp(0rem, 2vw, 1rem)")
+                .set("padding-right", "clamp(0rem, 2vw, 1rem)")
+                .set("padding-top", "0.5rem")
+                .set("padding-bottom", "0.5rem");
 
         HorizontalLayout searchForm = new HorizontalLayout();
         searchForm.setAlignItems(Alignment.END);
@@ -177,6 +191,8 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         searchForm.add(searchDatePicker, searchButton);
 
         dateProductsGrid = new Grid<>(ProductDTO.class, false);
+        dateProductsGrid.addClassName("data-query-grid");
+        dateProductsGrid.addClassName("desktop-only");
         dateProductsGrid.addColumn(ProductDTO::getName).setHeader("Product Name").setSortable(true).setFlexGrow(3).setAutoWidth(false);
         dateProductsGrid.addColumn(ProductDTO::getAmount).setHeader("Amount").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getCalories())).setHeader("Calories").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -196,10 +212,17 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         dateProductsGrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         dateProductsGrid.setVisible(false); // Hide initially
         dateProductsGrid.setAllRowsVisible(true); // Adjust height based on content
-        // Set max height to prevent viewport overflow - accounts for navbar, header, tabs, form, and spacing
-        dateProductsGrid.getStyle().set("max-height", "calc(100vh - 350px)");
+        // Max height is handled by CSS responsively (desktop only)
 
-        layout.add(searchForm, dateProductsGrid);
+        // Create cards container for mobile
+        dateProductsCardsContainer = new VerticalLayout();
+        dateProductsCardsContainer.addClassName("mobile-only");
+        dateProductsCardsContainer.addClassName("cards-container");
+        dateProductsCardsContainer.setSpacing(true);
+        dateProductsCardsContainer.setPadding(false);
+        dateProductsCardsContainer.setVisible(false);
+
+        layout.add(searchForm, dateProductsGrid, dateProductsCardsContainer);
         // Don't set flex grow - let it size naturally
         return layout;
     }
@@ -209,8 +232,13 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         layout.setPadding(true);
         layout.setSpacing(true);
         layout.setSizeFull();
-        // Minimum padding on mobile
-        layout.getStyle().set("padding", "clamp(0.5rem, 2vw, 1rem)");
+        layout.addClassName("data-query-tab-layout");
+        // Responsive padding: minimal top/bottom, zero horizontal on mobile for full-width tables
+        layout.getStyle()
+                .set("padding-left", "clamp(0rem, 2vw, 1rem)")
+                .set("padding-right", "clamp(0rem, 2vw, 1rem)")
+                .set("padding-top", "0.5rem")
+                .set("padding-bottom", "0.5rem");
 
         HorizontalLayout searchForm = new HorizontalLayout();
         searchForm.setAlignItems(Alignment.END);
@@ -241,6 +269,8 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         searchForm.add(productSearchField, searchButton);
 
         productSearchGrid = new Grid<>(ProductWithDateDTO.class, false);
+        productSearchGrid.addClassName("data-query-grid");
+        productSearchGrid.addClassName("desktop-only");
         productSearchGrid.addColumn(ProductWithDateDTO::getDate).setHeader("Date").setSortable(true).setAutoWidth(true).setFlexGrow(0);
         productSearchGrid.addColumn(dto -> dto.getProduct() != null ? dto.getProduct().getName() : "").setHeader("Product Name").setSortable(true).setFlexGrow(3).setAutoWidth(false);
         productSearchGrid.addColumn(dto -> dto.getProduct() != null ? dto.getProduct().getAmount() : "").setHeader("Amount").setSortable(true).setAutoWidth(true).setFlexGrow(0);
@@ -261,10 +291,17 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productSearchGrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         productSearchGrid.setVisible(false); // Hide initially
         productSearchGrid.setAllRowsVisible(true); // Adjust height based on content
-        // Set max height to prevent viewport overflow - accounts for navbar, header, tabs, form, and spacing
-        productSearchGrid.getStyle().set("max-height", "calc(100vh - 350px)");
+        // Max height is handled by CSS responsively (desktop only)
 
-        layout.add(searchForm, productSearchGrid);
+        // Create cards container for mobile
+        productSearchCardsContainer = new VerticalLayout();
+        productSearchCardsContainer.addClassName("mobile-only");
+        productSearchCardsContainer.addClassName("cards-container");
+        productSearchCardsContainer.setSpacing(true);
+        productSearchCardsContainer.setPadding(false);
+        productSearchCardsContainer.setVisible(false);
+
+        layout.add(searchForm, productSearchGrid, productSearchCardsContainer);
         return layout;
     }
 
@@ -298,10 +335,21 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 dateProductsGrid.setItems(data.getProducts());
                 // Always adjust height dynamically - shows all rows up to max viewport height
                 dateProductsGrid.setAllRowsVisible(true);
+
+                // Populate cards for mobile
+                dateProductsCardsContainer.removeAll();
+                dateProductsCardsContainer.setVisible(true);
+                data.getProducts().forEach(product -> {
+                    VerticalLayout card = createProductCard(product);
+                    dateProductsCardsContainer.add(card);
+                });
+
                 showSuccess("Found " + data.getProducts().size() + " products for " + date);
             } else {
                 dateProductsGrid.setItems();
                 dateProductsGrid.setAllRowsVisible(true);
+                dateProductsCardsContainer.removeAll();
+                dateProductsCardsContainer.setVisible(false);
                 showError("No data found for " + date);
             }
         } catch (ApiException e) {
@@ -309,6 +357,8 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             dateProductsGrid.setVisible(true);
             dateProductsGrid.setItems();
             dateProductsGrid.setAllRowsVisible(true);
+            dateProductsCardsContainer.removeAll();
+            dateProductsCardsContainer.setVisible(false);
         }
     }
 
@@ -325,12 +375,23 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             productSearchGrid.setItems(products);
             // Always adjust height dynamically - shows all rows up to max viewport height
             productSearchGrid.setAllRowsVisible(true);
+
+            // Populate cards for mobile
+            productSearchCardsContainer.removeAll();
+            productSearchCardsContainer.setVisible(true);
+            products.forEach(productWithDate -> {
+                VerticalLayout card = createProductWithDateCard(productWithDate);
+                productSearchCardsContainer.add(card);
+            });
+
             showSuccess("Found " + products.size() + " matching products");
         } catch (ApiException e) {
             showError(e.getMessage());
             productSearchGrid.setVisible(true);
             productSearchGrid.setItems();
             productSearchGrid.setAllRowsVisible(true);
+            productSearchCardsContainer.removeAll();
+            productSearchCardsContainer.setVisible(false);
         }
     }
 
@@ -349,6 +410,247 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         Notification notification = Notification.show(message);
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
         notification.setDuration(5000);
+    }
+
+    /**
+     * Create a card for a product item (mobile view)
+     * Modern design with pill-style macros and emoji icons
+     */
+    private VerticalLayout createProductCard(ProductDTO product) {
+        VerticalLayout card = new VerticalLayout();
+        card.addClassName("mobile-data-card");
+        card.setPadding(false);
+        card.setSpacing(false);
+        card.getStyle()
+                .set("background", "var(--lumo-contrast-5pct)")
+                .set("border", "1px solid var(--lumo-contrast-10pct)")
+                .set("border-radius", "12px")
+                .set("margin-bottom", "0.5rem")
+                .set("padding", "12px")
+                .set("box-shadow", "0 1px 3px rgba(0, 0, 0, 0.1)")
+                .set("cursor", "pointer")
+                .set("transition", "all 0.2s ease");
+
+        // Make entire card clickable if link exists
+        if (product.getLink() != null && !product.getLink().isEmpty()) {
+            String fullLink = product.getLink().startsWith("http") ? product.getLink() : fddbLinkPrefix + product.getLink();
+            card.addClickListener(e -> {
+                card.getUI().ifPresent(ui -> ui.getPage().open(fullLink, "_blank"));
+            });
+            card.getStyle()
+                    .set("cursor", "pointer");
+        }
+
+        // Product name and amount (left side)
+        VerticalLayout headerSection = new VerticalLayout();
+        headerSection.setPadding(false);
+        headerSection.setSpacing(false);
+        headerSection.getStyle().set("margin-bottom", "12px");
+
+        Paragraph nameText = new Paragraph(product.getName() != null ? product.getName() : "");
+        nameText.getStyle()
+                .set("font-weight", "600")
+                .set("font-size", "16px")
+                .set("color", "var(--lumo-body-text-color)")
+                .set("margin", "0 0 4px 0")
+                .set("line-height", "1.4")
+                .set("word-wrap", "break-word");
+
+        headerSection.add(nameText);
+
+        if (product.getAmount() != null && !product.getAmount().isEmpty()) {
+            Paragraph amountText = new Paragraph(product.getAmount());
+            amountText.getStyle()
+                    .set("font-size", "13px")
+                    .set("color", "var(--lumo-secondary-text-color)")
+                    .set("margin", "0");
+            headerSection.add(amountText);
+        }
+
+        card.add(headerSection);
+
+        // Nutrition pills - centered horizontal wrap layout
+        Div nutritionPills = new Div();
+        nutritionPills.getStyle()
+                .set("display", "flex")
+                .set("flex-wrap", "wrap")
+                .set("gap", "8px")  // Increased from 6px for better spacing with larger pills
+                .set("justify-content", "center")
+                .set("margin-top", "8px");
+
+        nutritionPills.add(
+                createMacroPill("🔥", "Cal", formatNumber(product.getCalories()), "", "#ef5350"),
+                createMacroPill("🧈", "Fat", formatNumber(product.getFat()), "g", "#ffa726"),
+                createMacroPill("🍞", "Carb", formatNumber(product.getCarbs()), "g", "#66bb6a"),
+                createMacroPill("🥩", "Prot", formatNumber(product.getProtein()), "g", "#ab47bc")
+        );
+
+        card.add(nutritionPills);
+
+        return card;
+    }
+
+    /**
+     * Create a card for a product with date item (mobile view)
+     * Modern design with date on top right, pill-style macros with emoji icons
+     */
+    private VerticalLayout createProductWithDateCard(ProductWithDateDTO productWithDate) {
+        VerticalLayout card = new VerticalLayout();
+        card.addClassName("mobile-data-card");
+        card.setPadding(false);
+        card.setSpacing(false);
+        card.getStyle()
+                .set("background", "var(--lumo-contrast-5pct)")
+                .set("border", "1px solid var(--lumo-contrast-10pct)")
+                .set("border-radius", "12px")
+                .set("margin-bottom", "0.5rem")
+                .set("padding", "12px")
+                .set("box-shadow", "0 1px 3px rgba(0, 0, 0, 0.1)")
+                .set("transition", "all 0.2s ease");
+
+        ProductDTO product = productWithDate.getProduct();
+        if (product == null) {
+            return card;
+        }
+
+        // Make entire card clickable if link exists
+        if (product.getLink() != null && !product.getLink().isEmpty()) {
+            String fullLink = product.getLink().startsWith("http") ? product.getLink() : fddbLinkPrefix + product.getLink();
+            card.addClickListener(e -> {
+                card.getUI().ifPresent(ui -> ui.getPage().open(fullLink, "_blank"));
+            });
+            card.getStyle()
+                    .set("cursor", "pointer");
+        }
+
+        // Header: Product name/amount on left, date badge on top right
+        HorizontalLayout headerRow = new HorizontalLayout();
+        headerRow.setWidthFull();
+        headerRow.setPadding(false);
+        headerRow.setSpacing(true);
+        headerRow.setAlignItems(FlexComponent.Alignment.START);
+        headerRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        headerRow.getStyle().set("margin-bottom", "12px");
+
+        // Left side: Product name and amount
+        VerticalLayout nameSection = new VerticalLayout();
+        nameSection.setPadding(false);
+        nameSection.setSpacing(false);
+        nameSection.getStyle().set("flex", "1");
+
+        Paragraph nameText = new Paragraph(product.getName() != null ? product.getName() : "");
+        nameText.getStyle()
+                .set("font-weight", "600")
+                .set("font-size", "16px")
+                .set("color", "var(--lumo-body-text-color)")
+                .set("margin", "0 0 4px 0")
+                .set("line-height", "1.4")
+                .set("word-wrap", "break-word");
+
+        nameSection.add(nameText);
+
+        if (product.getAmount() != null && !product.getAmount().isEmpty()) {
+            Paragraph amountText = new Paragraph(product.getAmount());
+            amountText.getStyle()
+                    .set("font-size", "13px")
+                    .set("color", "var(--lumo-secondary-text-color)")
+                    .set("margin", "0");
+            nameSection.add(amountText);
+        }
+
+        // Right side: Date badge (top right)
+        Div dateBadge = new Div();
+        if (productWithDate.getDate() != null) {
+            Span dateText = new Span(productWithDate.getDate().toString());
+            dateText.getStyle()
+                    .set("font-size", "11px")
+                    .set("color", "var(--lumo-body-text-color)")
+                    .set("white-space", "nowrap");
+
+            dateBadge.add(dateText);
+            dateBadge.getStyle()
+                    .set("padding", "4px 8px")
+                    .set("background", "var(--lumo-contrast-5pct)")
+                    .set("border", "1px solid var(--lumo-contrast-10pct)")
+                    .set("border-radius", "8px")
+                    .set("flex-shrink", "0")
+                    .set("align-self", "flex-start");  // Keep at top even if name wraps
+        }
+
+        headerRow.add(nameSection, dateBadge);
+        card.add(headerRow);
+
+        // Nutrition pills - centered horizontal wrap layout
+        Div nutritionPills = new Div();
+        nutritionPills.getStyle()
+                .set("display", "flex")
+                .set("flex-wrap", "wrap")
+                .set("gap", "8px")  // Increased from 6px for better spacing with larger pills
+                .set("justify-content", "center")
+                .set("margin-top", "8px");
+
+        nutritionPills.add(
+                createMacroPill("🔥", "Cal", formatNumber(product.getCalories()), "", "#ef5350"),
+                createMacroPill("🧈", "Fat", formatNumber(product.getFat()), "g", "#ffa726"),
+                createMacroPill("🍞", "Carb", formatNumber(product.getCarbs()), "g", "#66bb6a"),
+                createMacroPill("🥩", "Prot", formatNumber(product.getProtein()), "g", "#ab47bc")
+        );
+
+        card.add(nutritionPills);
+
+        return card;
+    }
+
+    /**
+     * Create a macro pill with emoji icon (matches Flutter app chip design)
+     */
+    private Div createMacroPill(String emoji, String label, String value, String unit, String color) {
+        Div pill = new Div();
+        pill.getStyle()
+                .set("display", "inline-flex")
+                .set("align-items", "center")
+                .set("gap", "5px")
+                .set("padding", "6px 12px")  // Increased from 4px 8px
+                .set("background", hexToRgba(color, 0.08))
+                .set("border", "0.8px solid " + hexToRgba(color, 0.25))
+                .set("border-radius", "20px")
+                .set("font-size", "13px");  // Increased from 11px
+
+        // Emoji icon
+        Span emojiSpan = new Span(emoji);
+        emojiSpan.getStyle()
+                .set("font-size", "16px")  // Increased from 12px
+                .set("line-height", "1");
+
+        // Label
+        Span labelSpan = new Span(label + ":");
+        labelSpan.getStyle()
+                .set("color", "var(--lumo-secondary-text-color)")
+                .set("font-weight", "400");
+
+        // Value
+        Span valueSpan = new Span(value + (unit.isEmpty() ? "" : " " + unit));
+        valueSpan.getStyle()
+                .set("color", color)
+                .set("font-weight", "600");
+
+        pill.add(emojiSpan, labelSpan, valueSpan);
+
+        return pill;
+    }
+
+    /**
+     * Convert hex color to rgba with opacity
+     */
+    private String hexToRgba(String hex, double opacity) {
+        // Remove # if present
+        hex = hex.replace("#", "");
+
+        int r = Integer.parseInt(hex.substring(0, 2), 16);
+        int g = Integer.parseInt(hex.substring(2, 4), 16);
+        int b = Integer.parseInt(hex.substring(4, 6), 16);
+
+        return String.format("rgba(%d, %d, %d, %.2f)", r, g, b, opacity);
     }
 }
 
