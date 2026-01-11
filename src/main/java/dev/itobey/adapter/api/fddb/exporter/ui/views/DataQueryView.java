@@ -143,9 +143,20 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         allEntriesCountLabel = new Span();
         allEntriesCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         allEntriesCountLabel.setVisible(false);
+        // Keep the count on a single line and prevent it from shrinking/wrapping
         allEntriesCountLabel.getStyle()
-                .set("text-align", "right")
-                .set("margin-bottom", "0.5rem");
+                .set("margin-bottom", "0.5rem")
+                .set("white-space", "nowrap")
+                .set("flex", "0 0 auto");
+        // Also ensure it is rendered as inline-block so nowrap is respected across layouts
+        allEntriesCountLabel.getStyle().set("display", "inline-block").set("min-width", "0");
+
+        // Put the load button and count label into a single row so the count (amount) is aligned to the right above the table
+        HorizontalLayout topRow = new HorizontalLayout(loadButton, allEntriesCountLabel);
+        topRow.setWidthFull();
+        topRow.setAlignItems(Alignment.CENTER);
+        topRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        topRow.setSpacing(false);
 
         allEntriesGrid = new Grid<>(FddbDataDTO.class, false);
         allEntriesGrid.addClassName("data-query-grid");
@@ -177,7 +188,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             }
         });
 
-        layout.add(loadButton, allEntriesCountLabel, allEntriesGrid);
+        layout.add(topRow, allEntriesGrid);
         return layout;
     }
 
@@ -194,17 +205,14 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 .set("padding-top", "0.5rem")
                 .set("padding-bottom", "0.5rem");
 
-        HorizontalLayout searchForm = new HorizontalLayout();
-        searchForm.setAlignItems(Alignment.END);
+        VerticalLayout searchForm = new VerticalLayout();
         searchForm.setWidthFull();
-        // Make form wrap on mobile
-        searchForm.getStyle().set("flex-wrap", "wrap");
+        searchForm.setSpacing(false);
         searchForm.addClassNames(LumoUtility.Gap.SMALL);
         // Add a class so CSS can target padding/margins consistently
         searchForm.addClassName("search-form");
 
         // Add padding to the form container on mobile so it doesn't touch edges
-        // since the parent layout has 0 padding on mobile
         searchForm.getStyle().set("padding-left", "clamp(0.5rem, 0vw, 0rem)");
         searchForm.getStyle().set("padding-right", "clamp(0.5rem, 0vw, 0rem)");
 
@@ -219,15 +227,32 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         // Make button responsive
         searchButton.getStyle().set("min-width", "100px");
 
-        searchForm.add(searchDatePicker, searchButton);
+        HorizontalLayout buttonRow = new HorizontalLayout(searchButton);
+        buttonRow.setPadding(false);
+        buttonRow.setSpacing(false);
+        buttonRow.setAlignItems(Alignment.CENTER);
+        searchForm.add(searchDatePicker, buttonRow);
 
         dateProductsCountLabel = new Span();
         dateProductsCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         dateProductsCountLabel.setVisible(false);
+        // Prevent wrapping so counts like "19 results" stay on a single line
         dateProductsCountLabel.getStyle()
-                .set("text-align", "right")
                 .set("margin-bottom", "0.5rem")
-                .set("margin-right", "0.5rem");
+                .set("white-space", "nowrap")
+                .set("flex", "0 0 auto");
+        // Ensure inline-block so nowrap and flex interaction behave consistently
+        dateProductsCountLabel.getStyle().set("display", "inline-block").set("min-width", "0");
+
+        // Put the search form and the count label into one row so the count appears on the right above the grid
+        // Align items to the end so the count vertically lines up with the button row rather than the taller input
+        HorizontalLayout dateTopRow = new HorizontalLayout(searchForm, dateProductsCountLabel);
+        dateTopRow.setWidthFull();
+        dateTopRow.setAlignItems(Alignment.END);
+        dateTopRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        dateTopRow.setSpacing(false);
+        // Ensure the searchForm expands to take remaining width so the count label stays at the far right
+        dateTopRow.expand(searchForm);
 
         dateProductsGrid = new Grid<>(ProductDTO.class, false);
         dateProductsGrid.addClassName("data-query-grid");
@@ -265,7 +290,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 .set("padding-left", "0.5rem")
                 .set("padding-right", "0.5rem");
 
-        layout.add(searchForm, dateProductsCountLabel, dateProductsGrid, dateProductsCardsContainer);
+        layout.add(dateTopRow, dateProductsGrid, dateProductsCardsContainer);
         // Don't set flex grow - let it size naturally
         return layout;
     }
@@ -283,11 +308,9 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 .set("padding-top", "0.5rem")
                 .set("padding-bottom", "0.5rem");
 
-        HorizontalLayout searchForm = new HorizontalLayout();
-        searchForm.setAlignItems(Alignment.END);
+        VerticalLayout searchForm = new VerticalLayout();
         searchForm.setWidthFull();
-        // Make form wrap on mobile
-        searchForm.getStyle().set("flex-wrap", "wrap");
+        searchForm.setSpacing(false);
         searchForm.addClassNames(LumoUtility.Gap.SMALL);
         // Add a class so CSS can target padding/margins consistently
         searchForm.addClassName("search-form");
@@ -311,15 +334,32 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         // Make button responsive
         searchButton.getStyle().set("min-width", "100px");
 
-        searchForm.add(productSearchField, searchButton);
+        HorizontalLayout productButtonRow = new HorizontalLayout(searchButton);
+        productButtonRow.setPadding(false);
+        productButtonRow.setSpacing(false);
+        productButtonRow.setAlignItems(Alignment.CENTER);
+        searchForm.add(productSearchField, productButtonRow);
 
         productSearchCountLabel = new Span();
         productSearchCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         productSearchCountLabel.setVisible(false);
+        // Prevent wrapping so counts like "19 results" stay on a single line
         productSearchCountLabel.getStyle()
-                .set("text-align", "right")
                 .set("margin-bottom", "0.5rem")
-                .set("margin-right", "0.5rem");
+                .set("white-space", "nowrap")
+                .set("flex", "0 0 auto");
+        // Ensure inline-block so nowrap and flex interaction behave consistently
+        productSearchCountLabel.getStyle().set("display", "inline-block").set("min-width", "0");
+
+        // Put the product search form and product count into a single row so the count is displayed on the right above the product search results grid.
+        // Align to the end so the count lines up with the search button row.
+        HorizontalLayout productTopRow = new HorizontalLayout(searchForm, productSearchCountLabel);
+        productTopRow.setWidthFull();
+        productTopRow.setAlignItems(Alignment.END);
+        productTopRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        productTopRow.setSpacing(false);
+        // Ensure the searchForm expands to take remaining width so the count label stays at the far right
+        productTopRow.expand(searchForm);
 
         productSearchGrid = new Grid<>(ProductWithDateDTO.class, false);
         productSearchGrid.addClassName("data-query-grid");
@@ -358,7 +398,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 .set("padding-left", "0.5rem")
                 .set("padding-right", "0.5rem");
 
-        layout.add(searchForm, productSearchCountLabel, productSearchGrid, productSearchCardsContainer);
+        layout.add(productTopRow, productSearchGrid, productSearchCardsContainer);
         return layout;
     }
 
@@ -371,7 +411,8 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             allEntriesGrid.setAllRowsVisible(true);
 
             // Update count label
-            allEntriesCountLabel.setText(entries.size() + " entries");
+            // Use a non-breaking space so the number and label don't wrap on two lines
+            allEntriesCountLabel.setText(entries.size() + "\u00A0entries");
             allEntriesCountLabel.setVisible(true);
 
             showSuccess("Loaded " + entries.size() + " entries");
@@ -399,8 +440,8 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 // Always adjust height dynamically - shows all rows up to max viewport height
                 dateProductsGrid.setAllRowsVisible(true);
 
-                // Update count label
-                dateProductsCountLabel.setText(data.getProducts().size() + " products");
+                // Update count label (use non-breaking space to avoid wrapping)
+                dateProductsCountLabel.setText(data.getProducts().size() + "\u00A0products");
                 dateProductsCountLabel.setVisible(true);
 
                 // Populate cards for mobile
@@ -445,8 +486,8 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             // Always adjust height dynamically - shows all rows up to max viewport height
             productSearchGrid.setAllRowsVisible(true);
 
-            // Update count label
-            productSearchCountLabel.setText(products.size() + " results");
+            // Update count label (use non-breaking space to avoid wrapping)
+            productSearchCountLabel.setText(products.size() + "\u00A0results");
             productSearchCountLabel.setVisible(true);
 
             // Populate cards for mobile
