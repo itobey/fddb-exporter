@@ -529,6 +529,13 @@ vaadin-grid-cell-content {
         max-height: calc(100vh - 350px);
     }
 
+    /* Make All Entries grid slightly shorter to avoid a tiny page scrollbar when count label changes */
+    .data-query-view .all-entries-grid {
+        /* reduce by 20px for safety */
+        max-height: calc(100vh - 370px);
+        overflow-y: auto;
+    }
+
     /* Hide cards on desktop */
     .mobile-only {
         display: none !important;

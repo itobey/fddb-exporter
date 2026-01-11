@@ -160,6 +160,8 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
 
         allEntriesGrid = new Grid<>(FddbDataDTO.class, false);
         allEntriesGrid.addClassName("data-query-grid");
+        // Specific class for the All Entries grid so desktop height can be tuned
+        allEntriesGrid.addClassName("all-entries-grid");
         // Note: No desktop-only class here - Grid works well for large datasets on both desktop and mobile
         allEntriesGrid.addColumn(FddbDataDTO::getDate).setHeader("Date").setSortable(true).setAutoWidth(true);
         allEntriesGrid.addColumn(dto -> dto.getProducts() != null ? dto.getProducts().size() : 0)
