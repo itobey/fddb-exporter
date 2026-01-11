@@ -91,6 +91,8 @@ public class RollingAveragesView extends VerticalLayout {
         quickButtons.setWidthFull();
         // Make buttons wrap on mobile
         quickButtons.getStyle().set("flex-wrap", "wrap");
+        // Ensure the buttons are vertically centered within the horizontal layout
+        quickButtons.setAlignItems(FlexComponent.Alignment.CENTER);
 
         Button lastWeekBtn = new Button("Last 7 Days", e -> {
             setDateRange(7);
@@ -148,6 +150,27 @@ public class RollingAveragesView extends VerticalLayout {
                 .set("flex", "1 1 calc(50% - 0.25rem)")
                 .set("min-width", "0")
                 .set("max-width", "100%");
+
+        // Ensure each button uses flex layout internally and center its content so text is vertically centered
+        lastWeekBtn.getStyle().set("display", "flex").set("align-items", "center").set("justify-content", "center");
+        lastMonthBtn.getStyle().set("display", "flex").set("align-items", "center").set("justify-content", "center");
+        last3MonthsBtn.getStyle().set("display", "flex").set("align-items", "center").set("justify-content", "center");
+        lastYearBtn.getStyle().set("display", "flex").set("align-items", "center").set("justify-content", "center");
+        currentYearBtn.getStyle().set("display", "flex").set("align-items", "center").set("justify-content", "center");
+
+        // Provide a consistent height so the small buttons align perfectly across breakpoints
+        lastWeekBtn.setHeight("2.25rem");
+        lastMonthBtn.setHeight("2.25rem");
+        last3MonthsBtn.setHeight("2.25rem");
+        lastYearBtn.setHeight("2.25rem");
+        currentYearBtn.setHeight("2.25rem");
+
+        // Remove internal padding and set line-height to match height to avoid a slight visual offset
+        lastWeekBtn.getStyle().set("padding", "0").set("line-height", "2.25rem").set("box-sizing", "border-box");
+        lastMonthBtn.getStyle().set("padding", "0").set("line-height", "2.25rem").set("box-sizing", "border-box");
+        last3MonthsBtn.getStyle().set("padding", "0").set("line-height", "2.25rem").set("box-sizing", "border-box");
+        lastYearBtn.getStyle().set("padding", "0").set("line-height", "2.25rem").set("box-sizing", "border-box");
+        currentYearBtn.getStyle().set("padding", "0").set("line-height", "2.25rem").set("box-sizing", "border-box");
 
         quickButtons.add(lastWeekBtn, lastMonthBtn, last3MonthsBtn, lastYearBtn, currentYearBtn);
 
