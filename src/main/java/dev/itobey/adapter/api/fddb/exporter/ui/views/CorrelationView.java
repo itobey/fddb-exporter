@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.views;
 
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -100,17 +101,20 @@ public class CorrelationView extends VerticalLayout {
         inclusionKeywordInput = new TextField();
         inclusionKeywordInput.setPlaceholder("Type keyword and press Enter...");
         inclusionKeywordInput.setWidthFull();
-        inclusionKeywordInput.addKeyPressListener(event -> {
-            if (event.getKey().getKeys().get(0).equals("Enter")) {
-                addInclusionKeyword();
-            }
-        });
-        // Add key down listener as backup for mobile
-        inclusionKeywordInput.addKeyDownListener(event -> {
-            if (event.getKey().equals(com.vaadin.flow.component.Key.ENTER)) {
-                addInclusionKeyword();
-            }
-        });
+        inclusionKeywordInput.setClearButtonVisible(true);
+        // Add an explicit small add button to ensure mobile enter behavior is complemented by a tap target
+        Button addInclusionBtn = new Button("+");
+        addInclusionBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        addInclusionBtn.getStyle().set("min-width", "36px");
+        addInclusionBtn.addClickListener(e -> addInclusionKeyword());
+        // Also respond to Enter key for keyboard users (including some mobile keyboards)
+        inclusionKeywordInput.addKeyDownListener(Key.ENTER, e -> addInclusionKeyword());
+
+        HorizontalLayout inclusionInputRow = new HorizontalLayout(inclusionKeywordInput, addInclusionBtn);
+        inclusionInputRow.setPadding(false);
+        inclusionInputRow.setSpacing(false);
+        inclusionInputRow.setWidthFull();
+        inclusionInputRow.getStyle().set("align-items", "center");
 
         inclusionKeywordsContainer = new FlexLayout();
         inclusionKeywordsContainer.setWidthFull();
@@ -120,7 +124,7 @@ public class CorrelationView extends VerticalLayout {
                 .set("margin-top", "0.5rem");
         inclusionKeywordsContainer.setVisible(false);
 
-        inclusionSection.add(inclusionTitle, inclusionHelp, inclusionKeywordInput, inclusionKeywordsContainer);
+        inclusionSection.add(inclusionTitle, inclusionHelp, inclusionInputRow, inclusionKeywordsContainer);
 
         // Exclusion keywords section
         VerticalLayout exclusionSection = new VerticalLayout();
@@ -142,17 +146,19 @@ public class CorrelationView extends VerticalLayout {
         exclusionKeywordInput = new TextField();
         exclusionKeywordInput.setPlaceholder("Type keyword and press Enter...");
         exclusionKeywordInput.setWidthFull();
-        exclusionKeywordInput.addKeyPressListener(event -> {
-            if (event.getKey().getKeys().get(0).equals("Enter")) {
-                addExclusionKeyword();
-            }
-        });
-        // Add key down listener as backup for mobile
-        exclusionKeywordInput.addKeyDownListener(event -> {
-            if (event.getKey().equals(com.vaadin.flow.component.Key.ENTER)) {
-                addExclusionKeyword();
-            }
-        });
+        exclusionKeywordInput.setClearButtonVisible(true);
+        Button addExclusionBtn = new Button("+");
+        addExclusionBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        addExclusionBtn.getStyle().set("min-width", "36px");
+        addExclusionBtn.addClickListener(e -> addExclusionKeyword());
+        // Also respond to Enter key for keyboard users
+        exclusionKeywordInput.addKeyDownListener(Key.ENTER, e -> addExclusionKeyword());
+
+        HorizontalLayout exclusionInputRow = new HorizontalLayout(exclusionKeywordInput, addExclusionBtn);
+        exclusionInputRow.setPadding(false);
+        exclusionInputRow.setSpacing(false);
+        exclusionInputRow.setWidthFull();
+        exclusionInputRow.getStyle().set("align-items", "center");
 
         exclusionKeywordsContainer = new FlexLayout();
         exclusionKeywordsContainer.setWidthFull();
@@ -162,7 +168,7 @@ public class CorrelationView extends VerticalLayout {
                 .set("margin-top", "0.5rem");
         exclusionKeywordsContainer.setVisible(false);
 
-        exclusionSection.add(exclusionTitle, exclusionHelp, exclusionKeywordInput, exclusionKeywordsContainer);
+        exclusionSection.add(exclusionTitle, exclusionHelp, exclusionInputRow, exclusionKeywordsContainer);
 
         // Occurrence dates section
         VerticalLayout datesSection = new VerticalLayout();

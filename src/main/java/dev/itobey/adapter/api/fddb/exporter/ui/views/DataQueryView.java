@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.views;
 
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -65,14 +66,26 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 : "https://fddb.info";
 
         addClassName("data-query-view");
-        setSpacing(true);
-        setPadding(true);
-        setSizeFull();
-        // Responsive padding - minimum on mobile for spacing from edges
-        getStyle().set("padding", "clamp(0.5rem, 2vw, 1.5rem)");
+        // Prevent global mobile padding rules from forcing extra padding; set theme attribute used by CSS selectors
+        getElement().getThemeList().add("padding-false");
 
-        add(new H2("Data Query"));
-        add(new Paragraph("Query and search your stored FDDB data."));
+        // Remove padding from the main view to allow full-width tables
+        setSpacing(true);
+        setPadding(false);
+        setSizeFull();
+        // Remove the view-level padding to allow edge-to-edge content
+        // getStyle().set("padding", "clamp(0.5rem, 2vw, 1.5rem)");
+
+        // Allow header to have padding
+        VerticalLayout headerLayout = new VerticalLayout();
+        headerLayout.setPadding(true);
+        headerLayout.setSpacing(true);
+        // Responsive padding - match previous view padding
+        headerLayout.getStyle().set("padding", "clamp(0.5rem, 2vw, 1.5rem)");
+
+        headerLayout.add(new H2("Data Query"));
+        headerLayout.add(new Paragraph("Query and search your stored FDDB data."));
+        add(headerLayout);
 
         tabSheet.setSizeFull();
 
@@ -187,6 +200,13 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         // Make form wrap on mobile
         searchForm.getStyle().set("flex-wrap", "wrap");
         searchForm.addClassNames(LumoUtility.Gap.SMALL);
+        // Add a class so CSS can target padding/margins consistently
+        searchForm.addClassName("search-form");
+
+        // Add padding to the form container on mobile so it doesn't touch edges
+        // since the parent layout has 0 padding on mobile
+        searchForm.getStyle().set("padding-left", "clamp(0.5rem, 0vw, 0rem)");
+        searchForm.getStyle().set("padding-right", "clamp(0.5rem, 0vw, 0rem)");
 
         searchDatePicker = new DatePicker("Select Date");
         searchDatePicker.setValue(LocalDate.now().minusDays(1)); // Default to yesterday
@@ -240,6 +260,10 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         dateProductsCardsContainer.setSpacing(true);
         dateProductsCardsContainer.setPadding(false);
         dateProductsCardsContainer.setVisible(false);
+        // Add padding so cards don't touch edges (consistent with form)
+        dateProductsCardsContainer.getStyle()
+                .set("padding-left", "0.5rem")
+                .set("padding-right", "0.5rem");
 
         layout.add(searchForm, dateProductsCountLabel, dateProductsGrid, dateProductsCardsContainer);
         // Don't set flex grow - let it size naturally
@@ -265,6 +289,12 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         // Make form wrap on mobile
         searchForm.getStyle().set("flex-wrap", "wrap");
         searchForm.addClassNames(LumoUtility.Gap.SMALL);
+        // Add a class so CSS can target padding/margins consistently
+        searchForm.addClassName("search-form");
+
+        // Add padding to the form container on mobile so it doesn't touch edges
+        searchForm.getStyle().set("padding-left", "clamp(0.5rem, 0vw, 0rem)");
+        searchForm.getStyle().set("padding-right", "clamp(0.5rem, 0vw, 0rem)");
 
         productSearchField = new TextField("Product Name");
         productSearchField.setPlaceholder("Enter product name...");
@@ -273,11 +303,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productSearchField.getStyle().set("min-width", "200px").set("flex", "1 1 auto");
 
         // Trigger search on Enter key
-        productSearchField.addKeyPressListener(event -> {
-            if (event.getKey().getKeys().getFirst().equals("Enter")) {
-                searchProducts();
-            }
-        });
+        productSearchField.addKeyDownListener(Key.ENTER, e -> searchProducts());
 
         Button searchButton = new Button("Search");
         searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -327,6 +353,10 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productSearchCardsContainer.setSpacing(true);
         productSearchCardsContainer.setPadding(false);
         productSearchCardsContainer.setVisible(false);
+        // Add padding so cards don't touch edges
+        productSearchCardsContainer.getStyle()
+                .set("padding-left", "0.5rem")
+                .set("padding-right", "0.5rem");
 
         layout.add(searchForm, productSearchCountLabel, productSearchGrid, productSearchCardsContainer);
         return layout;

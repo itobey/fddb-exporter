@@ -711,3 +711,142 @@ vaadin-grid-cell-content {
         padding-right: 0 !important;
     }
 }
+
+/* ============================================
+   Project-specific responsive tweaks
+   ============================================ */
+
+/* Compact preset buttons used in RollingAveragesView */
+.preset-btn {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+/* Drawer header small padding tweak (MainLayout drawer header) */
+.drawer-header {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    /* Top slightly smaller than bottom for visual balance when icon shown */
+    padding-top: 0.75rem !important;
+    padding-bottom: 1rem !important;
+    display: flex;
+    align-items: center;
+}
+
+/* Ensure the app icon in the drawer header is sized and spaced */
+.drawer-header img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    margin-right: 0.5rem;
+}
+
+/* Ensure the header text aligns vertically */
+.drawer-header h3 {
+    margin: 0;
+    line-height: 1;
+}
+
+/* Data query view adjustments for mobile to remove asymmetric paddings/gaps */
+@media (max-width: 600px) {
+    /* Remove horizontal padding on data query view to allow full width */
+    .data-query-view {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* Remove horizontal padding on tab layout so content can reach viewport edges */
+    .data-query-tab-layout {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* Add symmetric padding to search form elements */
+    .data-query-tab-layout .vaadin-horizontal-layout,
+    .data-query-tab-layout .search-form {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        box-sizing: border-box;
+    }
+
+    /* Ensure the date picker and buttons can shrink and align evenly */
+    .data-query-tab-layout vaadin-date-picker,
+    .data-query-tab-layout vaadin-button,
+    .data-query-tab-layout button {
+        min-width: 0 !important;
+    }
+
+    /* Make preset buttons occupy 50% width (two per row) when used elsewhere */
+    .preset-btn {
+        flex: 1 1 calc(50% - 0.25rem) !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        font-size: 0.85rem !important;
+        padding: 0.35rem 0.6rem !important;
+    }
+
+    /* Remove left margin/gap for the all-entries grid so it starts at left viewport edge */
+    .data-query-grid {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* Small adjustment for count labels to align with edges */
+    .data-query-tab-layout span {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+
+/* Make preset buttons display as a two-column grid on small screens */
+@media (max-width: 600px) {
+    .preset-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+
+    /* Ensure each button stretches to fill the grid cell */
+    .preset-buttons ::slotted(.preset-btn),
+    .preset-buttons .preset-btn,
+    .preset-buttons vaadin-button,
+    .preset-buttons button {
+        width: 100% !important;
+        justify-self: stretch !important;
+    }
+}
+
+/* Ensure preset buttons force a 2-column grid on typical mobile widths (up to 768px) */
+@media (max-width: 768px) {
+    .preset-buttons {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.5rem !important;
+        align-items: stretch !important;
+        /* remove the horizontal-layout flex behavior */
+        -webkit-box-orient: initial !important;
+        -webkit-box-direction: initial !important;
+    }
+
+    /* Make sure all direct children fill their grid cell and do not keep flex sizing */
+    .preset-buttons > * {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        flex: none !important;
+        -ms-flex: none !important;
+        -webkit-flex: none !important;
+        justify-self: stretch !important;
+    }
+
+    /* Target Vaadin button elements specifically as a fallback */
+    .preset-buttons vaadin-button,
+    .preset-buttons button,
+    .preset-buttons .preset-btn {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+}

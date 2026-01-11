@@ -3,10 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.ui;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.dependency.CssImport;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -109,17 +106,28 @@ public class MainLayout extends AppLayout {
     }
 
     private void createDrawer() {
-        // Add header text at the top of the drawer
-        H3 drawerHeader = new H3("FDDB-Exporter");
-        drawerHeader.addClassNames(
-                LumoUtility.Margin.NONE,
-                LumoUtility.Padding.Horizontal.MEDIUM,
-                LumoUtility.Padding.Vertical.SMALL
-        );
-        drawerHeader.getStyle()
+        // Drawer header: small icon left of the app name with symmetric vertical padding
+        H3 drawerTitle = new H3("FDDB-Exporter");
+        drawerTitle.addClassNames(LumoUtility.Margin.NONE);
+        drawerTitle.getStyle()
                 .set("color", "var(--lumo-header-text-color)")
                 .set("font-size", "1.25rem")
-                .set("font-weight", "600")
+                .set("font-weight", "600");
+
+        // Image - use the PWA icon if available (served from /icons/icon.png)
+        Image appIcon = new Image("/icons/icon.png", "FDDB");
+        appIcon.setAlt("FDDB Exporter");
+        appIcon.setHeight("32px");
+        appIcon.setWidth("32px");
+        appIcon.getStyle().set("object-fit", "contain");
+        appIcon.getStyle().set("margin-right", "0.5rem");
+
+        HorizontalLayout drawerHeader = new HorizontalLayout(appIcon, drawerTitle);
+        drawerHeader.setAlignItems(FlexComponent.Alignment.CENTER);
+        drawerHeader.addClassName("drawer-header");
+        // Set top/bottom padding to the same smaller value for a tighter header
+        drawerHeader.getStyle()
+                .set("padding", "0.75rem 1rem")
                 .set("border-bottom", "1px solid rgba(255, 255, 255, 0.08)")
                 .set("margin-bottom", "0.5rem");
 

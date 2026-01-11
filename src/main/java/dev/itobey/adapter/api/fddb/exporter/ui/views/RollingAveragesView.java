@@ -86,6 +86,8 @@ public class RollingAveragesView extends VerticalLayout {
         // Quick selection buttons
         HorizontalLayout quickButtons = new HorizontalLayout();
         quickButtons.addClassNames(LumoUtility.Gap.SMALL);
+        // add a class for CSS targeting to force a 2-column grid on mobile
+        quickButtons.addClassName("preset-buttons");
         quickButtons.setWidthFull();
         // Make buttons wrap on mobile
         quickButtons.getStyle().set("flex-wrap", "wrap");
@@ -111,26 +113,40 @@ public class RollingAveragesView extends VerticalLayout {
             calculateAverages();
         });
 
-        // Make buttons responsive - fit 2 per row on mobile
+        // Use a shared CSS class so the buttons can be made smaller on mobile via CSS
+        lastWeekBtn.addClassName("preset-btn");
+        lastMonthBtn.addClassName("preset-btn");
+        last3MonthsBtn.addClassName("preset-btn");
+        lastYearBtn.addClassName("preset-btn");
+        currentYearBtn.addClassName("preset-btn");
+
+        // Add small variant to make them smaller
+        lastWeekBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        lastMonthBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        last3MonthsBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        lastYearBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        currentYearBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
+
+        // Make buttons responsive - allow CSS to control exact sizing; set min-width to 0 so they can shrink
         lastWeekBtn.getStyle()
                 .set("flex", "1 1 calc(50% - 0.25rem)")
-                .set("min-width", "140px")
+                .set("min-width", "0")
                 .set("max-width", "100%");
         lastMonthBtn.getStyle()
                 .set("flex", "1 1 calc(50% - 0.25rem)")
-                .set("min-width", "140px")
+                .set("min-width", "0")
                 .set("max-width", "100%");
         last3MonthsBtn.getStyle()
                 .set("flex", "1 1 calc(50% - 0.25rem)")
-                .set("min-width", "140px")
+                .set("min-width", "0")
                 .set("max-width", "100%");
         lastYearBtn.getStyle()
                 .set("flex", "1 1 calc(50% - 0.25rem)")
-                .set("min-width", "140px")
+                .set("min-width", "0")
                 .set("max-width", "100%");
         currentYearBtn.getStyle()
                 .set("flex", "1 1 calc(50% - 0.25rem)")
-                .set("min-width", "140px")
+                .set("min-width", "0")
                 .set("max-width", "100%");
 
         quickButtons.add(lastWeekBtn, lastMonthBtn, last3MonthsBtn, lastYearBtn, currentYearBtn);
