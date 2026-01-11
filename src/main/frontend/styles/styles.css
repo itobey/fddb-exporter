@@ -699,6 +699,12 @@ vaadin-grid-cell-content {
         margin-right: 0.5rem;
     }
 
+    /* Also ensure count labels have consistent margins */
+    .data-query-tab-layout > span {
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+    }
+
     /* Remove padding from data query view tab content layouts on mobile */
     .data-query-view vaadin-tabsheet vaadin-scroller vaadin-vertical-layout {
         padding-left: 0 !important;

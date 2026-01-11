@@ -69,10 +69,12 @@ public class RollingAveragesView extends VerticalLayout {
         fromDatePicker = new DatePicker("From Date");
         fromDatePicker.setValue(LocalDate.now().minusMonths(1));
         fromDatePicker.setRequired(true);
+        fromDatePicker.setI18n(createDatePickerI18n());
 
         toDatePicker = new DatePicker("To Date");
         toDatePicker.setValue(LocalDate.now().minusDays(1)); // Set to yesterday by default
         toDatePicker.setRequired(true);
+        toDatePicker.setI18n(createDatePickerI18n());
 
         form.add(fromDatePicker, toDatePicker);
         // Responsive: 1 column on mobile, 2 on desktop
@@ -88,18 +90,48 @@ public class RollingAveragesView extends VerticalLayout {
         // Make buttons wrap on mobile
         quickButtons.getStyle().set("flex-wrap", "wrap");
 
-        Button lastWeekBtn = new Button("Last 7 Days", e -> setDateRange(7));
-        Button lastMonthBtn = new Button("Last 30 Days", e -> setDateRange(30));
-        Button last3MonthsBtn = new Button("Last 90 Days", e -> setDateRange(90));
-        Button lastYearBtn = new Button("Last Year", e -> setDateRange(365));
-        Button currentYearBtn = new Button("Current Year", e -> setCurrentYearRange());
+        Button lastWeekBtn = new Button("Last 7 Days", e -> {
+            setDateRange(7);
+            calculateAverages();
+        });
+        Button lastMonthBtn = new Button("Last 30 Days", e -> {
+            setDateRange(30);
+            calculateAverages();
+        });
+        Button last3MonthsBtn = new Button("Last 90 Days", e -> {
+            setDateRange(90);
+            calculateAverages();
+        });
+        Button lastYearBtn = new Button("Last Year", e -> {
+            setDateRange(365);
+            calculateAverages();
+        });
+        Button currentYearBtn = new Button("Current Year", e -> {
+            setCurrentYearRange();
+            calculateAverages();
+        });
 
-        // Make buttons responsive
-        lastWeekBtn.getStyle().set("flex", "1 1 auto").set("min-width", "100px");
-        lastMonthBtn.getStyle().set("flex", "1 1 auto").set("min-width", "100px");
-        last3MonthsBtn.getStyle().set("flex", "1 1 auto").set("min-width", "100px");
-        lastYearBtn.getStyle().set("flex", "1 1 auto").set("min-width", "100px");
-        currentYearBtn.getStyle().set("flex", "1 1 auto").set("min-width", "100px");
+        // Make buttons responsive - fit 2 per row on mobile
+        lastWeekBtn.getStyle()
+                .set("flex", "1 1 calc(50% - 0.25rem)")
+                .set("min-width", "140px")
+                .set("max-width", "100%");
+        lastMonthBtn.getStyle()
+                .set("flex", "1 1 calc(50% - 0.25rem)")
+                .set("min-width", "140px")
+                .set("max-width", "100%");
+        last3MonthsBtn.getStyle()
+                .set("flex", "1 1 calc(50% - 0.25rem)")
+                .set("min-width", "140px")
+                .set("max-width", "100%");
+        lastYearBtn.getStyle()
+                .set("flex", "1 1 calc(50% - 0.25rem)")
+                .set("min-width", "140px")
+                .set("max-width", "100%");
+        currentYearBtn.getStyle()
+                .set("flex", "1 1 calc(50% - 0.25rem)")
+                .set("min-width", "140px")
+                .set("max-width", "100%");
 
         quickButtons.add(lastWeekBtn, lastMonthBtn, last3MonthsBtn, lastYearBtn, currentYearBtn);
 
@@ -205,30 +237,32 @@ public class RollingAveragesView extends VerticalLayout {
 
     private Component createAverageCard(String nutrient, String value, String unit, String emoji) {
         Div card = new Div();
+        card.addClassName("card");
         card.addClassNames(
-                LumoUtility.Padding.LARGE,
-                LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Background.CONTRAST_5,
-                LumoUtility.Display.FLEX,
-                LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.AlignItems.CENTER
+                LumoUtility.Padding.MEDIUM,
+                LumoUtility.BorderRadius.MEDIUM
         );
-        // Match dashboard card styling - let grid control sizing
+        // Match dashboard card styling exactly
         card.getStyle()
                 .set("min-width", "100px")
                 .set("max-width", "100%")
-                .set("box-sizing", "border-box");
+                .set("box-sizing", "border-box")
+                .set("background-color", "rgba(78, 97, 155, 0.08)");
 
         Span emojiSpan = new Span(emoji);
         emojiSpan.addClassNames(LumoUtility.FontSize.XXLARGE);
 
         Span nutrientSpan = new Span(nutrient);
-        nutrientSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        nutrientSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
 
         Span valueSpan = new Span(value + " " + unit);
-        valueSpan.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
+        valueSpan.addClassNames(LumoUtility.FontSize.LARGE);
 
-        card.add(emojiSpan, nutrientSpan, valueSpan);
+        VerticalLayout layout = new VerticalLayout(emojiSpan, nutrientSpan, valueSpan);
+        layout.setPadding(false);
+        layout.setSpacing(false);
+        layout.setAlignItems(Alignment.CENTER);
+        card.add(layout);
         return card;
     }
 
@@ -271,29 +305,31 @@ public class RollingAveragesView extends VerticalLayout {
     }
 
     private Component createMacroProgressBar(String label, double grams, double percentage, String color) {
-        HorizontalLayout row = new HorizontalLayout();
-        row.setWidthFull();
-        row.setAlignItems(FlexComponent.Alignment.CENTER);
-        // Remove gap and spacing classes to eliminate side margins
-        row.setSpacing(false);
-        row.setPadding(false);
-        // Use minimal gap
-        row.getStyle()
-                .set("flex-wrap", "nowrap")
-                .set("gap", "0.5rem");
+        VerticalLayout container = new VerticalLayout();
+        container.setWidthFull();
+        container.setPadding(false);
+        container.setSpacing(false);
+        container.getStyle().set("gap", "0.25rem");
+
+        // Top row: label and value
+        HorizontalLayout topRow = new HorizontalLayout();
+        topRow.setWidthFull();
+        topRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        topRow.setAlignItems(FlexComponent.Alignment.CENTER);
+        topRow.setPadding(false);
+        topRow.setSpacing(false);
 
         Span labelSpan = new Span(label);
-        labelSpan.getStyle()
-                .set("min-width", "50px")
-                .set("width", "70px")
-                .set("flex-shrink", "0");
-        labelSpan.addClassNames(LumoUtility.FontSize.SMALL);
+        labelSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
 
+        Span valueSpan = new Span(formatNumber(grams) + "g (" + formatNumber(percentage) + "%)");
+        valueSpan.addClassNames(LumoUtility.FontSize.SMALL);
+
+        topRow.add(labelSpan, valueSpan);
+
+        // Bottom row: progress bar
         Div progressContainer = new Div();
-        progressContainer.getStyle()
-                .set("flex", "1 1 0")
-                .set("min-width", "0")
-                .set("width", "100%");
+        progressContainer.setWidthFull();
         progressContainer.addClassNames(LumoUtility.Background.CONTRAST_10, LumoUtility.BorderRadius.SMALL);
         progressContainer.setHeight("20px");
         progressContainer.getStyle().set("position", "relative");
@@ -306,20 +342,19 @@ public class RollingAveragesView extends VerticalLayout {
 
         progressContainer.add(progressFill);
 
-        Span valueSpan = new Span(formatNumber(grams) + "g (" + formatNumber(percentage) + "%)");
-        valueSpan.getStyle()
-                .set("min-width", "85px")
-                .set("width", "105px")
-                .set("flex-shrink", "0")
-                .set("text-align", "right");
-        valueSpan.addClassNames(LumoUtility.FontSize.SMALL);
-
-        row.add(labelSpan, progressContainer, valueSpan);
-        return row;
+        container.add(topRow, progressContainer);
+        return container;
     }
 
     private String formatNumber(double value) {
         return String.format("%.1f", value);
+    }
+
+    private DatePicker.DatePickerI18n createDatePickerI18n() {
+        DatePicker.DatePickerI18n i18n = new DatePicker.DatePickerI18n();
+        i18n.setFirstDayOfWeek(1); // Monday
+        i18n.setDateFormat("yyyy-MM-dd");
+        return i18n;
     }
 
     private void showSuccess(String message) {

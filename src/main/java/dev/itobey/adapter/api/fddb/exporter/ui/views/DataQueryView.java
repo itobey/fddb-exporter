@@ -43,14 +43,17 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
 
     // All entries tab
     private Grid<FddbDataDTO> allEntriesGrid;
+    private Span allEntriesCountLabel;
 
     // Date search tab
     private DatePicker searchDatePicker;
     private Grid<ProductDTO> dateProductsGrid;
+    private Span dateProductsCountLabel;
 
     // Product search tab
     private TextField productSearchField;
     private Grid<ProductWithDateDTO> productSearchGrid;
+    private Span productSearchCountLabel;
 
     // TabSheet reference for navigation
     private final TabSheet tabSheet = new TabSheet();
@@ -124,6 +127,13 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         loadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         loadButton.addClickListener(e -> loadAllEntries());
 
+        allEntriesCountLabel = new Span();
+        allEntriesCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        allEntriesCountLabel.setVisible(false);
+        allEntriesCountLabel.getStyle()
+                .set("text-align", "right")
+                .set("margin-bottom", "0.5rem");
+
         allEntriesGrid = new Grid<>(FddbDataDTO.class, false);
         allEntriesGrid.addClassName("data-query-grid");
         // Note: No desktop-only class here - Grid works well for large datasets on both desktop and mobile
@@ -154,7 +164,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             }
         });
 
-        layout.add(loadButton, allEntriesGrid);
+        layout.add(loadButton, allEntriesCountLabel, allEntriesGrid);
         return layout;
     }
 
@@ -181,6 +191,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         searchDatePicker = new DatePicker("Select Date");
         searchDatePicker.setValue(LocalDate.now().minusDays(1)); // Default to yesterday
         searchDatePicker.setWidthFull();
+        searchDatePicker.setI18n(createDatePickerI18n());
 
         Button searchButton = new Button("Search");
         searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -189,6 +200,14 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         searchButton.getStyle().set("min-width", "100px");
 
         searchForm.add(searchDatePicker, searchButton);
+
+        dateProductsCountLabel = new Span();
+        dateProductsCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        dateProductsCountLabel.setVisible(false);
+        dateProductsCountLabel.getStyle()
+                .set("text-align", "right")
+                .set("margin-bottom", "0.5rem")
+                .set("margin-right", "0.5rem");
 
         dateProductsGrid = new Grid<>(ProductDTO.class, false);
         dateProductsGrid.addClassName("data-query-grid");
@@ -222,7 +241,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         dateProductsCardsContainer.setPadding(false);
         dateProductsCardsContainer.setVisible(false);
 
-        layout.add(searchForm, dateProductsGrid, dateProductsCardsContainer);
+        layout.add(searchForm, dateProductsCountLabel, dateProductsGrid, dateProductsCardsContainer);
         // Don't set flex grow - let it size naturally
         return layout;
     }
@@ -268,6 +287,14 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
 
         searchForm.add(productSearchField, searchButton);
 
+        productSearchCountLabel = new Span();
+        productSearchCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        productSearchCountLabel.setVisible(false);
+        productSearchCountLabel.getStyle()
+                .set("text-align", "right")
+                .set("margin-bottom", "0.5rem")
+                .set("margin-right", "0.5rem");
+
         productSearchGrid = new Grid<>(ProductWithDateDTO.class, false);
         productSearchGrid.addClassName("data-query-grid");
         productSearchGrid.addClassName("desktop-only");
@@ -301,7 +328,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productSearchCardsContainer.setPadding(false);
         productSearchCardsContainer.setVisible(false);
 
-        layout.add(searchForm, productSearchGrid, productSearchCardsContainer);
+        layout.add(searchForm, productSearchCountLabel, productSearchGrid, productSearchCardsContainer);
         return layout;
     }
 
@@ -312,12 +339,18 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             allEntriesGrid.setItems(entries);
             // Always adjust height dynamically - shows all rows up to max viewport height
             allEntriesGrid.setAllRowsVisible(true);
+
+            // Update count label
+            allEntriesCountLabel.setText(entries.size() + " entries");
+            allEntriesCountLabel.setVisible(true);
+
             showSuccess("Loaded " + entries.size() + " entries");
         } catch (ApiException e) {
             showError(e.getMessage());
             allEntriesGrid.setVisible(true);
             allEntriesGrid.setItems();
             allEntriesGrid.setAllRowsVisible(true);
+            allEntriesCountLabel.setVisible(false);
         }
     }
 
@@ -336,6 +369,10 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 // Always adjust height dynamically - shows all rows up to max viewport height
                 dateProductsGrid.setAllRowsVisible(true);
 
+                // Update count label
+                dateProductsCountLabel.setText(data.getProducts().size() + " products");
+                dateProductsCountLabel.setVisible(true);
+
                 // Populate cards for mobile
                 dateProductsCardsContainer.removeAll();
                 dateProductsCardsContainer.setVisible(true);
@@ -348,6 +385,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             } else {
                 dateProductsGrid.setItems();
                 dateProductsGrid.setAllRowsVisible(true);
+                dateProductsCountLabel.setVisible(false);
                 dateProductsCardsContainer.removeAll();
                 dateProductsCardsContainer.setVisible(false);
                 showError("No data found for " + date);
@@ -357,6 +395,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             dateProductsGrid.setVisible(true);
             dateProductsGrid.setItems();
             dateProductsGrid.setAllRowsVisible(true);
+            dateProductsCountLabel.setVisible(false);
             dateProductsCardsContainer.removeAll();
             dateProductsCardsContainer.setVisible(false);
         }
@@ -376,6 +415,10 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             // Always adjust height dynamically - shows all rows up to max viewport height
             productSearchGrid.setAllRowsVisible(true);
 
+            // Update count label
+            productSearchCountLabel.setText(products.size() + " results");
+            productSearchCountLabel.setVisible(true);
+
             // Populate cards for mobile
             productSearchCardsContainer.removeAll();
             productSearchCardsContainer.setVisible(true);
@@ -390,6 +433,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             productSearchGrid.setVisible(true);
             productSearchGrid.setItems();
             productSearchGrid.setAllRowsVisible(true);
+            productSearchCountLabel.setVisible(false);
             productSearchCardsContainer.removeAll();
             productSearchCardsContainer.setVisible(false);
         }
@@ -398,6 +442,13 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
 
     private String formatNumber(double value) {
         return String.format("%.1f", value);
+    }
+
+    private DatePicker.DatePickerI18n createDatePickerI18n() {
+        DatePicker.DatePickerI18n i18n = new DatePicker.DatePickerI18n();
+        i18n.setFirstDayOfWeek(1); // Monday
+        i18n.setDateFormat("yyyy-MM-dd");
+        return i18n;
     }
 
     private void showSuccess(String message) {

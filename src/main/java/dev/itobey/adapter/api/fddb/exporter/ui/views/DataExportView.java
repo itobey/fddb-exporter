@@ -92,10 +92,12 @@ public class DataExportView extends VerticalLayout {
         fromDate = new DatePicker("From Date");
         fromDate.setValue(LocalDate.now().minusDays(7));
         fromDate.setRequired(true);
+        fromDate.setI18n(createDatePickerI18n());
 
         toDate = new DatePicker("To Date");
         toDate.setValue(LocalDate.now().minusDays(1)); // Set to yesterday
         toDate.setRequired(true);
+        toDate.setI18n(createDatePickerI18n());
 
         form.add(fromDate, toDate);
         // Responsive: 1 column on mobile, 2 on desktop
@@ -151,10 +153,14 @@ public class DataExportView extends VerticalLayout {
         exportButton.addClickListener(e -> exportDaysBack());
         exportButton.setWidthFull();
 
+        Button exportYesterdayButton = new Button("Export Yesterday");
+        exportYesterdayButton.addClickListener(e -> exportYesterday());
+        exportYesterdayButton.setWidthFull();
+
         daysBackResult = new Div();
         daysBackResult.setVisible(false);
 
-        section.add(form, exportButton, daysBackResult);
+        section.add(form, exportButton, exportYesterdayButton, daysBackResult);
         return section;
     }
 
@@ -199,6 +205,31 @@ public class DataExportView extends VerticalLayout {
         } catch (ApiException e) {
             showError(e.getMessage());
         }
+    }
+
+    private void exportYesterday() {
+        try {
+            ExportResultDTO result = fddbDataClient.exportForDaysBack(1, false);
+            displayResult(daysBackResult, result);
+
+            // Show notification with result
+            if (result.getSuccessfulDays() != null && !result.getSuccessfulDays().isEmpty()) {
+                showSuccess("Yesterday exported successfully: " + result.getSuccessfulDays().get(0));
+            } else if (result.getUnsuccessfulDays() != null && !result.getUnsuccessfulDays().isEmpty()) {
+                showError("Failed to export yesterday: " + result.getUnsuccessfulDays().get(0));
+            } else {
+                showSuccess("Export completed");
+            }
+        } catch (ApiException e) {
+            showError("Failed to export yesterday: " + e.getMessage());
+        }
+    }
+
+    private DatePicker.DatePickerI18n createDatePickerI18n() {
+        DatePicker.DatePickerI18n i18n = new DatePicker.DatePickerI18n();
+        i18n.setFirstDayOfWeek(1); // Monday
+        i18n.setDateFormat("yyyy-MM-dd");
+        return i18n;
     }
 
     private void displayResult(Div resultDiv, ExportResultDTO result) {

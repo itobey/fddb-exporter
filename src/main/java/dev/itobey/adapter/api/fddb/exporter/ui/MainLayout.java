@@ -5,6 +5,7 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -108,6 +109,20 @@ public class MainLayout extends AppLayout {
     }
 
     private void createDrawer() {
+        // Add header text at the top of the drawer
+        H3 drawerHeader = new H3("FDDB-Exporter");
+        drawerHeader.addClassNames(
+                LumoUtility.Margin.NONE,
+                LumoUtility.Padding.Horizontal.MEDIUM,
+                LumoUtility.Padding.Vertical.SMALL
+        );
+        drawerHeader.getStyle()
+                .set("color", "var(--lumo-header-text-color)")
+                .set("font-size", "1.25rem")
+                .set("font-weight", "600")
+                .set("border-bottom", "1px solid rgba(255, 255, 255, 0.08)")
+                .set("margin-bottom", "0.5rem");
+
         SideNav nav = new SideNav();
         nav.addClassNames(LumoUtility.Padding.SMALL);
 
@@ -123,13 +138,13 @@ public class MainLayout extends AppLayout {
                 DataQueryView.class,
                 new Icon(VaadinIcon.SEARCH)));
 
-        nav.addItem(new SideNavItem("Correlation Analysis",
-                CorrelationView.class,
-                new Icon(VaadinIcon.CHART)));
-
         nav.addItem(new SideNavItem("Rolling Averages",
                 RollingAveragesView.class,
                 new Icon(VaadinIcon.TRENDING_UP)));
+
+        nav.addItem(new SideNavItem("Correlation Analysis",
+                CorrelationView.class,
+                new Icon(VaadinIcon.CHART)));
 
         nav.addItem(new SideNavItem("Migration",
                 MigrationView.class,
@@ -196,6 +211,6 @@ public class MainLayout extends AppLayout {
             }
         }
 
-        addToDrawer(nav, versionContainer);
+        addToDrawer(drawerHeader, nav, versionContainer);
     }
 }

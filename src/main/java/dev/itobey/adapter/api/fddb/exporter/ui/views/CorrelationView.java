@@ -72,13 +72,11 @@ public class CorrelationView extends VerticalLayout {
     private VerticalLayout createInputForm() {
         VerticalLayout form = new VerticalLayout();
         form.addClassNames(
-                LumoUtility.Padding.LARGE,
-                LumoUtility.BorderRadius.LARGE,
+                LumoUtility.Padding.MEDIUM,
+                LumoUtility.BorderRadius.MEDIUM,
                 LumoUtility.Background.CONTRAST_5
         );
         form.setSpacing(true);
-        form.getStyle()
-                .set("box-shadow", "0 2px 8px rgba(0, 0, 0, 0.1)");
 
         form.add(new H3("Input Parameters"));
 
@@ -86,19 +84,30 @@ public class CorrelationView extends VerticalLayout {
         VerticalLayout inclusionSection = new VerticalLayout();
         inclusionSection.setPadding(false);
         inclusionSection.setSpacing(true);
+        inclusionSection.getStyle()
+                .set("padding", "0.75rem")
+                .set("border-radius", "8px")
+                .set("background", "rgba(76, 175, 80, 0.08)")
+                .set("border", "1px solid rgba(76, 175, 80, 0.2)");
 
-        H4 inclusionTitle = new H4("Inclusion Keywords");
-        inclusionTitle.getStyle().set("margin", "0");
+        H4 inclusionTitle = new H4("✓ Inclusion Keywords");
+        inclusionTitle.getStyle().set("margin", "0").set("color", "#66bb6a");
 
-        Paragraph inclusionHelp = new Paragraph("Products matching these keywords will be included in the analysis");
+        Paragraph inclusionHelp = new Paragraph("Products matching these keywords will be included");
         inclusionHelp.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         inclusionHelp.getStyle().set("margin", "0.25rem 0 0.5rem 0");
 
         inclusionKeywordInput = new TextField();
-        inclusionKeywordInput.setPlaceholder("Enter keyword and press Enter...");
+        inclusionKeywordInput.setPlaceholder("Type keyword and press Enter...");
         inclusionKeywordInput.setWidthFull();
         inclusionKeywordInput.addKeyPressListener(event -> {
             if (event.getKey().getKeys().get(0).equals("Enter")) {
+                addInclusionKeyword();
+            }
+        });
+        // Add key down listener as backup for mobile
+        inclusionKeywordInput.addKeyDownListener(event -> {
+            if (event.getKey().equals(com.vaadin.flow.component.Key.ENTER)) {
                 addInclusionKeyword();
             }
         });
@@ -117,19 +126,30 @@ public class CorrelationView extends VerticalLayout {
         VerticalLayout exclusionSection = new VerticalLayout();
         exclusionSection.setPadding(false);
         exclusionSection.setSpacing(true);
+        exclusionSection.getStyle()
+                .set("padding", "0.75rem")
+                .set("border-radius", "8px")
+                .set("background", "rgba(244, 67, 54, 0.08)")
+                .set("border", "1px solid rgba(244, 67, 54, 0.2)");
 
-        H4 exclusionTitle = new H4("Exclusion Keywords");
-        exclusionTitle.getStyle().set("margin", "0");
+        H4 exclusionTitle = new H4("✗ Exclusion Keywords");
+        exclusionTitle.getStyle().set("margin", "0").set("color", "#ef5350");
 
-        Paragraph exclusionHelp = new Paragraph("Products matching these keywords will be excluded from the analysis");
+        Paragraph exclusionHelp = new Paragraph("Products matching these keywords will be excluded");
         exclusionHelp.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         exclusionHelp.getStyle().set("margin", "0.25rem 0 0.5rem 0");
 
         exclusionKeywordInput = new TextField();
-        exclusionKeywordInput.setPlaceholder("Enter keyword and press Enter...");
+        exclusionKeywordInput.setPlaceholder("Type keyword and press Enter...");
         exclusionKeywordInput.setWidthFull();
         exclusionKeywordInput.addKeyPressListener(event -> {
             if (event.getKey().getKeys().get(0).equals("Enter")) {
+                addExclusionKeyword();
+            }
+        });
+        // Add key down listener as backup for mobile
+        exclusionKeywordInput.addKeyDownListener(event -> {
+            if (event.getKey().equals(com.vaadin.flow.component.Key.ENTER)) {
                 addExclusionKeyword();
             }
         });
@@ -148,18 +168,23 @@ public class CorrelationView extends VerticalLayout {
         VerticalLayout datesSection = new VerticalLayout();
         datesSection.setPadding(false);
         datesSection.setSpacing(true);
+        datesSection.getStyle()
+                .set("padding", "0.75rem")
+                .set("border-radius", "8px")
+                .set("background", "rgba(78, 97, 155, 0.08)")
+                .set("border", "1px solid rgba(78, 97, 155, 0.2)");
 
-        H4 datesTitle = new H4("Occurrence Dates");
+        H4 datesTitle = new H4("📅 Occurrence Dates");
         datesTitle.getStyle().set("margin", "0");
 
-        Paragraph datesHelp = new Paragraph("Dates when specific events occurred (comma-separated, YYYY-MM-DD format)");
+        Paragraph datesHelp = new Paragraph("Enter dates when specific events occurred (comma-separated, YYYY-MM-DD format)");
         datesHelp.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         datesHelp.getStyle().set("margin", "0.25rem 0 0.5rem 0");
 
         occurrenceDatesInput = new TextArea();
-        occurrenceDatesInput.setPlaceholder("Enter dates separated by commas (e.g., 2024-01-15, 2024-02-20, 2024-03-10)");
+        occurrenceDatesInput.setPlaceholder("e.g., 2024-01-15, 2024-02-20, 2024-03-10");
         occurrenceDatesInput.setWidthFull();
-        occurrenceDatesInput.setHeight("120px");
+        occurrenceDatesInput.setHeight("100px");
 
         datesSection.add(datesTitle, datesHelp, occurrenceDatesInput);
 
@@ -167,11 +192,14 @@ public class CorrelationView extends VerticalLayout {
         startDatePicker.setValue(LocalDate.now().minusMonths(3));
         startDatePicker.setHelperText("Start date for the analysis period");
         startDatePicker.setWidthFull();
+        startDatePicker.setI18n(createDatePickerI18n());
 
         Button analyzeButton = new Button("Run Correlation Analysis");
         analyzeButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
         analyzeButton.setWidthFull();
         analyzeButton.addClickListener(e -> runCorrelation());
+        analyzeButton.getStyle()
+                .set("margin-top", "1rem");
 
         form.add(inclusionSection, exclusionSection, datesSection, startDatePicker, analyzeButton);
         return form;
@@ -468,6 +496,13 @@ public class CorrelationView extends VerticalLayout {
         layout.setSpacing(false);
         card.add(layout);
         return card;
+    }
+
+    private DatePicker.DatePickerI18n createDatePickerI18n() {
+        DatePicker.DatePickerI18n i18n = new DatePicker.DatePickerI18n();
+        i18n.setFirstDayOfWeek(1); // Monday
+        i18n.setDateFormat("yyyy-MM-dd");
+        return i18n;
     }
 
     private void showSuccess(String message) {
