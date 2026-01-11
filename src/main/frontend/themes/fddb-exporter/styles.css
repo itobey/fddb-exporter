@@ -690,6 +690,62 @@ vaadin-button:active::before {
         min-height: 44px;
         min-width: 44px;
     }
+
+    /* Tighter spacing specifically for the Data Query view on small phones */
+    .data-query-view .data-query-tab-layout {
+        padding-top: 1.5em !important; /* user requested 3em */
+    }
+
+    .data-query-view .search-form {
+        /* inner form margin cleared; container padding controls spacing */
+        margin: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        gap: 0.125rem !important; /* reduce internal gap between label/input/button */
+    }
+
+    /* Lightweight inline labels added above inputs should be compact */
+    .data-query-view .search-form > span {
+        display: block;
+        margin: 0 0 0.125rem 0 !important;
+        line-height: 1 !important;
+        font-size: 0.95rem !important;
+    }
+
+    /* Ensure button rows in the search form sit tight to the next content */
+    .data-query-view .search-form vaadin-horizontal-layout,
+    .data-query-view .search-form .vaadin-horizontal-layout {
+        margin: 0 !important;
+        padding: 0 !important;
+        gap: 0.25rem !important;
+    }
+
+    /* Mobile cards container should sit closer to the button row */
+    .data-query-view .mobile-only.cards-container,
+    .data-query-view .cards-container {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    /* Reduce extra bottom spacing on the count labels */
+    .data-query-view .data-query-tab-layout .lumo-secondary-text-color,
+    .data-query-view .data-query-tab-layout span {
+        margin-bottom: 0.1rem !important;
+    }
+
+    /* Aggressively remove gaps between the tab bar and tab content for the Data Query view */
+    .data-query-view vaadin-tab-sheet,
+    .data-query-view vaadin-tabs,
+    .data-query-view vaadin-tabs::part(tabs) {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Ensure the tab content container starts immediately below the tabs; do not reset padding-top so the requested 3em padding remains */
+    .data-query-view .data-query-tab-layout {
+        margin-top: 0 !important;
+        /* padding-top intentionally left unset here so the 3em padding (defined earlier) controls spacing */
+    }
 }
 
 /* Tablet devices (landscape phones and portrait tablets, 577px to 991px) */
@@ -757,5 +813,12 @@ vaadin-button:active::before {
     .data-query-view,
     .rolling-averages-view {
         padding: 0;
+    }
+}
+
+@media (min-width: 992px) {
+    /* Desktop-only spacing: give the Data Query view a comfortable gap between tabs and content */
+    .data-query-view .data-query-tab-layout {
+        padding-top: 2em !important; /* desktop-only 2em as requested */
     }
 }

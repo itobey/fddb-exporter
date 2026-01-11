@@ -144,14 +144,20 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         allEntriesCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         allEntriesCountLabel.setVisible(false);
         // Keep the count on a single line and prevent it from shrinking/wrapping
+        // Add a responsive max-width and ellipsis so the label truncates on very narrow screens
         allEntriesCountLabel.getStyle()
                 .set("margin-bottom", "0.5rem")
                 .set("white-space", "nowrap")
-                .set("flex", "0 0 auto");
-        // Also ensure it is rendered as inline-block so nowrap is respected across layouts
+                .set("flex", "0 0 auto")
+                .set("max-width", "clamp(4rem, 22%, 8rem)")
+                .set("overflow", "hidden")
+                .set("text-overflow", "ellipsis");
+        // Ensure inline-block so nowrap, ellipsis and flex interaction behave consistently
         allEntriesCountLabel.getStyle().set("display", "inline-block").set("min-width", "0");
 
         // Put the load button and count label into a single row so the count (amount) is aligned to the right above the table
+        // Ensure the top row doesn't wrap; keep label shrinkable with max-width+ellipsis
+        allEntriesCountLabel.getStyle().set("flex", "0 1 auto");
         HorizontalLayout topRow = new HorizontalLayout(loadButton, allEntriesCountLabel);
         topRow.setWidthFull();
         topRow.setAlignItems(Alignment.CENTER);
@@ -204,21 +210,34 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         layout.getStyle()
                 .set("padding-left", "clamp(0rem, 2vw, 1rem)")
                 .set("padding-right", "clamp(0rem, 2vw, 1rem)")
-                .set("padding-top", "0.5rem")
+                // Reduce the top padding for search tabs to bring content closer to the tab headers on mobile
+                .set("padding-top", "0.25rem")
                 .set("padding-bottom", "0.5rem");
 
         VerticalLayout searchForm = new VerticalLayout();
         searchForm.setWidthFull();
         searchForm.setSpacing(false);
-        searchForm.addClassNames(LumoUtility.Gap.SMALL);
+        // Reduce padding/margin so the form sits closer to the tab navigation (match All Entries top row)
+        searchForm.setPadding(false);
+        searchForm.getStyle().set("margin", "0");
+        // Remove Lumo gap utility so there is no extra vertical gap inside the form
+        searchForm.setSpacing(false);
+
         // Add a class so CSS can target padding/margins consistently
         searchForm.addClassName("search-form");
 
-        // Add padding to the form container on mobile so it doesn't touch edges
+        // Add horizontal padding to the form container on mobile so it doesn't touch edges; remove vertical padding
         searchForm.getStyle().set("padding-left", "clamp(0.5rem, 0vw, 0rem)");
         searchForm.getStyle().set("padding-right", "clamp(0.5rem, 0vw, 0rem)");
+        // Remove any vertical margins so the form sits tightly under the tab navigation
+        searchForm.getStyle().set("margin-top", "0").set("margin-bottom", "0").set("padding-top", "0").set("padding-bottom", "0");
 
-        searchDatePicker = new DatePicker("Select Date");
+        // Use a lightweight inline label instead of the DatePicker's built-in label to avoid extra vertical spacing
+        Span searchDateLabel = new Span("Select Date");
+        searchDateLabel.getStyle().set("font-size", "0.9rem").set("margin", "0").set("padding", "0").set("color", "var(--lumo-secondary-text-color)");
+
+        searchDatePicker = new DatePicker();
+        searchDatePicker.setPlaceholder("Select date...");
         searchDatePicker.setValue(LocalDate.now().minusDays(1)); // Default to yesterday
         searchDatePicker.setWidthFull();
         searchDatePicker.setI18n(createDatePickerI18n());
@@ -228,33 +247,41 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         searchButton.addClickListener(e -> searchByDate());
         // Make button responsive
         searchButton.getStyle().set("min-width", "100px");
+        // Prevent extra top/bottom margins inside inputs on some themes
+        searchDatePicker.getStyle().set("margin-top", "0").set("margin-bottom", "0");
 
         HorizontalLayout buttonRow = new HorizontalLayout(searchButton);
         buttonRow.setPadding(false);
         buttonRow.setSpacing(false);
         buttonRow.setAlignItems(Alignment.CENTER);
-        searchForm.add(searchDatePicker, buttonRow);
+        // Ensure the button row stretches and places the count label at the far right so it stays aligned with the button on mobile
+        buttonRow.setWidthFull();
+        buttonRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        // Prevent the button row from wrapping its children on narrow screens
+        buttonRow.getStyle().set("flex-wrap", "nowrap");
+        // Remove any bottom margin so the button row sits tight above the results
+        buttonRow.getStyle().set("margin-bottom", "0");
+        searchForm.add(searchDateLabel, searchDatePicker, buttonRow);
 
         dateProductsCountLabel = new Span();
         dateProductsCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         dateProductsCountLabel.setVisible(false);
         // Prevent wrapping so counts like "19 results" stay on a single line
+        // Add responsive max-width and ellipsis so the label truncates instead of wrapping
         dateProductsCountLabel.getStyle()
-                .set("margin-bottom", "0.5rem")
+                .set("margin-bottom", "0.1rem")
                 .set("white-space", "nowrap")
-                .set("flex", "0 0 auto");
-        // Ensure inline-block so nowrap and flex interaction behave consistently
+                .set("flex", "0 0 auto")
+                .set("max-width", "clamp(4rem, 28%, 9rem)")
+                .set("overflow", "hidden")
+                .set("text-overflow", "ellipsis");
+        // Ensure inline-block so nowrap, ellipsis and flex interaction behave consistently
         dateProductsCountLabel.getStyle().set("display", "inline-block").set("min-width", "0");
 
-        // Put the search form and the count label into one row so the count appears on the right above the grid
-        // Align items to the end so the count vertically lines up with the button row rather than the taller input
-        HorizontalLayout dateTopRow = new HorizontalLayout(searchForm, dateProductsCountLabel);
-        dateTopRow.setWidthFull();
-        dateTopRow.setAlignItems(Alignment.END);
-        dateTopRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        dateTopRow.setSpacing(false);
-        // Ensure the searchForm expands to take remaining width so the count label stays at the far right
-        dateTopRow.expand(searchForm);
+        // Place the count label into the button row so it remains on the same line as the button on narrow viewports
+        // allow label to shrink (flex-basis shrink) but keep max-width/ellipsis
+        dateProductsCountLabel.getStyle().set("flex", "0 1 auto");
+        buttonRow.add(dateProductsCountLabel);
 
         dateProductsGrid = new Grid<>(ProductDTO.class, false);
         dateProductsGrid.addClassName("data-query-grid");
@@ -284,13 +311,31 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         dateProductsCardsContainer = new VerticalLayout();
         dateProductsCardsContainer.addClassName("mobile-only");
         dateProductsCardsContainer.addClassName("cards-container");
-        dateProductsCardsContainer.setSpacing(true);
+        dateProductsCardsContainer.setSpacing(false);
         dateProductsCardsContainer.setPadding(false);
         dateProductsCardsContainer.setVisible(false);
         // Add padding so cards don't touch edges (consistent with form)
         dateProductsCardsContainer.getStyle()
                 .set("padding-left", "0.5rem")
                 .set("padding-right", "0.5rem");
+        // Reduce extra gap between button row and cards
+        dateProductsCardsContainer.getStyle().set("margin-top", "-0.1rem").set("padding-top", "0");
+
+        // Top row contains the search form; the count label lives inside the button row
+        HorizontalLayout dateTopRow = new HorizontalLayout(searchForm);
+        dateTopRow.setWidthFull();
+        dateTopRow.setAlignItems(Alignment.CENTER);
+        dateTopRow.setSpacing(false);
+        // Remove extra spacing so the distance to the grid/cards matches All Entries tab
+        dateTopRow.setPadding(false);
+        dateTopRow.getStyle().set("margin", "0");
+        dateTopRow.getStyle().set("padding-bottom", "0");
+        // Ensure the top row sits tight under the tab header on mobile; pull up slightly more
+        dateTopRow.getStyle().set("margin-top", "-1rem");
+        // Reduce the spacing before the results grid/cards
+        dateTopRow.getStyle().set("margin-bottom", "0rem");
+        // Slight negative bottom margin on the inner form to pull the results upward
+        searchForm.getStyle().set("margin-bottom", "-0.2rem");
 
         layout.add(dateTopRow, dateProductsGrid, dateProductsCardsContainer);
         // Don't set flex grow - let it size naturally
@@ -307,23 +352,36 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         layout.getStyle()
                 .set("padding-left", "clamp(0rem, 2vw, 1rem)")
                 .set("padding-right", "clamp(0rem, 2vw, 1rem)")
-                .set("padding-top", "0.5rem")
+                // Reduce the top padding for search tabs to bring content closer to the tab headers on mobile
+                .set("padding-top", "0.25rem")
                 .set("padding-bottom", "0.5rem");
 
         VerticalLayout searchForm = new VerticalLayout();
         searchForm.setWidthFull();
         searchForm.setSpacing(false);
-        searchForm.addClassNames(LumoUtility.Gap.SMALL);
+        // Reduce padding/margin so the form sits closer to the tab navigation (match All Entries top row)
+        searchForm.setPadding(false);
+        searchForm.getStyle().set("margin", "0");
+        // Remove Lumo gap utility to avoid extra vertical spacing
+        searchForm.setSpacing(false);
+
         // Add a class so CSS can target padding/margins consistently
         searchForm.addClassName("search-form");
 
-        // Add padding to the form container on mobile so it doesn't touch edges
+        // Add horizontal padding only; remove vertical margins/padding
         searchForm.getStyle().set("padding-left", "clamp(0.5rem, 0vw, 0rem)");
         searchForm.getStyle().set("padding-right", "clamp(0.5rem, 0vw, 0rem)");
+        searchForm.getStyle().set("margin-top", "0").set("margin-bottom", "0").set("padding-top", "0").set("padding-bottom", "0");
 
-        productSearchField = new TextField("Product Name");
+        // Use a small inline label above the input to avoid extra vertical spacing from the TextField's built-in label
+        Span productSearchLabel = new Span("Product Name");
+        productSearchLabel.getStyle().set("font-size", "0.9rem").set("margin", "0").set("padding", "0").set("color", "var(--lumo-secondary-text-color)");
+
+        productSearchField = new TextField();
         productSearchField.setPlaceholder("Enter product name...");
         productSearchField.setWidthFull();
+        // Prevent extra margins in the input on some themes
+        productSearchField.getStyle().set("margin-top", "0").set("margin-bottom", "0");
         // Make responsive
         productSearchField.getStyle().set("min-width", "200px").set("flex", "1 1 auto");
 
@@ -340,28 +398,34 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productButtonRow.setPadding(false);
         productButtonRow.setSpacing(false);
         productButtonRow.setAlignItems(Alignment.CENTER);
-        searchForm.add(productSearchField, productButtonRow);
+        // Ensure the button row stretches and places the count label at the far right so it stays aligned with the button on mobile
+        productButtonRow.setWidthFull();
+        productButtonRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        // Prevent wrapping of button row children so button and count stay on the same line
+        productButtonRow.getStyle().set("flex-wrap", "nowrap");
+        // Remove bottom margin to keep button row close to results
+        productButtonRow.getStyle().set("margin-bottom", "0");
+        searchForm.add(productSearchLabel, productSearchField, productButtonRow);
 
         productSearchCountLabel = new Span();
         productSearchCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         productSearchCountLabel.setVisible(false);
         // Prevent wrapping so counts like "19 results" stay on a single line
+        // Add responsive max-width and ellipsis so the label truncates instead of wrapping
         productSearchCountLabel.getStyle()
-                .set("margin-bottom", "0.5rem")
+                .set("margin-bottom", "0.1rem")
                 .set("white-space", "nowrap")
-                .set("flex", "0 0 auto");
-        // Ensure inline-block so nowrap and flex interaction behave consistently
+                .set("flex", "0 0 auto")
+                .set("max-width", "clamp(4rem, 28%, 9rem)")
+                .set("overflow", "hidden")
+                .set("text-overflow", "ellipsis");
+        // Ensure inline-block so nowrap, ellipsis and flex interaction behave consistently
         productSearchCountLabel.getStyle().set("display", "inline-block").set("min-width", "0");
 
-        // Put the product search form and product count into a single row so the count is displayed on the right above the product search results grid.
-        // Align to the end so the count lines up with the search button row.
-        HorizontalLayout productTopRow = new HorizontalLayout(searchForm, productSearchCountLabel);
-        productTopRow.setWidthFull();
-        productTopRow.setAlignItems(Alignment.END);
-        productTopRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        productTopRow.setSpacing(false);
-        // Ensure the searchForm expands to take remaining width so the count label stays at the far right
-        productTopRow.expand(searchForm);
+        // Place the product count label into the product button row so it remains on the same horizontal line as the button on narrow viewports
+        // Allow the label to shrink when space is tight; max-width + ellipsis will handle visual truncation
+        productSearchCountLabel.getStyle().set("flex", "0 1 auto");
+        productButtonRow.add(productSearchCountLabel);
 
         productSearchGrid = new Grid<>(ProductWithDateDTO.class, false);
         productSearchGrid.addClassName("data-query-grid");
@@ -392,13 +456,30 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productSearchCardsContainer = new VerticalLayout();
         productSearchCardsContainer.addClassName("mobile-only");
         productSearchCardsContainer.addClassName("cards-container");
-        productSearchCardsContainer.setSpacing(true);
+        productSearchCardsContainer.setSpacing(false);
         productSearchCardsContainer.setPadding(false);
         productSearchCardsContainer.setVisible(false);
         // Add padding so cards don't touch edges
         productSearchCardsContainer.getStyle()
                 .set("padding-left", "0.5rem")
                 .set("padding-right", "0.5rem");
+        // Reduce gap between button row and cards
+        productSearchCardsContainer.getStyle().set("margin-top", "-0.1rem").set("padding-top", "0");
+
+        // Top row contains only the search form; the count label is inside the button row
+        HorizontalLayout productTopRow = new HorizontalLayout(searchForm);
+        productTopRow.setWidthFull();
+        productTopRow.setAlignItems(Alignment.CENTER);
+        productTopRow.setSpacing(false);
+        // Remove extra spacing so the distance to the grid/cards matches All Entries tab
+        productTopRow.setPadding(false);
+        productTopRow.getStyle().set("margin", "0");
+        productTopRow.getStyle().set("padding-bottom", "0");
+        // Ensure the top row sits tight under the tab header on mobile; pull up slightly more
+        productTopRow.getStyle().set("margin-top", "-1rem");
+        productTopRow.getStyle().set("margin-bottom", "0rem");
+        // Slight negative bottom margin on the inner form to pull the results upward
+        searchForm.getStyle().set("margin-bottom", "-0.2rem");
 
         layout.add(productTopRow, productSearchGrid, productSearchCardsContainer);
         return layout;
