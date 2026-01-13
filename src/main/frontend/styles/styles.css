@@ -528,14 +528,16 @@ vaadin-grid-cell-content {
    ============================================ */
 /* Desktop: Limit grid height to prevent viewport overflow */
 @media (min-width: 769px) {
+    /* Make data grids slightly shorter to avoid vertical overflow; match All Entries */
     .data-query-view .data-query-grid {
-        max-height: calc(100vh - 350px);
+        /* reduce height slightly and subtract 2rem for extra breathing room */
+        max-height: calc(100vh - 370px - 5rem);
+        overflow-y: auto;
     }
 
-    /* Make All Entries grid slightly shorter to avoid a tiny page scrollbar when count label changes */
+    /* Make All Entries grid identical to other grids (explicit for clarity) */
     .data-query-view .all-entries-grid {
-        /* reduce by 20px for safety */
-        max-height: calc(100vh - 370px);
+        max-height: calc(100vh - 370px - 2rem);
         overflow-y: auto;
     }
 
