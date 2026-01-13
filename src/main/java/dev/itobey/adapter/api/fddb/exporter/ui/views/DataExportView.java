@@ -86,6 +86,8 @@ public class DataExportView extends VerticalLayout {
         HorizontalLayout sectionsLayout = new HorizontalLayout();
         sectionsLayout.setWidthFull();
         sectionsLayout.setSpacing(true);
+        // add a class so we can target stacked children on narrow breakpoints
+        sectionsLayout.addClassName("export-sections-layout");
         sectionsLayout.addClassNames(LumoUtility.Gap.MEDIUM);
         sectionsLayout.getStyle().set("flex-wrap", "wrap");
         sectionsLayout.getStyle().set("align-items", "flex-start"); // Don't stretch to equal heights
@@ -94,7 +96,8 @@ public class DataExportView extends VerticalLayout {
         VerticalLayout daysBackWrapper = new VerticalLayout();
         daysBackWrapper.setSpacing(true);
         daysBackWrapper.setPadding(false);
-        daysBackWrapper.getStyle().set("flex", "1 1 400px");
+        // add a class so we can toggle the flex responsively (keep desktop behavior, remove on mobile)
+        daysBackWrapper.addClassName("export-section-item");
 
         VerticalLayout daysBackSection = createDaysBackSection();
 
@@ -126,10 +129,17 @@ public class DataExportView extends VerticalLayout {
 
         // Date Range Export Section (now second)
         VerticalLayout dateRangeSection = createDateRangeSection();
-        dateRangeSection.getStyle().set("flex", "1 1 400px"); // Flex-grow, flex-shrink, min-width
+        // add a class so we can toggle the flex responsively (keep desktop behavior, remove on mobile)
+        dateRangeSection.addClassName("export-section-item");
 
         sectionsLayout.add(daysBackWrapper, dateRangeSection);
         add(sectionsLayout);
+
+        // Toggle the desktop flex on/off depending on viewport width: apply on desktop (>576px), remove on mobile.
+        // On mobile we also set width:100% so stacked sections fill the container and don't keep desktop sizing.
+        sectionsLayout.getElement().executeJs(
+                "(function(){function apply(){const items=document.querySelectorAll('.data-export-view .export-section-item'); if(window.innerWidth>576){items.forEach(i=>{ i.style.flex='1 1 400px'; i.style.width=''; });} else {items.forEach(i=>{ i.style.flex=''; i.style.width='100%'; });}} apply(); window.addEventListener('resize', apply);})();"
+        );
     }
 
     private VerticalLayout createDateRangeSection() {

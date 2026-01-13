@@ -100,6 +100,9 @@ html {
     --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-normal: 180ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-slow: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Mobile horizontal padding - used to keep consistent spacing between cards and viewport edges */
+    --mobile-horizontal-padding: 0.5rem;
 }
 
 /* ============================================
@@ -605,14 +608,18 @@ vaadin-grid-cell-content {
 
 /* Extra small devices (phones in portrait, less than 576px) */
 @media (max-width: 576px) {
-    /* Further reduce spacing */
+    /* Further reduce spacing - lower the variable so all uses adjust */
+    :root {
+        --mobile-horizontal-padding: 0.25rem;
+    }
+
     .dashboard-view,
     .data-query-view,
     .rolling-averages-view,
     .data-export-view,
     .correlation-view,
     .migration-view {
-        padding: 0.25rem !important;
+        padding: var(--mobile-horizontal-padding) !important;
     }
 
     /* Stack all horizontal layouts */
@@ -669,8 +676,9 @@ vaadin-grid-cell-content {
 
     /* Add minimum padding to all views on mobile */
     vaadin-vertical-layout:not([theme~="padding-false"]) {
-        padding-left: max(0.5rem, env(safe-area-inset-left, 0.5rem)) !important;
-        padding-right: max(0.5rem, env(safe-area-inset-right, 0.5rem)) !important;
+        /* Use the shared mobile padding and respect safe-area insets */
+        padding-left: max(var(--mobile-horizontal-padding), env(safe-area-inset-left, 0)) !important;
+        padding-right: max(var(--mobile-horizontal-padding), env(safe-area-inset-right, 0)) !important;
         padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem)) !important;
         padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem)) !important;
     }
@@ -681,17 +689,20 @@ vaadin-grid-cell-content {
         padding-right: 0.25rem;
     }
 
-    /* Ensure cards have spacing */
-    .card, .cards-grid {
-        margin-left: 0.25rem;
-        margin-right: 0.25rem;
+    /* Ensure cards have spacing - use padding for symmetric spacing instead of asymmetric margins */
+    .card, .cards-grid, .cards-container {
+        padding-left: var(--mobile-horizontal-padding);
+        padding-right: var(--mobile-horizontal-padding);
+        margin-left: 0;
+        margin-right: 0;
+        box-sizing: border-box;
     }
 
     /* Data Query View - Full width tables on mobile */
     .data-query-view .data-query-grid {
         /* Counteract all parent padding to span full width */
-        margin-left: calc(-1 * max(0.5rem, env(safe-area-inset-left, 0.5rem)));
-        margin-right: calc(-1 * max(0.5rem, env(safe-area-inset-right, 0.5rem)));
+        margin-left: calc(-1 * max(var(--mobile-horizontal-padding), env(safe-area-inset-left, 0)));
+        margin-right: calc(-1 * max(var(--mobile-horizontal-padding), env(safe-area-inset-right, 0)));
         width: 100vw;
         max-width: 100vw;
         /* Remove max-height on mobile to show all entries without scrolling */
@@ -702,20 +713,78 @@ vaadin-grid-cell-content {
     /* Add padding to search forms and buttons on mobile so they're not flush against edges */
     .data-query-tab-layout > vaadin-horizontal-layout,
     .data-query-tab-layout > vaadin-button {
-        margin-left: 0.5rem;
-        margin-right: 0.5rem;
+        margin-left: var(--mobile-horizontal-padding);
+        margin-right: var(--mobile-horizontal-padding);
     }
 
     /* Also ensure count labels have consistent margins */
     .data-query-tab-layout > span {
-        margin-left: 0.5rem;
-        margin-right: 0.5rem;
+        margin-left: var(--mobile-horizontal-padding);
+        margin-right: var(--mobile-horizontal-padding);
     }
 
     /* Remove padding from data query view tab content layouts on mobile */
     .data-query-view vaadin-tabsheet vaadin-scroller vaadin-vertical-layout {
         padding-left: 0 !important;
         padding-right: 0 !important;
+    }
+}
+
+/* Extra small devices (phones in portrait, less than 576px) */
+@media (max-width: 576px) {
+    /* Further reduce spacing - lower the variable so all uses adjust */
+    :root {
+        --mobile-horizontal-padding: 0.25rem;
+    }
+
+    .dashboard-view,
+    .data-query-view,
+    .rolling-averages-view,
+    .data-export-view,
+    .correlation-view,
+    .migration-view {
+        padding: var(--mobile-horizontal-padding) !important;
+    }
+
+    /* Stack all horizontal layouts */
+    vaadin-horizontal-layout {
+        flex-direction: column !important;
+    }
+
+    /* Keep our amount-date-row as a row even on the smallest screens */
+    vaadin-horizontal-layout.amount-date-row,
+    .mobile-data-card .amount-date-row {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        white-space: nowrap !important;
+    }
+
+    /* Full width buttons */
+    vaadin-button {
+        width: 100%;
+        margin: 0.25rem 0;
+    }
+
+    /* Smaller cards */
+    [class*="card"] {
+        min-width: 100px !important;
+        font-size: 0.875rem;
+    }
+
+    /* Grid - Show fewer columns */
+    vaadin-grid::part(cell) {
+        font-size: 0.75rem;
+        padding: 0.25rem;
+    }
+
+    /* Better touch targets */
+    vaadin-button,
+    vaadin-tab,
+    a {
+        min-height: 44px;
+        min-width: 44px;
     }
 }
 
@@ -858,3 +927,31 @@ vaadin-grid-cell-content {
     }
 }
 
+/* Tweak: ensure export sections use consistent spacing on very small screens
+   Previously the stacked sections get large gap due to margins on each .card-like box
+   and the layout's gap. We add a narrow-screen rule to reduce gap and normalize padding.
+*/
+@media (max-width: 576px) {
+    /* Target the HorizontalLayout we added in DataExportView */
+    .export-sections-layout {
+        /* remove larger gap and let children use compact spacing */
+        gap: 0.5rem !important;
+    }
+
+    /* When the horizontal layout wraps to vertical, its children (the section boxes)
+       should not add large top/bottom margins; match desktop spacing by using symmetric
+       padding instead of big margins. */
+    .export-sections-layout > * {
+        /* collapse extra top/bottom margins coming from Lumo utility Margin classes */
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.25rem !important;
+        padding-left: calc(var(--mobile-horizontal-padding, 0.25rem)) !important;
+        padding-right: calc(var(--mobile-horizontal-padding, 0.25rem)) !important;
+        box-sizing: border-box;
+    }
+
+    /* Ensure the two child columns (wrappers) do not keep large min-width that forces extra spacing */
+    .export-sections-layout > * {
+        min-width: 0 !important;
+    }
+}
