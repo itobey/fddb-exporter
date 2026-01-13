@@ -55,23 +55,80 @@ public class DataExportView extends VerticalLayout {
         add(new H2("Data Export"));
         add(new Paragraph("Export FDDB data from your account to the database."));
 
+        // Mobile-only Export Yesterday button (wrapped in a box)
+        Button mobileExportYesterdayButton = new Button("Export Yesterday");
+        mobileExportYesterdayButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        mobileExportYesterdayButton.addClickListener(e -> exportYesterday());
+        mobileExportYesterdayButton.setWidthFull();
+
+        // Create a labeled box (title + description + button) similar to the other sections
+        VerticalLayout mobileYesterdayBox = new VerticalLayout();
+        mobileYesterdayBox.addClassNames(
+                LumoUtility.Padding.MEDIUM,
+                LumoUtility.BorderRadius.MEDIUM,
+                LumoUtility.Background.CONTRAST_5,
+                LumoUtility.Margin.Bottom.MEDIUM
+        );
+        // Add a title and short description to match other export boxes
+        mobileYesterdayBox.add(new H3("Export Yesterday"));
+        mobileYesterdayBox.add(new Paragraph("Quickly export data for yesterday only."));
+        mobileYesterdayBox.add(mobileExportYesterdayButton);
+        mobileYesterdayBox.setWidthFull();
+        // Hide on desktop (>1000px), show on mobile
+        mobileYesterdayBox.getStyle().set("display", "block");
+        mobileYesterdayBox.getElement().executeJs(
+                "if (window.innerWidth > 1000) { this.style.display = 'none'; }" +
+                        "window.addEventListener('resize', () => { this.style.display = window.innerWidth > 1000 ? 'none' : 'block'; });"
+        );
+        add(mobileYesterdayBox);
+
         // Create a horizontal layout for the two export sections
         HorizontalLayout sectionsLayout = new HorizontalLayout();
         sectionsLayout.setWidthFull();
         sectionsLayout.setSpacing(true);
         sectionsLayout.addClassNames(LumoUtility.Gap.MEDIUM);
         sectionsLayout.getStyle().set("flex-wrap", "wrap");
-        sectionsLayout.getStyle().set("align-items", "stretch");
+        sectionsLayout.getStyle().set("align-items", "flex-start"); // Don't stretch to equal heights
 
-        // Date Range Export Section
+        // Days Back Export Section with desktop Export Yesterday button below it
+        VerticalLayout daysBackWrapper = new VerticalLayout();
+        daysBackWrapper.setSpacing(true);
+        daysBackWrapper.setPadding(false);
+        daysBackWrapper.getStyle().set("flex", "1 1 400px");
+
+        VerticalLayout daysBackSection = createDaysBackSection();
+
+        // Desktop Export Yesterday button (wrapped in a box and placed below the Recent Days box)
+        Button desktopExportYesterdayButton = new Button("Export Yesterday");
+        desktopExportYesterdayButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        desktopExportYesterdayButton.addClickListener(e -> exportYesterday());
+        desktopExportYesterdayButton.setWidthFull();
+
+        // Create a labeled desktop box (title + description + button) to match other sections
+        VerticalLayout desktopYesterdayBox = new VerticalLayout();
+        desktopYesterdayBox.addClassNames(
+                LumoUtility.Padding.MEDIUM,
+                LumoUtility.BorderRadius.MEDIUM,
+                LumoUtility.Background.CONTRAST_5
+        );
+        desktopYesterdayBox.add(new H3("Export Yesterday"));
+        desktopYesterdayBox.add(new Paragraph("Quickly export data for yesterday only."));
+        desktopYesterdayBox.add(desktopExportYesterdayButton);
+        desktopYesterdayBox.setWidthFull();
+        // Show on desktop (>1000px), hide on mobile
+        desktopYesterdayBox.getStyle().set("display", "none");
+        desktopYesterdayBox.getElement().executeJs(
+                "if (window.innerWidth > 1000) { this.style.display = 'block'; }" +
+                        "window.addEventListener('resize', () => { this.style.display = window.innerWidth > 1000 ? 'block' : 'none'; });"
+        );
+
+        daysBackWrapper.add(daysBackSection, desktopYesterdayBox);
+
+        // Date Range Export Section (now second)
         VerticalLayout dateRangeSection = createDateRangeSection();
         dateRangeSection.getStyle().set("flex", "1 1 400px"); // Flex-grow, flex-shrink, min-width
 
-        // Days Back Export Section
-        VerticalLayout daysBackSection = createDaysBackSection();
-        daysBackSection.getStyle().set("flex", "1 1 400px"); // Flex-grow, flex-shrink, min-width
-
-        sectionsLayout.add(dateRangeSection, daysBackSection);
+        sectionsLayout.add(daysBackWrapper, dateRangeSection);
         add(sectionsLayout);
     }
 
@@ -153,14 +210,10 @@ public class DataExportView extends VerticalLayout {
         exportButton.addClickListener(e -> exportDaysBack());
         exportButton.setWidthFull();
 
-        Button exportYesterdayButton = new Button("Export Yesterday");
-        exportYesterdayButton.addClickListener(e -> exportYesterday());
-        exportYesterdayButton.setWidthFull();
-
         daysBackResult = new Div();
         daysBackResult.setVisible(false);
 
-        section.add(form, exportButton, exportYesterdayButton, daysBackResult);
+        section.add(form, exportButton, daysBackResult);
         return section;
     }
 
