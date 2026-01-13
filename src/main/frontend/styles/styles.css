@@ -662,6 +662,11 @@ vaadin-grid-cell-content {
         min-height: 44px;
         min-width: 44px;
     }
+
+    /* Ensure the mobile-only yesterday box has no bottom margin on very small screens */
+    .mobile-yesterday-box {
+        margin-bottom: 0 !important;
+    }
 }
 
 /* ============================================
@@ -785,6 +790,11 @@ vaadin-grid-cell-content {
     a {
         min-height: 44px;
         min-width: 44px;
+    }
+
+    /* Ensure the mobile-only yesterday box has no bottom margin on very small screens */
+    .mobile-yesterday-box {
+        margin-bottom: 0 !important;
     }
 }
 
