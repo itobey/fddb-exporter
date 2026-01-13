@@ -148,8 +148,10 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         allEntriesCountLabel.getStyle()
                 .set("margin-bottom", "0.5rem")
                 .set("white-space", "nowrap")
-                .set("flex", "0 0 auto")
-                .set("max-width", "clamp(4rem, 22%, 8rem)")
+                // Increased max-width to avoid cropping the word "entries" on narrow devices
+                .set("flex", "0 1 auto")
+                // Wider clamp so the label has more room on narrow screens and doesn't truncate "entries"
+                .set("max-width", "clamp(8rem, 40%, 14rem)")
                 .set("overflow", "hidden")
                 .set("text-overflow", "ellipsis");
         // Ensure inline-block so nowrap, ellipsis and flex interaction behave consistently
@@ -331,7 +333,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         dateTopRow.getStyle().set("margin", "0");
         dateTopRow.getStyle().set("padding-bottom", "0");
         // Ensure the top row sits tight under the tab header on mobile; pull up slightly more
-        dateTopRow.getStyle().set("margin-top", "-1rem");
+        dateTopRow.getStyle().set("margin-top", "-0.5rem");
         // Reduce the spacing before the results grid/cards
         dateTopRow.getStyle().set("margin-bottom", "0rem");
         // Slight negative bottom margin on the inner form to pull the results upward
@@ -476,7 +478,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productTopRow.getStyle().set("margin", "0");
         productTopRow.getStyle().set("padding-bottom", "0");
         // Ensure the top row sits tight under the tab header on mobile; pull up slightly more
-        productTopRow.getStyle().set("margin-top", "-1rem");
+        productTopRow.getStyle().set("margin-top", "-0.5rem");
         productTopRow.getStyle().set("margin-bottom", "0rem");
         // Slight negative bottom margin on the inner form to pull the results upward
         searchForm.getStyle().set("margin-bottom", "-0.2rem");

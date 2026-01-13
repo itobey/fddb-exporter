@@ -701,14 +701,6 @@ vaadin-grid-cell-content {
         margin-left: 0;
         margin-right: 0;
         box-sizing: border-box;
-    }
-
-    /* Data Query View - Full width tables on mobile */
-    .data-query-view .data-query-grid {
-        /* Counteract all parent padding to span full width */
-        margin-left: calc(-1 * max(var(--mobile-horizontal-padding), env(safe-area-inset-left, 0)));
-        margin-right: calc(-1 * max(var(--mobile-horizontal-padding), env(safe-area-inset-right, 0)));
-        width: 100vw;
         max-width: 100vw;
         /* Remove max-height on mobile to show all entries without scrolling */
         max-height: none !important;
