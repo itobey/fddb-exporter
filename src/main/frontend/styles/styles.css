@@ -459,6 +459,111 @@ vaadin-app-layout::part(drawer) {
     backdrop-filter: none;
 }
 
+/* Hide the drawer header (app icon + label) on desktop and show only on mobile.
+   The drawer header is a vaadin-horizontal-layout element with the class `drawer-header`
+   and the attribute `slot="drawer"`. Previous selector targeted a child; update it
+   to target the element itself to match the DOM produced by `MainLayout.java`.
+*/
+@media (min-width: 769px) {
+    /* Target the host element directly: vaadin-horizontal-layout.drawer-header[slot="drawer"] */
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] {
+        display: none !important;
+    }
+
+    /* Hide the host element and its direct children explicitly */
+    vaadin-app-layout > vaadin-horizontal-layout.drawer-header[slot="drawer"],
+    vaadin-horizontal-layout.drawer-header[slot="drawer"],
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] img,
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] h3 {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Ensure the drawer header remains a visible flex row on mobile */
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+    }
+
+    vaadin-app-layout > vaadin-horizontal-layout.drawer-header[slot="drawer"],
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] {
+        display: flex !important;
+        visibility: visible !important;
+        height: auto !important;
+        padding: 0.75rem 1rem !important;
+        margin-bottom: 0.5rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+    }
+}
+
+/* Final override: specifically target the actual DOM element seen in the browser
+   (an element with slot="drawer" and class="drawer-header"). Put this at the
+   very end so it takes precedence. */
+@media (min-width: 769px) {
+    /* Match both generic slotted node and the vaadin-horizontal-layout tag */
+    [slot="drawer"].drawer-header,
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        overflow: hidden !important;
+    }
+}
+
+@media (max-width: 768px) {
+    [slot="drawer"].drawer-header,
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] {
+        display: flex !important;
+        visibility: visible !important;
+        height: auto !important;
+        padding: 0.75rem 1rem !important;
+        margin-bottom: 0.5rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+    }
+}
+
+/* Simple final fallback: target the class directly (covers cases where the host
+   selector or slot attribute didn't match at runtime). Placed at the end to win
+   in the cascade. */
+@media (min-width: 769px) {
+    .drawer-header {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        overflow: hidden !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .drawer-header {
+        display: flex !important;
+        visibility: visible !important;
+        height: auto !important;
+        padding: 0.75rem 1rem !important;
+        margin-bottom: 0.5rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+    }
+}
+
 /* ============================================
    Progress Bar & Loading States
    ============================================ */
@@ -828,134 +933,92 @@ vaadin-grid-cell-content {
     line-height: 1;
 }
 
-/* Data query view adjustments for mobile to remove asymmetric paddings/gaps */
-@media (max-width: 600px) {
-    /* Remove horizontal padding on data query view to allow full width */
-    .data-query-view {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-
-    /* Remove horizontal padding on tab layout so content can reach viewport edges */
-    .data-query-tab-layout {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-
-    /* Add symmetric padding to search form elements */
-    .data-query-tab-layout .vaadin-horizontal-layout,
-    .data-query-tab-layout .search-form {
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-        box-sizing: border-box;
-    }
-
-    /* Ensure the date picker and buttons can shrink and align evenly */
-    .data-query-tab-layout vaadin-date-picker,
-    .data-query-tab-layout vaadin-button,
-    .data-query-tab-layout button {
-        min-width: 0 !important;
-    }
-
-    /* Make preset buttons occupy 50% width (two per row) when used elsewhere */
-    .preset-btn {
-        flex: 1 1 calc(50% - 0.25rem) !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        font-size: 0.85rem !important;
-        padding: 0.35rem 0.6rem !important;
-    }
-
-    /* Remove left margin/gap for the all-entries grid so it starts at left viewport edge */
-    .data-query-grid {
-        margin-left: 0 !important;
-        padding-left: 0 !important;
-        width: 100% !important;
-        box-sizing: border-box;
-    }
-
-    /* Small adjustment for count labels to align with edges */
-    .data-query-tab-layout span {
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
+/* Place desktop-hide rules after the .drawer-header declaration so they win in cascade.
+   Hide the entire drawer header (icon + label) on desktop, show on mobile. */
+@media (min-width: 769px) {
+    /* Hide the host element and its direct children explicitly */
+    vaadin-app-layout > vaadin-horizontal-layout.drawer-header[slot="drawer"],
+    vaadin-horizontal-layout.drawer-header[slot="drawer"],
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] img,
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] h3 {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
     }
 }
 
-/* Make preset buttons display as a two-column grid on small screens */
-@media (max-width: 600px) {
-    .preset-buttons {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
-        align-items: stretch;
-    }
-
-    /* Ensure each button stretches to fill the grid cell */
-    .preset-buttons ::slotted(.preset-btn),
-    .preset-buttons .preset-btn,
-    .preset-buttons vaadin-button,
-    .preset-buttons button {
-        width: 100% !important;
-        justify-self: stretch !important;
-    }
-}
-
-/* Ensure preset buttons force a 2-column grid on typical mobile widths (up to 768px) */
 @media (max-width: 768px) {
-    .preset-buttons {
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    vaadin-app-layout > vaadin-horizontal-layout.drawer-header[slot="drawer"],
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] {
+        display: flex !important;
+        visibility: visible !important;
+        height: auto !important;
+        padding: 0.75rem 1rem !important;
+        margin-bottom: 0.5rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        align-items: center !important;
         gap: 0.5rem !important;
-        align-items: stretch !important;
-        /* remove the horizontal-layout flex behavior */
-        -webkit-box-orient: initial !important;
-        -webkit-box-direction: initial !important;
-    }
-
-    /* Make sure all direct children fill their grid cell and do not keep flex sizing */
-    .preset-buttons > * {
-        width: 100% !important;
-        box-sizing: border-box !important;
-        flex: none !important;
-        -ms-flex: none !important;
-        -webkit-flex: none !important;
-        justify-self: stretch !important;
-    }
-
-    /* Target Vaadin button elements specifically as a fallback */
-    .preset-buttons vaadin-button,
-    .preset-buttons button,
-    .preset-buttons .preset-btn {
-        width: 100% !important;
-        min-width: 0 !important;
     }
 }
 
-/* Tweak: ensure export sections use consistent spacing on very small screens
-   Previously the stacked sections get large gap due to margins on each .card-like box
-   and the layout's gap. We add a narrow-screen rule to reduce gap and normalize padding.
-*/
-@media (max-width: 576px) {
-    /* Target the HorizontalLayout we added in DataExportView */
-    .export-sections-layout {
-        /* remove larger gap and let children use compact spacing */
+/* Final override: specifically target the actual DOM element seen in the browser
+   (an element with slot="drawer" and class="drawer-header"). Put this at the
+   very end so it takes precedence. */
+@media (min-width: 769px) {
+    /* Match both generic slotted node and the vaadin-horizontal-layout tag */
+    [slot="drawer"].drawer-header,
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        overflow: hidden !important;
+    }
+}
+
+@media (max-width: 768px) {
+    [slot="drawer"].drawer-header,
+    vaadin-horizontal-layout.drawer-header[slot="drawer"] {
+        display: flex !important;
+        visibility: visible !important;
+        height: auto !important;
+        padding: 0.75rem 1rem !important;
+        margin-bottom: 0.5rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        align-items: center !important;
         gap: 0.5rem !important;
     }
+}
 
-    /* When the horizontal layout wraps to vertical, its children (the section boxes)
-       should not add large top/bottom margins; match desktop spacing by using symmetric
-       padding instead of big margins. */
-    .export-sections-layout > * {
-        /* collapse extra top/bottom margins coming from Lumo utility Margin classes */
-        margin-top: 0.25rem !important;
-        margin-bottom: 0.25rem !important;
-        padding-left: calc(var(--mobile-horizontal-padding, 0.25rem)) !important;
-        padding-right: calc(var(--mobile-horizontal-padding, 0.25rem)) !important;
-        box-sizing: border-box;
+/* Simple final fallback: target the class directly (covers cases where the host
+   selector or slot attribute didn't match at runtime). Placed at the end to win
+   in the cascade. */
+@media (min-width: 769px) {
+    .drawer-header {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        overflow: hidden !important;
     }
+}
 
-    /* Ensure the two child columns (wrappers) do not keep large min-width that forces extra spacing */
-    .export-sections-layout > * {
-        min-width: 0 !important;
+@media (max-width: 768px) {
+    .drawer-header {
+        display: flex !important;
+        visibility: visible !important;
+        height: auto !important;
+        padding: 0.75rem 1rem !important;
+        margin-bottom: 0.5rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
     }
 }
