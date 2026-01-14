@@ -23,16 +23,16 @@ import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-/**
- * View for displaying rolling averages of nutritional data.
- */
+import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
+
 @Route(value = "averages", layout = MainLayout.class)
 @PageTitle("Rolling Averages | FDDB Exporter")
 public class RollingAveragesView extends VerticalLayout {
 
-    private final StatsClient statsClient;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final String BG_COLOR = "rgba(78, 97, 155, 0.08)";
 
+    private final StatsClient statsClient;
     private DatePicker fromDatePicker;
     private DatePicker toDatePicker;
     private Div resultDiv;
@@ -43,25 +43,16 @@ public class RollingAveragesView extends VerticalLayout {
         addClassName("rolling-averages-view");
         setSpacing(true);
         setPadding(true);
-        // Responsive padding - minimum on mobile for spacing from edges
-        getStyle().set("padding", "clamp(0.5rem, 2vw, 1.5rem)");
+        applyResponsivePadding(this);
 
         add(new H2("Rolling Averages"));
         add(new Paragraph("View average nutritional values over a specified date range."));
-
         add(createDateRangeForm());
         add(createResultSection());
     }
 
     private VerticalLayout createDateRangeForm() {
-        VerticalLayout section = new VerticalLayout();
-        section.addClassNames(
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Background.CONTRAST_5
-        );
-        section.setSpacing(true);
-
+        VerticalLayout section = createSection(null);
         section.add(new H3("Select Date Range"));
 
         FormLayout form = new FormLayout();
@@ -72,107 +63,29 @@ public class RollingAveragesView extends VerticalLayout {
         fromDatePicker.setI18n(createDatePickerI18n());
 
         toDatePicker = new DatePicker("To Date");
-        toDatePicker.setValue(LocalDate.now().minusDays(1)); // Set to yesterday by default
+        toDatePicker.setValue(LocalDate.now().minusDays(1));
         toDatePicker.setRequired(true);
         toDatePicker.setI18n(createDatePickerI18n());
 
         form.add(fromDatePicker, toDatePicker);
-        // Responsive: 1 column on mobile, 2 on desktop
         form.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("500px", 2)
         );
 
-        // Quick selection buttons
         HorizontalLayout quickButtons = new HorizontalLayout();
         quickButtons.addClassNames(LumoUtility.Gap.SMALL);
-        // add a class for CSS targeting to force a 2-column grid on mobile
-        quickButtons.addClassName("preset-buttons");
         quickButtons.setWidthFull();
-        // Make buttons wrap on mobile
         quickButtons.getStyle().set("flex-wrap", "wrap");
-        // Ensure the buttons are vertically centered within the horizontal layout
         quickButtons.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        Button lastWeekBtn = new Button("Last 7 Days", e -> {
-            setDateRange(7);
-            calculateAverages();
-        });
-        Button lastMonthBtn = new Button("Last 30 Days", e -> {
-            setDateRange(30);
-            calculateAverages();
-        });
-        Button last3MonthsBtn = new Button("Last 90 Days", e -> {
-            setDateRange(90);
-            calculateAverages();
-        });
-        Button lastYearBtn = new Button("Last Year", e -> {
-            setDateRange(365);
-            calculateAverages();
-        });
-        Button currentYearBtn = new Button("Current Year", e -> {
-            setCurrentYearRange();
-            calculateAverages();
-        });
-
-        // Use a shared CSS class so the buttons can be made smaller on mobile via CSS
-        lastWeekBtn.addClassName("preset-btn");
-        lastMonthBtn.addClassName("preset-btn");
-        last3MonthsBtn.addClassName("preset-btn");
-        lastYearBtn.addClassName("preset-btn");
-        currentYearBtn.addClassName("preset-btn");
-
-        // Add small variant to make them smaller
-        lastWeekBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
-        lastMonthBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
-        last3MonthsBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
-        lastYearBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
-        currentYearBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
-
-        // Make buttons responsive - allow CSS to control exact sizing; set min-width to 0 so they can shrink
-        lastWeekBtn.getStyle()
-                .set("flex", "1 1 calc(50% - 0.25rem)")
-                .set("min-width", "0")
-                .set("max-width", "100%");
-        lastMonthBtn.getStyle()
-                .set("flex", "1 1 calc(50% - 0.25rem)")
-                .set("min-width", "0")
-                .set("max-width", "100%");
-        last3MonthsBtn.getStyle()
-                .set("flex", "1 1 calc(50% - 0.25rem)")
-                .set("min-width", "0")
-                .set("max-width", "100%");
-        lastYearBtn.getStyle()
-                .set("flex", "1 1 calc(50% - 0.25rem)")
-                .set("min-width", "0")
-                .set("max-width", "100%");
-        currentYearBtn.getStyle()
-                .set("flex", "1 1 calc(50% - 0.25rem)")
-                .set("min-width", "0")
-                .set("max-width", "100%");
-
-        // Ensure each button uses flex layout internally and center its content so text is vertically centered
-        lastWeekBtn.getStyle().set("display", "flex").set("align-items", "center").set("justify-content", "center");
-        lastMonthBtn.getStyle().set("display", "flex").set("align-items", "center").set("justify-content", "center");
-        last3MonthsBtn.getStyle().set("display", "flex").set("align-items", "center").set("justify-content", "center");
-        lastYearBtn.getStyle().set("display", "flex").set("align-items", "center").set("justify-content", "center");
-        currentYearBtn.getStyle().set("display", "flex").set("align-items", "center").set("justify-content", "center");
-
-        // Provide a consistent height so the small buttons align perfectly across breakpoints
-        lastWeekBtn.setHeight("2.25rem");
-        lastMonthBtn.setHeight("2.25rem");
-        last3MonthsBtn.setHeight("2.25rem");
-        lastYearBtn.setHeight("2.25rem");
-        currentYearBtn.setHeight("2.25rem");
-
-        // Remove internal padding and set line-height to match height to avoid a slight visual offset
-        lastWeekBtn.getStyle().set("padding", "0").set("line-height", "2.25rem").set("box-sizing", "border-box");
-        lastMonthBtn.getStyle().set("padding", "0").set("line-height", "2.25rem").set("box-sizing", "border-box");
-        last3MonthsBtn.getStyle().set("padding", "0").set("line-height", "2.25rem").set("box-sizing", "border-box");
-        lastYearBtn.getStyle().set("padding", "0").set("line-height", "2.25rem").set("box-sizing", "border-box");
-        currentYearBtn.getStyle().set("padding", "0").set("line-height", "2.25rem").set("box-sizing", "border-box");
-
-        quickButtons.add(lastWeekBtn, lastMonthBtn, last3MonthsBtn, lastYearBtn, currentYearBtn);
+        quickButtons.add(
+                createPresetButton("Last 7 Days", 7),
+                createPresetButton("Last 30 Days", 30),
+                createPresetButton("Last 90 Days", 90),
+                createPresetButton("Last Year", 365),
+                createYearButton()
+        );
 
         Button calculateButton = new Button("Calculate Averages");
         calculateButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -183,14 +96,36 @@ public class RollingAveragesView extends VerticalLayout {
         return section;
     }
 
+    private Button createPresetButton(String label, int days) {
+        Button button = new Button(label, e -> {
+            setDateRange(days);
+            calculateAverages();
+        });
+        button.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        button.addClassName("preset-btn");
+        button.getStyle().set("flex", "1 1 calc(50% - 0.25rem)");
+        return button;
+    }
+
+    private Button createYearButton() {
+        Button button = new Button("Current Year", e -> {
+            setCurrentYearRange();
+            calculateAverages();
+        });
+        button.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        button.addClassName("preset-btn");
+        button.getStyle().set("flex", "1 1 calc(50% - 0.25rem)");
+        return button;
+    }
+
     private void setDateRange(int days) {
-        toDatePicker.setValue(LocalDate.now().minusDays(1)); // Set to yesterday
+        toDatePicker.setValue(LocalDate.now().minusDays(1));
         fromDatePicker.setValue(LocalDate.now().minusDays(days));
     }
 
     private void setCurrentYearRange() {
-        fromDatePicker.setValue(LocalDate.of(LocalDate.now().getYear(), 1, 1)); // January 1st of current year
-        toDatePicker.setValue(LocalDate.now().minusDays(1)); // Yesterday
+        fromDatePicker.setValue(LocalDate.of(LocalDate.now().getYear(), 1, 1));
+        toDatePicker.setValue(LocalDate.now().minusDays(1));
     }
 
     private VerticalLayout createResultSection() {
@@ -237,36 +172,23 @@ public class RollingAveragesView extends VerticalLayout {
         content.setSpacing(true);
         content.setPadding(false);
 
-        // Averages display
         if (result.getAverages() != null) {
-            // Add heading with date range instead of separate box
             H3 heading = new H3("Averages for " + result.getFromDate() + " to " + result.getToDate());
             content.add(heading);
 
-            // Use grid layout like dashboard for consistent mobile experience
-            Div averagesGrid = new Div();
-            averagesGrid.setWidthFull();
-            averagesGrid.addClassNames(LumoUtility.Gap.MEDIUM);
-            averagesGrid.addClassName("cards-grid");
-            averagesGrid.getStyle()
-                    .set("display", "grid")
-                    .set("grid-template-columns", "repeat(auto-fit, minmax(120px, 1fr))")
-                    .set("gap", "0.75rem");
-
+            Div averagesGrid = createCardsGrid("120px");
             StatsDTO.Averages avg = result.getAverages();
 
             averagesGrid.add(
-                    createAverageCard("Calories", formatNumber(avg.getAvgTotalCalories()), "kcal", "🔥"),
-                    createAverageCard("Fat", formatNumber(avg.getAvgTotalFat()), "g", "🧈"),
-                    createAverageCard("Carbs", formatNumber(avg.getAvgTotalCarbs()), "g", "🍞"),
-                    createAverageCard("Sugar", formatNumber(avg.getAvgTotalSugar()), "g", "🍬"),
-                    createAverageCard("Protein", formatNumber(avg.getAvgTotalProtein()), "g", "🥩"),
-                    createAverageCard("Fibre", formatNumber(avg.getAvgTotalFibre()), "g", "🥦")
+                    createNutrientCard("Calories", formatNumber(avg.getAvgTotalCalories()), "kcal", "🔥", BG_COLOR),
+                    createNutrientCard("Fat", formatNumber(avg.getAvgTotalFat()), "g", "🧈", BG_COLOR),
+                    createNutrientCard("Carbs", formatNumber(avg.getAvgTotalCarbs()), "g", "🍞", BG_COLOR),
+                    createNutrientCard("Sugar", formatNumber(avg.getAvgTotalSugar()), "g", "🍬", BG_COLOR),
+                    createNutrientCard("Protein", formatNumber(avg.getAvgTotalProtein()), "g", "🥩", BG_COLOR),
+                    createNutrientCard("Fibre", formatNumber(avg.getAvgTotalFibre()), "g", "🥦", BG_COLOR)
             );
 
             content.add(averagesGrid);
-
-            // Visual comparison bars - Macro distribution
             content.add(new H3("Macro Distribution"));
             content.add(createMacroDistributionBars(avg));
         }
@@ -274,59 +196,20 @@ public class RollingAveragesView extends VerticalLayout {
         resultDiv.add(content);
     }
 
-    private Component createAverageCard(String nutrient, String value, String unit, String emoji) {
-        Div card = new Div();
-        card.addClassName("card");
-        card.addClassNames(
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.BorderRadius.MEDIUM
-        );
-        // Match dashboard card styling exactly
-        card.getStyle()
-                .set("min-width", "100px")
-                .set("max-width", "100%")
-                .set("box-sizing", "border-box")
-                .set("background-color", "rgba(78, 97, 155, 0.08)");
-
-        Span emojiSpan = new Span(emoji);
-        emojiSpan.addClassNames(LumoUtility.FontSize.XXLARGE);
-
-        Span nutrientSpan = new Span(nutrient);
-        nutrientSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
-
-        Span valueSpan = new Span(value + " " + unit);
-        valueSpan.addClassNames(LumoUtility.FontSize.LARGE);
-
-        VerticalLayout layout = new VerticalLayout(emojiSpan, nutrientSpan, valueSpan);
-        layout.setPadding(false);
-        layout.setSpacing(false);
-        layout.setAlignItems(Alignment.CENTER);
-        card.add(layout);
-        return card;
-    }
-
     private Component createMacroDistributionBars(StatsDTO.Averages avg) {
         VerticalLayout bars = new VerticalLayout();
-        bars.addClassNames(
-                LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Background.CONTRAST_5
-        );
+        bars.addClassNames(LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
         bars.setSpacing(true);
         bars.setWidthFull();
         bars.setPadding(true);
-        // Add minimal padding
-        bars.getStyle()
-                .set("padding", "1rem")
-                .set("box-sizing", "border-box");
+        bars.getStyle().set("padding", "1rem").set("box-sizing", "border-box");
 
-        // Calculate total macros
         double totalFat = avg.getAvgTotalFat();
         double totalCarbs = avg.getAvgTotalCarbs();
         double totalProtein = avg.getAvgTotalProtein();
         double totalMacros = totalFat + totalCarbs + totalProtein;
 
         if (totalMacros > 0) {
-            // Calculate percentages
             double fatPercentage = (totalFat / totalMacros) * 100;
             double carbsPercentage = (totalCarbs / totalMacros) * 100;
             double proteinPercentage = (totalProtein / totalMacros) * 100;
@@ -350,7 +233,6 @@ public class RollingAveragesView extends VerticalLayout {
         container.setSpacing(false);
         container.getStyle().set("gap", "0.25rem");
 
-        // Top row: label and value
         HorizontalLayout topRow = new HorizontalLayout();
         topRow.setWidthFull();
         topRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
@@ -366,7 +248,6 @@ public class RollingAveragesView extends VerticalLayout {
 
         topRow.add(labelSpan, valueSpan);
 
-        // Bottom row: progress bar
         Div progressContainer = new Div();
         progressContainer.setWidthFull();
         progressContainer.addClassNames(LumoUtility.Background.CONTRAST_10, LumoUtility.BorderRadius.SMALL);
@@ -383,17 +264,6 @@ public class RollingAveragesView extends VerticalLayout {
 
         container.add(topRow, progressContainer);
         return container;
-    }
-
-    private String formatNumber(double value) {
-        return String.format("%.1f", value);
-    }
-
-    private DatePicker.DatePickerI18n createDatePickerI18n() {
-        DatePicker.DatePickerI18n i18n = new DatePicker.DatePickerI18n();
-        i18n.setFirstDayOfWeek(1); // Monday
-        i18n.setDateFormat("yyyy-MM-dd");
-        return i18n;
     }
 
     private void showSuccess(String message) {

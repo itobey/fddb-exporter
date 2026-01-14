@@ -20,15 +20,14 @@ import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.MigrationClient;
 
-/**
- * View for data migration operations.
- */
+import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.applyResponsivePadding;
+import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createSection;
+
 @Route(value = "migration", layout = MainLayout.class)
 @PageTitle("Migration | FDDB Exporter")
 public class MigrationView extends VerticalLayout {
 
     private final MigrationClient migrationClient;
-
     private Div resultDiv;
     private ProgressBar progressBar;
 
@@ -38,54 +37,36 @@ public class MigrationView extends VerticalLayout {
         addClassName("migration-view");
         setSpacing(true);
         setPadding(true);
-        // Responsive padding - minimum on mobile for spacing from edges
-        getStyle().set("padding", "clamp(0.5rem, 2vw, 1.5rem)");
+        applyResponsivePadding(this);
 
         add(new H2("Data Migration"));
         add(new Paragraph("Migrate data between storage backends."));
-
         add(createMigrationSection());
     }
 
     private VerticalLayout createMigrationSection() {
-        VerticalLayout section = new VerticalLayout();
-        section.addClassNames(
-                LumoUtility.Padding.LARGE,
-                LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Background.CONTRAST_5
-        );
-        section.setSpacing(true);
+        VerticalLayout section = createSection(null);
+        section.addClassNames(LumoUtility.Padding.LARGE);
         section.setAlignItems(Alignment.START);
         section.setWidthFull();
-        // Responsive padding on mobile
-        section.getStyle()
-                .set("padding", "clamp(0.5rem, 2vw, 1.5rem)")
-                .set("box-sizing", "border-box");
 
-        // MongoDB to InfluxDB Migration
         Div migrationCard = new Div();
-        migrationCard.addClassNames(
-                LumoUtility.Padding.LARGE,
-                LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Background.BASE,
-                LumoUtility.BoxShadow.SMALL
-        );
+        migrationCard.addClassNames(LumoUtility.Padding.LARGE, LumoUtility.BorderRadius.MEDIUM,
+                LumoUtility.Background.BASE, LumoUtility.BoxShadow.SMALL);
         migrationCard.setWidthFull();
-        migrationCard.getStyle()
-                .set("padding", "clamp(0.75rem, 2vw, 1.5rem)")
-                .set("box-sizing", "border-box");
 
         VerticalLayout cardContent = new VerticalLayout();
         cardContent.setPadding(false);
         cardContent.setSpacing(true);
 
-        // Header with icon
         Div header = new Div();
         header.addClassNames(LumoUtility.Display.FLEX, LumoUtility.AlignItems.CENTER, LumoUtility.Gap.MEDIUM);
         header.getStyle().set("flex-wrap", "wrap");
+
         Icon dbIcon = new Icon(VaadinIcon.DATABASE);
         dbIcon.setSize("32px");
         dbIcon.addClassNames(LumoUtility.TextColor.PRIMARY);
+
         Span title = new Span("MongoDB → InfluxDB Migration");
         title.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.SEMIBOLD);
         header.add(dbIcon, title);
@@ -95,17 +76,10 @@ public class MigrationView extends VerticalLayout {
                         "This is useful for time-series analysis and visualization in tools like Grafana."
         );
         description.addClassNames(LumoUtility.TextColor.SECONDARY);
-        description.getStyle()
-                .set("word-wrap", "break-word")
-                .set("overflow-wrap", "break-word");
 
-        // Warning notice
         Div warningNotice = new Div();
-        warningNotice.addClassNames(
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.BorderRadius.SMALL,
-                LumoUtility.Background.WARNING_10
-        );
+        warningNotice.addClassNames(LumoUtility.Padding.MEDIUM, LumoUtility.BorderRadius.SMALL,
+                LumoUtility.Background.WARNING_10);
         Span warningText = new Span("⚠️ Both MongoDB and InfluxDB must be available and properly configured.");
         warningText.addClassNames(LumoUtility.FontSize.SMALL);
         warningNotice.add(warningText);
@@ -168,11 +142,8 @@ public class MigrationView extends VerticalLayout {
         resultDiv.setVisible(true);
 
         Div resultCard = new Div();
-        resultCard.addClassNames(
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.BorderRadius.SMALL,
-                LumoUtility.Margin.Top.MEDIUM
-        );
+        resultCard.addClassNames(LumoUtility.Padding.MEDIUM, LumoUtility.BorderRadius.SMALL,
+                LumoUtility.Margin.Top.MEDIUM);
 
         if (success) {
             resultCard.addClassNames(LumoUtility.Background.SUCCESS_10);

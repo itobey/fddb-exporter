@@ -22,27 +22,23 @@ import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-/**
- * View for exporting FDDB data.
- */
+import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
+
 @Route(value = "export", layout = MainLayout.class)
 @PageTitle("Data Export | FDDB Exporter")
 public class DataExportView extends VerticalLayout {
 
-    private final FddbDataClient fddbDataClient;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private final FddbDataClient fddbDataClient;
 
-    // Date range export components
     private DatePicker fromDate;
     private DatePicker toDate;
     private Div dateRangeResult;
 
-    // Days back export components
     private IntegerField daysBackField;
     private Checkbox includeTodayCheckbox;
     private Div daysBackResult;
 
-    // Yesterday export result
     private Div yesterdayResult;
 
     public DataExportView(FddbDataClient fddbDataClient) {
@@ -51,59 +47,39 @@ public class DataExportView extends VerticalLayout {
         addClassName("data-export-view");
         setSpacing(true);
         setPadding(true);
-        // Responsive padding - minimum on mobile for spacing from edges
-        getStyle().set("padding", "clamp(0.5rem, 2vw, 1.5rem)");
+        applyResponsivePadding(this);
 
         add(new H2("Data Export"));
         add(new Paragraph("Export FDDB data from your account to the database."));
 
-        // Create three responsive boxes placed next to each other; wrap vertically on narrow viewports
         Div sectionsLayout = new Div();
         sectionsLayout.setWidthFull();
         sectionsLayout.addClassName("export-sections-layout");
         sectionsLayout.addClassNames(LumoUtility.Gap.MEDIUM);
-        sectionsLayout.getStyle().set("display", "flex");
-        sectionsLayout.getStyle().set("flex-wrap", "wrap");
-        sectionsLayout.getStyle().set("gap", "1rem");
-        sectionsLayout.getStyle().set("align-items", "flex-start");
+        sectionsLayout.getStyle()
+                .set("display", "flex")
+                .set("flex-wrap", "wrap")
+                .set("gap", "1rem")
+                .set("align-items", "flex-start");
 
-        // Each section will be a VerticalLayout styled as a card. Use flex properties so they share space and
-        // wrap responsively. The inline styles keep this change self-contained without external CSS edits.
         VerticalLayout yesterdaySection = createYesterdaySection();
         VerticalLayout daysBackSection = createDaysBackSection();
         VerticalLayout dateRangeSection = createDateRangeSection();
 
-        // Common sizing: let each box try to be at least 320px wide but shrink when necessary
-        String boxFlex = "1 1 320px"; // flex-grow:1, flex-shrink:1, flex-basis:320px
-        yesterdaySection.getStyle().set("flex", boxFlex);
-        yesterdaySection.getStyle().set("min-width", "260px");
-        yesterdaySection.getStyle().set("box-sizing", "border-box");
+        String boxFlex = "1 1 320px";
+        yesterdaySection.getStyle().set("flex", boxFlex).set("min-width", "260px").set("box-sizing", "border-box");
+        daysBackSection.getStyle().set("flex", boxFlex).set("min-width", "260px").set("box-sizing", "border-box");
+        dateRangeSection.getStyle().set("flex", boxFlex).set("min-width", "260px").set("box-sizing", "border-box");
         yesterdaySection.setWidthFull();
-
-        daysBackSection.getStyle().set("flex", boxFlex);
-        daysBackSection.getStyle().set("min-width", "260px");
-        daysBackSection.getStyle().set("box-sizing", "border-box");
         daysBackSection.setWidthFull();
-
-        dateRangeSection.getStyle().set("flex", boxFlex);
-        dateRangeSection.getStyle().set("min-width", "260px");
-        dateRangeSection.getStyle().set("box-sizing", "border-box");
         dateRangeSection.setWidthFull();
 
         sectionsLayout.add(yesterdaySection, daysBackSection, dateRangeSection);
-
         add(sectionsLayout);
     }
 
     private VerticalLayout createDateRangeSection() {
-        VerticalLayout section = new VerticalLayout();
-        section.addClassNames(
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Background.CONTRAST_5
-        );
-        section.setSpacing(true);
-
+        VerticalLayout section = createSection(null);
         section.add(new H3("Export by Date Range"));
         section.add(new Paragraph("Export all data within a specified date range."));
 
@@ -115,12 +91,11 @@ public class DataExportView extends VerticalLayout {
         fromDate.setI18n(createDatePickerI18n());
 
         toDate = new DatePicker("To Date");
-        toDate.setValue(LocalDate.now().minusDays(1)); // Set to yesterday
+        toDate.setValue(LocalDate.now().minusDays(1));
         toDate.setRequired(true);
         toDate.setI18n(createDatePickerI18n());
 
         form.add(fromDate, toDate);
-        // Responsive: 1 column on mobile, 2 on desktop
         form.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("500px", 2)
@@ -139,14 +114,7 @@ public class DataExportView extends VerticalLayout {
     }
 
     private VerticalLayout createDaysBackSection() {
-        VerticalLayout section = new VerticalLayout();
-        section.addClassNames(
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Background.CONTRAST_5
-        );
-        section.setSpacing(true);
-
+        VerticalLayout section = createSection(null);
         section.add(new H3("Export Recent Days"));
         section.add(new Paragraph("Export data for a number of recent days."));
 
@@ -162,7 +130,6 @@ public class DataExportView extends VerticalLayout {
         includeTodayCheckbox.setValue(false);
 
         form.add(daysBackField, includeTodayCheckbox);
-        // Responsive: 1 column on mobile, 2 on desktop
         form.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("500px", 2)
@@ -181,14 +148,7 @@ public class DataExportView extends VerticalLayout {
     }
 
     private VerticalLayout createYesterdaySection() {
-        VerticalLayout section = new VerticalLayout();
-        section.addClassNames(
-                LumoUtility.Padding.MEDIUM,
-                LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Background.CONTRAST_5
-        );
-        section.setSpacing(true);
-
+        VerticalLayout section = createSection(null);
         section.add(new H3("Export Yesterday"));
         section.add(new Paragraph("Quickly export data for yesterday only."));
 
@@ -250,14 +210,8 @@ public class DataExportView extends VerticalLayout {
     private void exportYesterday() {
         try {
             ExportResultDTO result = fddbDataClient.exportForDaysBack(1, false);
-            // show results in the yesterday section if present, otherwise fallback to daysBackResult
-            if (yesterdayResult != null) {
-                displayResult(yesterdayResult, result);
-            } else {
-                displayResult(daysBackResult, result);
-            }
+            displayResult(yesterdayResult, result);
 
-            // Show notification with result
             if (result.getSuccessfulDays() != null && !result.getSuccessfulDays().isEmpty()) {
                 showSuccess("Yesterday exported successfully: " + result.getSuccessfulDays().get(0));
             } else if (result.getUnsuccessfulDays() != null && !result.getUnsuccessfulDays().isEmpty()) {
@@ -270,13 +224,6 @@ public class DataExportView extends VerticalLayout {
         }
     }
 
-    private DatePicker.DatePickerI18n createDatePickerI18n() {
-        DatePicker.DatePickerI18n i18n = new DatePicker.DatePickerI18n();
-        i18n.setFirstDayOfWeek(1); // Monday
-        i18n.setDateFormat("yyyy-MM-dd");
-        return i18n;
-    }
-
     private void displayResult(Div resultDiv, ExportResultDTO result) {
         resultDiv.removeAll();
         resultDiv.setVisible(true);
@@ -286,7 +233,6 @@ public class DataExportView extends VerticalLayout {
         content.setPadding(false);
         content.setSpacing(true);
 
-        // Successful days
         if (result.getSuccessfulDays() != null && !result.getSuccessfulDays().isEmpty()) {
             Div successSection = new Div();
             successSection.addClassNames(LumoUtility.Padding.SMALL, LumoUtility.Background.SUCCESS_10, LumoUtility.BorderRadius.SMALL);
@@ -301,7 +247,6 @@ public class DataExportView extends VerticalLayout {
             content.add(successSection);
         }
 
-        // Unsuccessful days
         if (result.getUnsuccessfulDays() != null && !result.getUnsuccessfulDays().isEmpty()) {
             Div failSection = new Div();
             failSection.addClassNames(LumoUtility.Padding.SMALL, LumoUtility.Background.ERROR_10, LumoUtility.BorderRadius.SMALL);
