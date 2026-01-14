@@ -628,85 +628,21 @@ vaadin-app-layout::part(drawer) {
         gap: 0.5rem !important;
     }
 
-    /* Card container styles */
+    /* Keep the container full width but do NOT convert the data query view into card rows.
+       Tables (vaadin-grid) should render on mobile the same way they do on desktop. */
     .cards-container {
         width: 100%;
         padding: 0.5rem;
     }
 
-    /* Mobile data card styles */
-    .mobile-data-card {
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    /* Ensure amount and date appear inline next to each other on mobile cards */
-    .mobile-data-card .amount-date-row {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-        justify-content: flex-start !important;
-        width: 100%;
-    }
-
-    .mobile-data-card .product-amount {
-        display: inline-block !important;
-        margin: 0 !important;
-        color: var(--lumo-secondary-text-color) !important;
-    }
-
-    .mobile-data-card .product-date-badge {
-        display: inline-block !important;
-        margin-left: 4px !important;
-        vertical-align: middle !important;
-    }
-
-    /* Enhanced hover effect for clickable cards */
-    .mobile-data-card[style*="cursor: pointer"]:hover,
-    .mobile-data-card:hover {
-        background: var(--card-hover-surface) !important;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    }
-
-    /* Active/tap state for better mobile feedback */
-    .mobile-data-card[style*="cursor: pointer"]:active,
-    .mobile-data-card:active {
-        transform: translateY(0);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-    }
-
-    /* Mobile-only layout tweaks */
+    /* Preserve small mobile helpers but avoid converting rows into stacked cards */
     .mobile-only {
         display: flex !important;
     }
 
-    /* Active/tap state for better mobile feedback */
-    .mobile-data-card[style*="cursor: pointer"]:active,
-    .mobile-data-card:active {
-        transform: translateY(0);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-    }
-
-    /* Ensure amount/date row spacing */
-    .mobile-data-card .amount-date-row {
-        gap: 8px !important;
-    }
-
-    /* Active/tap state duplication handled above */
-    /* Ensure cards have spacing - use padding for symmetric spacing instead of asymmetric margins */
-    .card, .cards-grid, .cards-container {
-        padding-left: var(--mobile-horizontal-padding);
-        padding-right: var(--mobile-horizontal-padding);
-        margin-left: 0;
-        margin-right: 0;
-        box-sizing: border-box;
-        max-width: 100vw;
-        /* Remove max-height on mobile to show all entries without scrolling */
-        max-height: none !important;
-        /* Use a modest min-height so cards remain usable on touch devices without becoming overly tall */
-        min-height: 120px;
-    }
+    /* Remove mobile-data-card selectors to prevent duplicated rendering/layout changes on mobile.
+       The UI now uses grids/tables for both desktop and mobile, so mobile-specific card rules are unnecessary.
+    */
 
     /* Add padding to search forms and buttons on mobile so they're not flush against edges */
     .data-query-tab-layout > vaadin-horizontal-layout,
@@ -721,7 +657,8 @@ vaadin-app-layout::part(drawer) {
         margin-right: var(--mobile-horizontal-padding);
     }
 
-    /* Remove padding from data query view tab content layouts on mobile */
+    /* Remove padding from data query view tab content layouts on mobile (keep tabsheet compact)
+       while leaving the grid/table layout intact. */
     .data-query-view vaadin-tabsheet vaadin-scroller vaadin-vertical-layout {
         padding-left: 0 !important;
         padding-right: 0 !important;
