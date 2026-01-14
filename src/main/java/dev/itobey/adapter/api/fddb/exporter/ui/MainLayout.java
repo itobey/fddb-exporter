@@ -57,6 +57,14 @@ public class MainLayout extends AppLayout {
                 .set("overflow", "hidden")
                 .set("text-overflow", "ellipsis");
 
+        // Header icon (desktop only) - will be shown via CSS on larger viewports
+        Image headerIcon = new Image("/icons/icon.png", "FDDB Exporter");
+        headerIcon.setAlt("FDDB Exporter");
+        headerIcon.setHeight("32px");
+        headerIcon.setWidth("32px");
+        headerIcon.getStyle().set("object-fit", "contain");
+        headerIcon.addClassName("fddb-app-header-icon");
+
         // Left container for toggle
         HorizontalLayout left = new HorizontalLayout(toggle);
         left.setPadding(false);
@@ -64,11 +72,13 @@ public class MainLayout extends AppLayout {
         left.setWidth("2.5rem");
         left.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        // Center container for logo
-        HorizontalLayout center = new HorizontalLayout(logo);
+        // Center container for logo and optional header icon
+        HorizontalLayout center = new HorizontalLayout(headerIcon, logo);
         center.setPadding(false);
         center.setSpacing(false);
         center.setAlignItems(FlexComponent.Alignment.CENTER);
+        // Add a dedicated class so we can target the header image specifically from CSS
+        center.addClassName("app-header-center");
         // Ensure the center block itself is centered within its grid cell
         center.getStyle().set("justify-self", "center");
         center.getStyle().set("width", "100%");
@@ -121,6 +131,8 @@ public class MainLayout extends AppLayout {
         appIcon.setWidth("32px");
         appIcon.getStyle().set("object-fit", "contain");
         appIcon.getStyle().set("margin-right", "0.5rem");
+        // Mark drawer icon so CSS can hide it on desktop (to avoid duplicate icons)
+        appIcon.addClassName("fddb-drawer-icon");
 
         HorizontalLayout drawerHeader = new HorizontalLayout(appIcon, drawerTitle);
         drawerHeader.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -181,7 +193,6 @@ public class MainLayout extends AppLayout {
             updateIcon.setSize("14px");
             updateIcon.getStyle().set("color", "var(--lumo-success-color)");
 
-            String updateText = updateIcon.getElement().toString() + " New Version " + latestVersion.get() + " available";
 
             if (releaseUrl.isPresent()) {
                 Anchor updateLink = new Anchor(releaseUrl.get());

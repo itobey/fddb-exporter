@@ -141,6 +141,130 @@ h1, h2, h3, h4, h5, h6 {
     text-overflow: ellipsis;
 }
 
+/* Ensure the header center container keeps icon and title on one line and doesn't wrap */
+.app-header-center,
+vaadin-horizontal-layout.app-header-center {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.6rem !important; /* same spacing as the icon margin */
+    flex-wrap: nowrap !important; /* prevent icon stacking above title */
+    justify-content: flex-start !important; /* Align contents to the left within the header center cell */
+    justify-self: start !important; /* Override any inline styles from the Java layout that center the element */
+    width: 100% !important; /* ensure it fills the grid cell */
+}
+
+/* Prevent the icon from shrinking or forcing the title to wrap */
+.app-header-center img,
+.app-header-center [class~="fddb-app-header-icon"],
+vaadin-horizontal-layout.app-header-center img,
+vaadin-horizontal-layout.app-header-center [class~="fddb-app-header-icon"] {
+    flex: 0 0 auto !important; /* fixed-size, don't shrink */
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
+/* Allow the title to shrink and ellipsize inside the flex container */
+.app-header-center .app-title,
+vaadin-horizontal-layout.app-header-center .app-title {
+    flex: 1 1 auto !important;
+    min-width: 0 !important; /* allow flex children to shrink below content width */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-align: left !important; /* ensure title text is left-aligned */
+}
+
+/* Header and drawer icon handling
+   - .fddb-app-header-icon: shown on desktop and mobile (always visible)
+   - .fddb-drawer-icon: shown on mobile (hidden on desktop to avoid duplication)
+*/
+/* Strong selectors to catch the actual DOM element (img, vaadin-image, or any host with the class) */
+.app-header [class~="fddb-app-header-icon"],
+[class~="fddb-app-header-icon"],
+img.fddb-app-header-icon,
+vaadin-image.fddb-app-header-icon {
+    /* visible by default on mobile and desktop */
+    display: inline-block !important;
+    visibility: visible !important;
+    width: 32px !important;
+    height: 32px !important;
+    margin-right: 0.6rem !important; /* keep the margin you liked */
+    object-fit: contain !important;
+}
+
+.fddb-drawer-icon {
+    display: inline-block; /* visible by default (mobile) */
+}
+
+/* Target the center header container's image specifically as a reliable selector */
+.app-header-center img,
+.app-header-center [class~="fddb-app-header-icon"],
+.app-header-center img.fddb-app-header-icon {
+    display: inline-block !important;
+    visibility: visible !important;
+    width: 32px !important;
+    height: 32px !important;
+    margin-right: 0.6rem !important;
+    object-fit: contain !important;
+}
+
+@media (min-width: 769px) {
+    .app-header-center img,
+    .app-header-center [class~="fddb-app-header-icon"],
+    .app-header-center img.fddb-app-header-icon {
+        /* same rules for desktop (redundant but explicit) */
+        display: inline-block !important;
+        visibility: visible !important;
+        width: 32px !important;
+        height: 32px !important;
+        margin-right: 0.6rem !important;
+        object-fit: contain !important;
+    }
+}
+
+/* Desktop breakpoint: show header icon and hide drawer icon
+   Use min-width: 769px (this project uses 769px in several places) to avoid overlap. */
+@media (min-width: 769px) {
+    .app-header [class~="fddb-app-header-icon"],
+    img.fddb-app-header-icon,
+    vaadin-image.fddb-app-header-icon,
+    [class~="fddb-app-header-icon"] {
+        display: inline-block !important;
+        visibility: visible !important;
+        width: 32px !important;
+        height: 32px !important;
+        margin-right: 0.6rem !important; /* small margin between icon and title on desktop */
+        object-fit: contain !important;
+    }
+
+    .fddb-drawer-icon {
+        display: none !important;
+    }
+}
+
+/* Fallback: ensure images inside the header are visible (mobile & desktop)
+   This prevents previous catch-all hide rules from keeping the icon hidden. */
+.app-header img {
+    display: inline-block !important;
+    visibility: visible !important;
+    width: 32px !important;
+    height: 32px !important;
+    margin-right: 0.6rem !important;
+    object-fit: contain !important;
+}
+
+@media (min-width: 769px) {
+    .app-header img {
+        display: inline-block !important;
+        visibility: visible !important;
+        width: 32px !important;
+        height: 32px !important;
+        margin-right: 0.6rem !important;
+        object-fit: contain !important;
+    }
+}
+
 /* ============================================
    Drawer / Side Navigation
    ============================================ */
@@ -995,30 +1119,3 @@ vaadin-grid-cell-content {
     }
 }
 
-/* Simple final fallback: target the class directly (covers cases where the host
-   selector or slot attribute didn't match at runtime). Placed at the end to win
-   in the cascade. */
-@media (min-width: 769px) {
-    .drawer-header {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        border: 0 !important;
-        overflow: hidden !important;
-    }
-}
-
-@media (max-width: 768px) {
-    .drawer-header {
-        display: flex !important;
-        visibility: visible !important;
-        height: auto !important;
-        padding: 0.75rem 1rem !important;
-        margin-bottom: 0.5rem !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-    }
-}
