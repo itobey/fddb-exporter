@@ -1,0 +1,32 @@
+/* Component theme for vaadin-month-calendar to force calendar selection color to red */
+
+:host {
+    /* override the calendar selection variables */
+    --_selection-color: #ae9357; /* red */
+    --_selection-color-text: #ffffff;
+}
+
+/* Ensure the selected date text uses the contrast color */
+[part~='date'][part~='selected'],
+[part~='date'][aria-selected='true'] {
+    color: var(--_selection-color-text) !important;
+}
+
+/* The component draws the visible selection using ::before - set that background */
+[part~='date'][part~='selected']::before,
+[part~='date'][aria-selected='true']::before {
+    background-color: var(--_selection-color) !important;
+    box-shadow: none !important;
+    border-radius: var(--lumo-border-radius-m);
+}
+
+/* Hover and active states for date cells (non-disabled, non-selected) */
+:host [part~='date']:not(:empty):not([part~='disabled']):not([part~='selected']):hover::before {
+    /* subtle tint using the same base color as --_selection-color */
+    background-color: rgba(174, 147, 87, 0.12) !important;
+}
+
+:host [part~='date']:not(:empty):not([part~='disabled']):active::before {
+    /* slightly stronger tint on active */
+    background-color: rgba(174, 147, 87, 0.2) !important;
+}

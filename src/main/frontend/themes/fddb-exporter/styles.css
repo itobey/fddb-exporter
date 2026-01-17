@@ -8,6 +8,11 @@ html {
     --accent-hover: #5d72b3;
     --accent-active: #3f4e7d;
     --accent-contrast: #ffffff;
+    --accent-rgb: 78, 97, 155; /* added: rgb parts for focus/overlay shadows */
+
+    /* Highlight / brand color (used for selected inputs & checkboxes) */
+    --highlight: var(--button-color); /* #ae9357 */
+    --highlight-rgb: 174, 147, 87;
 
     /* Button colors */
     --button-color: #ae9357;
@@ -348,13 +353,132 @@ vaadin-integer-field:hover::part(input-field) {
     border-color: rgba(255, 255, 255, 0.15);
 }
 
+/* Use highlight color for focused/selected input fields */
 vaadin-text-field[focused]::part(input-field),
 vaadin-text-area[focused]::part(input-field),
 vaadin-date-picker[focused]::part(input-field),
 vaadin-integer-field[focused]::part(input-field) {
-    border-color: var(--accent);
+    border-color: var(--highlight);
     background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 2px rgba(78, 97, 155, 0.2);
+    box-shadow: 0 0 0 3px rgba(var(--highlight-rgb), 0.12);
+}
+
+/* Extended form control styling to match app look & feel */
+
+/* Labels & values */
+vaadin-text-field::part(label),
+vaadin-text-area::part(label),
+vaadin-date-picker::part(label),
+vaadin-integer-field::part(label) {
+    color: var(--lumo-secondary-text-color);
+    font-weight: 500;
+}
+
+vaadin-text-field::part(value),
+vaadin-text-area::part(value),
+vaadin-date-picker::part(value) {
+    color: var(--lumo-body-text-color);
+}
+
+/* Clear and toggle icons */
+vaadin-text-field::part(clear-button),
+vaadin-date-picker::part(clear-button),
+vaadin-text-field::part(suffix),
+vaadin-date-picker::part(suffix) {
+    color: var(--lumo-secondary-text-color);
+}
+
+/* Invalid and disabled states */
+vaadin-text-field[invalid]::part(input-field),
+vaadin-text-area[invalid]::part(input-field),
+vaadin-date-picker[invalid]::part(input-field) {
+    border-color: var(--lumo-error-text-color);
+    box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.12);
+}
+
+vaadin-text-field[disabled]::part(input-field),
+vaadin-text-area[disabled]::part(input-field),
+vaadin-date-picker[disabled]::part(input-field),
+vaadin-integer-field[disabled]::part(input-field) {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.04);
+    color: var(--lumo-disabled-text-color);
+}
+
+/* Vaadin checkbox */
+vaadin-checkbox::part(checkbox) {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    min-height: 18px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+vaadin-checkbox[checked]::part(checkbox) {
+    background: var(--highlight);
+    border-color: var(--highlight);
+    box-shadow: 0 0 0 3px rgba(var(--highlight-rgb), 0.12);
+}
+
+vaadin-checkbox::part(checkmark) {
+    color: var(--accent-contrast);
+}
+
+vaadin-checkbox::part(label) {
+    color: var(--lumo-body-text-color);
+    margin-left: 0.5rem;
+}
+
+vaadin-checkbox[disabled]::part(checkbox) {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Native checkbox fallback */
+input[type="checkbox"] {
+    accent-color: var(--highlight);
+    width: 18px;
+    height: 18px;
+}
+
+/* Date picker overlay (portal) - make background use app accent and style buttons/cells */
+vaadin-date-picker-overlay::part(content),
+vaadin-date-picker-overlay::part(overlay),
+vaadin-overlay[theme~="date-picker-overlay"]::part(content) {
+    background: var(--accent-active);
+    color: var(--accent-contrast);
+    border-radius: var(--lumo-border-radius-m);
+    box-shadow: var(--lumo-box-shadow-l);
+}
+
+/* Make sure overlay content (labels, month name) is readable on accent background */
+vaadin-date-picker-overlay,
+vaadin-overlay[theme~="date-picker-overlay"] {
+    color: var(--accent-contrast);
+}
+
+vaadin-date-picker-overlay vaadin-button,
+vaadin-overlay[theme~="date-picker-overlay"] vaadin-button,
+vaadin-date-picker-overlay ::slotted(vaadin-button) {
+    color: var(--button-color-hover);
+    font-weight: 600;
+    border-radius: var(--lumo-border-radius-m);
+    border: none;
+    padding: 6px 10px;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+/* Make inputs visually consistent on small screens */
+@media (max-width: 576px) {
+    vaadin-text-field::part(input-field),
+    vaadin-date-picker::part(input-field),
+    vaadin-text-area::part(input-field) {
+        min-height: 44px;
+        padding: 8px 10px;
+    }
 }
 
 /* Notifications */

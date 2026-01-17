@@ -30,7 +30,6 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 @PageTitle("Dashboard | FDDB Exporter")
 public class DashboardView extends VerticalLayout {
 
-    // Highlight color for highest daily value cards (value text and left border)
     private static final String HIGHLIGHT_COLOR = "#ae9357";
     private final StatsClient statsClient;
 
