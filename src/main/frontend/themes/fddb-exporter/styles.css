@@ -9,6 +9,12 @@ html {
     --accent-active: #3f4e7d;
     --accent-contrast: #ffffff;
 
+    /* Button colors */
+    --button-color: #ae9357;
+    --button-color-hover: #bfa979;
+    --button-color-active: #a98e52;
+    --button-color-contrast: #ffffff;
+
     /* Nutrient colors */
     --nutrient-calories: #ef5350;
     --nutrient-fat: #ffa726;
@@ -89,7 +95,7 @@ body {
     font-weight: 400;
     line-height: 1.5;
     color: var(--lumo-body-text-color);
-    background-color: var(--lumo-base-color);
+    background-image: linear-gradient(to bottom, #3f4e7d, #414c73, #424a69, #43485f, #434655);
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -100,9 +106,25 @@ h1, h2, h3, h4, h5, h6 {
 
 /* App Header */
 .app-header {
-    background: rgba(255, 255, 255, 0.04);
+    /*background-image: linear-gradient(to left, #5d598f, #55568b, #4e5486, #465182, #3f4e7d);*/
+    background-color: #4e619b;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
+}
+
+.app-header vaadin-drawer-toggle {
+    color: var(--button-color-hover);
+    transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.app-header vaadin-drawer-toggle:hover {
+    color: var(--button-color-hover);
+    transform: translateY(-1px);
+}
+
+.app-header vaadin-drawer-toggle:active {
+    color: var(--button-color-active);
+    transform: translateY(0);
 }
 
 .app-title {
@@ -165,7 +187,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Drawer */
 vaadin-app-layout::part(drawer) {
-    background: var(--lumo-base-color);
+    background-image: linear-gradient(to right bottom, #3f4e7d, #414c73, #424a69, #43485f, #434655);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -204,7 +226,11 @@ vaadin-side-nav-item::part(link) {
 }
 
 vaadin-side-nav-item:hover {
-    background-color: rgba(255, 255, 255, 0.06);
+    background-color: rgba(174, 147, 87, 0.4);
+}
+
+vaadin-side-nav-item::part(link):active:focus {
+    background-color: rgba(174, 147, 87, 0.4);
 }
 
 vaadin-side-nav-item[selected] {
@@ -258,8 +284,8 @@ vaadin-side-nav-item[selected]::part(link) {
 
 /* Buttons */
 vaadin-button[theme~="primary"] {
-    background: var(--accent);
-    color: var(--accent-contrast);
+    background: var(--button-color);
+    color: var(--button-color-contrast);
     border-radius: var(--lumo-border-radius-m);
     font-weight: 500;
     transition: background-color var(--transition-fast), transform var(--transition-fast);
@@ -267,13 +293,13 @@ vaadin-button[theme~="primary"] {
 }
 
 vaadin-button[theme~="primary"]:hover {
-    background: var(--accent-hover);
+    background: var(--button-color-hover);
     transform: translateY(-1px);
     box-shadow: var(--lumo-box-shadow-s);
 }
 
 vaadin-button[theme~="primary"]:active {
-    background: var(--accent-active);
+    background: var(--button-color-active);
     transform: translateY(0);
     box-shadow: none;
 }
@@ -589,4 +615,3 @@ vaadin-tab[selected] {
         transform: none !important;
     }
 }
-

@@ -30,7 +30,8 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 @PageTitle("Dashboard | FDDB Exporter")
 public class DashboardView extends VerticalLayout {
 
-    private static final String BG_COLOR = "rgba(78, 97, 155, 0.08)";
+    // Highlight color for highest daily value cards (value text and left border)
+    private static final String HIGHLIGHT_COLOR = "#ae9357";
     private final StatsClient statsClient;
 
     public DashboardView(StatsClient statsClient) {
@@ -69,12 +70,12 @@ public class DashboardView extends VerticalLayout {
             Div averageCards = createCardsGrid("120px");
             StatsDTO.Averages avg = stats.getAverageTotals();
             averageCards.add(
-                    createNutrientCard("Calories", formatNumber(avg.getAvgTotalCalories()), "kcal", "🔥", BG_COLOR),
-                    createNutrientCard("Fat", formatNumber(avg.getAvgTotalFat()), "g", "🧈", BG_COLOR),
-                    createNutrientCard("Carbs", formatNumber(avg.getAvgTotalCarbs()), "g", "🍞", BG_COLOR),
-                    createNutrientCard("Sugar", formatNumber(avg.getAvgTotalSugar()), "g", "🍬", BG_COLOR),
-                    createNutrientCard("Protein", formatNumber(avg.getAvgTotalProtein()), "g", "🥩", BG_COLOR),
-                    createNutrientCard("Fibre", formatNumber(avg.getAvgTotalFibre()), "g", "🥦", BG_COLOR)
+                    createNutrientCard("Calories", formatNumber(avg.getAvgTotalCalories()), "kcal", "🔥", null),
+                    createNutrientCard("Fat", formatNumber(avg.getAvgTotalFat()), "g", "🧈", null),
+                    createNutrientCard("Carbs", formatNumber(avg.getAvgTotalCarbs()), "g", "🍞", null),
+                    createNutrientCard("Sugar", formatNumber(avg.getAvgTotalSugar()), "g", "🍬", null),
+                    createNutrientCard("Protein", formatNumber(avg.getAvgTotalProtein()), "g", "🥩", null),
+                    createNutrientCard("Fibre", formatNumber(avg.getAvgTotalFibre()), "g", "🥦", null)
             );
             add(averageCards);
         }
@@ -107,8 +108,8 @@ public class DashboardView extends VerticalLayout {
         card.addClassNames(LumoUtility.Padding.LARGE, LumoUtility.BorderRadius.LARGE);
         card.getStyle()
                 .set("min-width", "140px")
-                .set("background-color", BG_COLOR)
-                .set("border-left", "4px solid var(--accent)");
+                // use HIGHLIGHT_COLOR for the left border
+                .set("border-left", "4px solid " + HIGHLIGHT_COLOR);
 
         card.addClickListener(event -> {
             if (dayStats.getDate() != null) {
@@ -127,7 +128,8 @@ public class DashboardView extends VerticalLayout {
         Span valueSpan = new Span(formatNumber(dayStats.getTotal()) + " " + unit);
         valueSpan.addClassNames(LumoUtility.FontSize.XXLARGE, LumoUtility.FontWeight.BOLD);
         valueSpan.addClassName("card__value");
-        valueSpan.getStyle().set("text-align", "center").set("width", "100%");
+        // set the value text color to the highlight color and center it
+        valueSpan.getStyle().set("text-align", "center").set("width", "100%").set("color", HIGHLIGHT_COLOR);
 
         Div dateBadge = new Div();
         dateBadge.addClassName("date-badge");
@@ -149,4 +151,3 @@ public class DashboardView extends VerticalLayout {
         notification.setDuration(5000);
     }
 }
-

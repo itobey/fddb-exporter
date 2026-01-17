@@ -70,8 +70,11 @@ public class ViewUtils {
         Div card = createCard();
         card.addClassNames(LumoUtility.Padding.MEDIUM);
         card.getStyle()
-                .set("min-width", "100px")
-                .set("background-color", backgroundColor);
+                .set("min-width", "100px");
+        // Only set background-color when a color is provided; otherwise keep the default .card styling
+        if (backgroundColor != null) {
+            card.getStyle().set("background-color", backgroundColor);
+        }
 
         Span emojiSpan = new Span(emoji);
         emojiSpan.addClassNames(LumoUtility.FontSize.XXLARGE);
@@ -119,4 +122,3 @@ public class ViewUtils {
         component.getElement().getStyle().set("padding", "clamp(0.5rem, 2vw, 1.5rem)");
     }
 }
-
