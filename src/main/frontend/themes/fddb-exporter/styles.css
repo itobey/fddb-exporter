@@ -16,8 +16,8 @@ html {
 
     --table-header: #4d577e;
 
-    --notification-success: #3f908c;
-    --notification-warning: #9a4b55;
+    --green-accent: #3f908c;
+    --red-accent: #9a4b55;
 
     /* Button colors */
     --button-color: #ae9357;
@@ -398,7 +398,7 @@ vaadin-text-field[invalid]::part(input-field),
 vaadin-text-area[invalid]::part(input-field),
 vaadin-date-picker[invalid]::part(input-field) {
     border-color: var(--lumo-error-text-color);
-    box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.12);
+    box-shadow: 0 0 0 3px rgba(154, 75, 85, 0.12);
 }
 
 vaadin-text-field[disabled]::part(input-field),
@@ -495,14 +495,6 @@ vaadin-notification-card {
     box-sizing: border-box;
     border-radius: var(--lumo-border-radius-l);
     box-shadow: none !important;
-}
-
-vaadin-notification-card[theme~="success"] {
-    background: rgba(76, 175, 80, 0.15);
-}
-
-vaadin-notification-card[theme~="error"] {
-    background: rgba(244, 67, 54, 0.15);
 }
 
 vaadin-notification-card[theme~="warning"] {
@@ -633,14 +625,20 @@ vaadin-tab-sheet::part(tabs) {
     background-color: var(--accent) !important;
 }
 
-.bg-accent-subtle {
-    background-color: rgba(78, 97, 155, 0.12) !important;
+.text-highlight {
+    color: var(--highlight) !important;
 }
 
-.border-accent {
-    border-color: var(--accent) !important;
+/* Override Lumo text color utilities */
+.text-success {
+    color: #3f908c !important;
 }
 
+.text-error {
+    color: #9a4b55 !important;
+}
+
+/* For Layout Padding */
 .surface-elevated {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.12);

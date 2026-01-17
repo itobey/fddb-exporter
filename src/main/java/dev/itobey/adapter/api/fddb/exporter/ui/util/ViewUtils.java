@@ -4,6 +4,8 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.theme.lumo.LumoUtility;
@@ -120,5 +122,27 @@ public class ViewUtils {
 
     public static void applyResponsivePadding(Component component) {
         component.getElement().getStyle().set("padding", "clamp(0.5rem, 2vw, 1.5rem)");
+    }
+
+    /**
+     * Show a success notification with custom green accent color
+     */
+    public static void showSuccess(String message) {
+        Notification notification = Notification.show(message);
+        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        notification.setDuration(3000);
+        // Apply custom color styling
+        notification.getElement().getThemeList().add("success");
+    }
+
+    /**
+     * Show an error notification with custom red accent color
+     */
+    public static void showError(String message) {
+        Notification notification = Notification.show(message);
+        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        notification.setDuration(5000);
+        // Apply custom color styling
+        notification.getElement().getThemeList().add("error");
     }
 }

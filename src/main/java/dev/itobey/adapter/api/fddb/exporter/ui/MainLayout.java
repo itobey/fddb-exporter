@@ -127,7 +127,7 @@ public class MainLayout extends AppLayout {
         if (latestVersion.isPresent()) {
             Icon updateIcon = VaadinIcon.ARROW_CIRCLE_UP.create();
             updateIcon.setSize("14px");
-            updateIcon.getStyle().set("color", "var(--lumo-success-color)");
+            updateIcon.getStyle().set("color", "#3f908c");
 
             Optional<String> releaseUrl = versionCheckService.getReleaseUrl();
             if (releaseUrl.isPresent()) {
@@ -135,7 +135,7 @@ public class MainLayout extends AppLayout {
                 updateLink.setTarget("_blank");
                 updateLink.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
                 updateLink.getStyle()
-                        .set("color", "var(--lumo-success-color)")
+                        .set("color", "#3f908c")
                         .set("text-decoration", "none")
                         .set("display", "flex")
                         .set("align-items", "center")
@@ -151,7 +151,7 @@ public class MainLayout extends AppLayout {
                 updateLayout.setAlignItems(FlexComponent.Alignment.CENTER);
                 updateLayout.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
                 updateLayout.getStyle()
-                        .set("color", "var(--lumo-success-color)")
+                        .set("color", "#3f908c")
                         .set("gap", "0.25rem")
                         .set("white-space", "nowrap");
                 versionContainer.add(updateLayout);

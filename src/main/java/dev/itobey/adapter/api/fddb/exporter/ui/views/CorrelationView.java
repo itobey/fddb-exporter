@@ -76,11 +76,11 @@ public class CorrelationView extends VerticalLayout {
 
         VerticalLayout inclusionSection = createKeywordSection("✓ Inclusion Keywords",
                 "Products matching these keywords will be included",
-                "rgba(76, 175, 80, 0.08)", "#66bb6a", true);
+                "rgba(63, 144, 140, 0.2)", "#3f908c", true);
 
         VerticalLayout exclusionSection = createKeywordSection("✗ Exclusion Keywords",
                 "Products matching these keywords will be excluded",
-                "rgba(244, 67, 54, 0.08)", "#ef5350", false);
+                "rgba(154, 75, 85, 0.2)", "#9a4b55", false);
 
         VerticalLayout datesSection = new VerticalLayout();
         datesSection.setPadding(false);
@@ -220,12 +220,12 @@ public class CorrelationView extends VerticalLayout {
 
         if (isInclusion) {
             pill.getStyle()
-                    .set("background-color", "var(--lumo-success-color)")
-                    .set("color", "var(--lumo-success-contrast-color)");
+                    .set("background-color", "#3f908c")
+                    .set("color", "#ffffff");
         } else {
             pill.getStyle()
-                    .set("background-color", "var(--lumo-error-color)")
-                    .set("color", "var(--lumo-error-contrast-color)");
+                    .set("background-color", "#9a4b55")
+                    .set("color", "#ffffff");
         }
 
         pill.getStyle()
@@ -397,7 +397,7 @@ public class CorrelationView extends VerticalLayout {
         percentageSpan.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
 
         if (detail.getPercentage() >= 70) {
-            percentageSpan.addClassNames(LumoUtility.TextColor.SUCCESS);
+            percentageSpan.getStyle().set("color", "#3f908c");
         } else if (detail.getPercentage() >= 40) {
             percentageSpan.addClassNames(LumoUtility.TextColor.WARNING);
         }
