@@ -14,6 +14,11 @@ html {
     --highlight: var(--button-color); /* #ae9357 */
     --highlight-rgb: 174, 147, 87;
 
+    --table-header: #4d577e;
+
+    --notification-success: #3f908c;
+    --notification-warning: #9a4b55;
+
     /* Button colors */
     --button-color: #ae9357;
     --button-color-hover: #bfa979;
@@ -518,24 +523,46 @@ vaadin-grid {
     border-radius: var(--lumo-border-radius-l);
     overflow: hidden;
     box-shadow: var(--lumo-box-shadow-s);
-    border: none;
+    border: 1px solid var(--card-border);
+    background: var(--card-surface);
 }
 
 vaadin-grid::part(header-cell) {
-    background: var(--accent);
-    color: white;
+    background-color: var(--table-header) !important;
+    color: var(--lumo-header-text-color);
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-size: 0.875rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+vaadin-grid::part(cell) {
+    background: transparent;
+    color: var(--lumo-body-text-color);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 vaadin-grid::part(row) {
     transition: background var(--transition-fast);
+    background: transparent;
 }
 
 vaadin-grid::part(row):hover {
-    background: var(--lumo-primary-color-10pct);
+    background: rgba(174, 147, 87, 0.1);
+}
+
+vaadin-grid::part(row):hover::part(cell) {
+    background: transparent;
+}
+
+/* Striped rows variant */
+vaadin-grid[theme~="row-stripes"]::part(even-row) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+vaadin-grid[theme~="row-stripes"]::part(even-row):hover {
+    background: rgba(174, 147, 87, 0.1);
 }
 
 /* Tabs */
@@ -544,11 +571,32 @@ vaadin-tab {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     transition: all var(--transition-fast);
+    color: var(--lumo-secondary-text-color);
+    background-color: transparent !important;
+}
+
+vaadin-tab::before,
+vaadin-tab::after {
+    display: none !important;
+}
+
+vaadin-tab:hover {
+    color: var(--button-color-hover);
 }
 
 vaadin-tab[selected] {
-    color: var(--lumo-primary-text-color);
-    border-bottom: 2px solid var(--lumo-primary-text-color);
+    color: var(--highlight);
+    background-color: transparent !important;
+    border-bottom: 2px solid var(--highlight);
+}
+
+vaadin-tab[selected]::before,
+vaadin-tab[selected]::after {
+    display: none !important;
+}
+
+vaadin-tab-sheet::part(tabs) {
+    background-color: transparent;
 }
 
 /* Nutrient-specific colors */
