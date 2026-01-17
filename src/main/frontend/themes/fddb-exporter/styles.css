@@ -732,6 +732,14 @@ vaadin-tab-sheet::part(tabs) {
         flex-direction: column !important;
     }
 
+    /* Keep preset buttons in 2-column layout even on mobile */
+    vaadin-horizontal-layout.preset-buttons-container {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+    }
+
     vaadin-horizontal-layout.amount-date-row {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
@@ -743,6 +751,12 @@ vaadin-tab-sheet::part(tabs) {
     vaadin-button {
         width: 100%;
         margin: 0.25rem 0;
+    }
+
+    /* Preset buttons maintain their flex sizing on mobile */
+    vaadin-button.preset-btn {
+        width: auto !important;
+        margin: 0 !important;
     }
 
     [class*="card"] {

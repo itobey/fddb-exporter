@@ -31,6 +31,7 @@ public class RollingAveragesView extends VerticalLayout {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final String BG_COLOR = "rgba(78, 97, 155, 0.08)";
+    private static final String HIGHLIGHT_COLOR = "#ae9357";
 
     private final StatsClient statsClient;
     private DatePicker fromDatePicker;
@@ -74,10 +75,11 @@ public class RollingAveragesView extends VerticalLayout {
         );
 
         HorizontalLayout quickButtons = new HorizontalLayout();
+        quickButtons.addClassName("preset-buttons-container");
         quickButtons.addClassNames(LumoUtility.Gap.SMALL);
         quickButtons.setWidthFull();
         quickButtons.getStyle().set("flex-wrap", "wrap");
-        quickButtons.setAlignItems(FlexComponent.Alignment.CENTER);
+        quickButtons.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
 
         quickButtons.add(
                 createPresetButton("Last 7 Days", 7),
@@ -103,7 +105,10 @@ public class RollingAveragesView extends VerticalLayout {
         });
         button.addThemeVariants(ButtonVariant.LUMO_SMALL);
         button.addClassName("preset-btn");
-        button.getStyle().set("flex", "1 1 calc(50% - 0.25rem)");
+        button.getStyle()
+                .set("flex", "1 1 calc(50% - 0.25rem)")
+                .set("min-width", "calc(50% - 0.25rem)")
+                .set("color", HIGHLIGHT_COLOR);
         return button;
     }
 
@@ -114,7 +119,10 @@ public class RollingAveragesView extends VerticalLayout {
         });
         button.addThemeVariants(ButtonVariant.LUMO_SMALL);
         button.addClassName("preset-btn");
-        button.getStyle().set("flex", "1 1 calc(50% - 0.25rem)");
+        button.getStyle()
+                .set("flex", "1 1 calc(50% - 0.25rem)")
+                .set("min-width", "calc(50% - 0.25rem)")
+                .set("color", HIGHLIGHT_COLOR);
         return button;
     }
 
