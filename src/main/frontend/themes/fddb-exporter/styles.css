@@ -108,6 +108,117 @@ body {
     background-image: linear-gradient(to bottom, #3f4e7d, #414c73, #424a69, #43485f, #434655);
 }
 
+/* Remove tap highlight and focus outlines on mobile */
+* {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+    -webkit-touch-callout: none;
+}
+
+/* Remove focus outlines globally but maintain accessibility for keyboard navigation */
+*:focus {
+    outline: none !important;
+}
+
+/* Chrome Android specific - force remove focus on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    *:focus,
+    *:active,
+    *[focus-ring],
+    *[focused] {
+        outline: none !important;
+        box-shadow: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+
+    /* Disable focus-visible on touch devices to prevent blue outline */
+    *:focus-visible {
+        outline: none !important;
+    }
+}
+
+/* Provide subtle focus styles for keyboard navigation on desktop only */
+@media (hover: hover) and (pointer: fine) {
+    *:focus-visible {
+        outline: 2px solid rgba(78, 97, 155, 0.5);
+        outline-offset: 2px;
+    }
+}
+
+/* Remove tap highlight from all interactive elements */
+button,
+a,
+input,
+textarea,
+select,
+[role="button"],
+[tabindex]:not([tabindex="-1"]),
+vaadin-button,
+vaadin-text-field,
+vaadin-text-area,
+vaadin-date-picker,
+vaadin-integer-field,
+vaadin-checkbox,
+vaadin-select,
+vaadin-combo-box,
+vaadin-drawer-toggle,
+vaadin-side-nav-item,
+vaadin-tabs,
+vaadin-tab,
+.clickable {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Allow text selection in text inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="number"],
+textarea,
+vaadin-text-field input,
+vaadin-text-area textarea,
+vaadin-integer-field input {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+/* Remove outlines from Vaadin components */
+vaadin-button::part(button),
+vaadin-text-field::part(input-field),
+vaadin-text-area::part(input-field),
+vaadin-date-picker::part(input-field),
+vaadin-integer-field::part(input-field),
+vaadin-checkbox::part(checkbox),
+vaadin-drawer-toggle::part(button),
+vaadin-side-nav-item::part(link) {
+    outline: none;
+}
+
+/* Remove focus rings but keep them for keyboard navigation */
+vaadin-button:focus::part(button),
+vaadin-text-field:focus::part(input-field),
+vaadin-text-area:focus::part(input-field),
+vaadin-date-picker:focus::part(input-field),
+vaadin-integer-field:focus::part(input-field) {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Provide focus-visible styles only for keyboard users */
+vaadin-button:focus-visible::part(button) {
+    outline: 2px solid rgba(78, 97, 155, 0.5);
+    outline-offset: 2px;
+}
+
 h1, h2, h3, h4, h5, h6 {
     color: var(--lumo-header-text-color);
     font-weight: 600;
@@ -125,6 +236,9 @@ h1, h2, h3, h4, h5, h6 {
 .app-header vaadin-drawer-toggle {
     color: var(--button-color-hover);
     transition: color var(--transition-fast), transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+    tap-highlight-color: transparent !important;
 }
 
 .app-header vaadin-drawer-toggle:hover {
@@ -135,6 +249,48 @@ h1, h2, h3, h4, h5, h6 {
 .app-header vaadin-drawer-toggle:active {
     color: var(--button-color-active);
     transform: translateY(0);
+}
+
+/* Extremely aggressive focus outline removal for Chrome Android */
+.app-header vaadin-drawer-toggle:focus,
+.app-header vaadin-drawer-toggle:active,
+.app-header vaadin-drawer-toggle:focus-within,
+.app-header vaadin-drawer-toggle[focus-ring],
+.app-header vaadin-drawer-toggle[focused] {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Force override on shadow DOM button part */
+.app-header vaadin-drawer-toggle::part(button) {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Chrome Android specific - touch devices only */
+@media (hover: none) and (pointer: coarse) {
+    .app-header vaadin-drawer-toggle:focus,
+    .app-header vaadin-drawer-toggle[focus-ring],
+    .app-header vaadin-drawer-toggle[focused] {
+        outline: none !important;
+        box-shadow: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+
+    /* Disable focus-visible on touch devices */
+    .app-header vaadin-drawer-toggle:focus-visible {
+        outline: none !important;
+    }
+}
+
+/* Only show focus for keyboard navigation on desktop */
+@media (hover: hover) and (pointer: fine) {
+    .app-header vaadin-drawer-toggle:focus-visible {
+        outline: 2px solid rgba(78, 97, 155, 0.5);
+        outline-offset: 2px;
+    }
 }
 
 .app-title {
