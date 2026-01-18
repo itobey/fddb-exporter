@@ -281,7 +281,7 @@ public class RollingAveragesView extends VerticalLayout {
             proteinSection.getStyle().set("flex", "0 0 " + proteinPercentage + "%");
             proteinSection.getStyle().set("min-width", "0 !important");
             proteinSection.getStyle().set("box-sizing", "border-box");
-            proteinSection.getStyle().set("background-color", "#95E1D3");
+            proteinSection.getStyle().set("background-color", "#e5769f");
             proteinSection.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
             proteinSection.getStyle().set("flex-direction", "column");
             proteinSection.getStyle().set("padding", "0.25rem");
