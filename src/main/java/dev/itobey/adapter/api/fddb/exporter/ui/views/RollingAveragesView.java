@@ -205,12 +205,12 @@ public class RollingAveragesView extends VerticalLayout {
     }
 
     private Component createMacroDistributionBars(StatsDTO.Averages avg) {
-        VerticalLayout bars = new VerticalLayout();
-        bars.addClassNames(LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
-        bars.setSpacing(true);
-        bars.setWidthFull();
-        bars.setPadding(true);
-        bars.getStyle().set("padding", "1rem").set("box-sizing", "border-box");
+        VerticalLayout container = new VerticalLayout();
+        container.addClassNames(LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
+        container.setSpacing(true);
+        container.setWidthFull();
+        container.setPadding(true);
+        container.getStyle().set("padding", "1rem").set("box-sizing", "border-box");
 
         double totalFat = avg.getAvgTotalFat();
         double totalCarbs = avg.getAvgTotalCarbs();
@@ -222,57 +222,93 @@ public class RollingAveragesView extends VerticalLayout {
             double carbsPercentage = (totalCarbs / totalMacros) * 100;
             double proteinPercentage = (totalProtein / totalMacros) * 100;
 
-            bars.add(createMacroProgressBar("Fat", totalFat, fatPercentage, "#FFE66D"));
-            bars.add(createMacroProgressBar("Carbs", totalCarbs, carbsPercentage, "#4ECDC4"));
-            bars.add(createMacroProgressBar("Protein", totalProtein, proteinPercentage, "#95E1D3"));
+            Div stackedBar = new Div();
+            stackedBar.setWidthFull();
+            stackedBar.setHeight("60px");  // Increased height for two-line labels
+            stackedBar.addClassNames(LumoUtility.BorderRadius.MEDIUM);
+            stackedBar.getStyle().set("display", "flex");
+            stackedBar.getStyle().set("flex-direction", "row");
+            stackedBar.getStyle().set("flex-wrap", "nowrap");
+            stackedBar.getStyle().set("overflow", "hidden");
+
+            Div fatSection = new Div();
+            fatSection.setWidth(fatPercentage + "%");
+            fatSection.setHeight("100%");
+            fatSection.getStyle().set("flex", "0 0 " + fatPercentage + "%");
+            fatSection.getStyle().set("min-width", "0 !important");
+            fatSection.getStyle().set("box-sizing", "border-box");
+            fatSection.getStyle().set("background-color", "#FFE66D");
+            fatSection.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
+            fatSection.getStyle().set("flex-direction", "column");  // Stack label parts vertically
+            fatSection.getStyle().set("padding", "0.25rem");
+            Span fatLabel = new Span("Fat " + formatNumber(fatPercentage) + "%");
+            fatLabel.getStyle()
+                    .set("width", "100%")
+                    .set("text-align", "center")
+                    .set("word-wrap", "break-word")
+                    .set("overflow-wrap", "break-word")
+                    .set("color", "#222")
+                    .set("font-weight", "600")
+                    .set("font-size", "0.85rem")
+                    .set("line-height", "1.2");
+            fatSection.add(fatLabel);
+
+            Div carbsSection = new Div();
+            carbsSection.setWidth(carbsPercentage + "%");
+            carbsSection.setHeight("100%");
+            carbsSection.getStyle().set("flex", "0 0 " + carbsPercentage + "%");
+            carbsSection.getStyle().set("min-width", "0 !important");
+            carbsSection.getStyle().set("box-sizing", "border-box");
+            carbsSection.getStyle().set("background-color", "#4ECDC4");
+            carbsSection.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
+            carbsSection.getStyle().set("flex-direction", "column");
+            carbsSection.getStyle().set("padding", "0.25rem");
+            Span carbsLabel = new Span("Carbs " + formatNumber(carbsPercentage) + "%");
+            carbsLabel.getStyle()
+                    .set("width", "100%")
+                    .set("text-align", "center")
+                    .set("word-wrap", "break-word")
+                    .set("overflow-wrap", "break-word")
+                    .set("color", "#022")
+                    .set("font-weight", "600")
+                    .set("font-size", "0.85rem")
+                    .set("line-height", "1.2");
+            carbsSection.add(carbsLabel);
+
+            Div proteinSection = new Div();
+            proteinSection.setWidth(proteinPercentage + "%");
+            proteinSection.setHeight("100%");
+            proteinSection.getStyle().set("flex", "0 0 " + proteinPercentage + "%");
+            proteinSection.getStyle().set("min-width", "0 !important");
+            proteinSection.getStyle().set("box-sizing", "border-box");
+            proteinSection.getStyle().set("background-color", "#95E1D3");
+            proteinSection.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
+            proteinSection.getStyle().set("flex-direction", "column");
+            proteinSection.getStyle().set("padding", "0.25rem");
+            Span proteinLabel = new Span("Protein " + formatNumber(proteinPercentage) + "%");
+            proteinLabel.getStyle()
+                    .set("width", "100%")
+                    .set("text-align", "center")
+                    .set("word-wrap", "break-word")
+                    .set("overflow-wrap", "break-word")
+                    .set("color", "#022")
+                    .set("font-weight", "600")
+                    .set("font-size", "0.85rem")
+                    .set("line-height", "1.2");
+            proteinSection.add(proteinLabel);
+
+            stackedBar.add(fatSection, carbsSection, proteinSection);
+
+            container.add(stackedBar);
         } else {
             Paragraph noData = new Paragraph("No macro data available");
             noData.addClassNames(LumoUtility.TextColor.SECONDARY);
-            bars.add(noData);
+            container.add(noData);
         }
 
-        return bars;
-    }
-
-    private Component createMacroProgressBar(String label, double grams, double percentage, String color) {
-        VerticalLayout container = new VerticalLayout();
-        container.setWidthFull();
-        container.setPadding(false);
-        container.setSpacing(false);
-        container.getStyle().set("gap", "0.25rem");
-
-        HorizontalLayout topRow = new HorizontalLayout();
-        topRow.setWidthFull();
-        topRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        topRow.setAlignItems(FlexComponent.Alignment.CENTER);
-        topRow.setPadding(false);
-        topRow.setSpacing(false);
-
-        Span labelSpan = new Span(label);
-        labelSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
-
-        Span valueSpan = new Span(formatNumber(grams) + "g (" + formatNumber(percentage) + "%)");
-        valueSpan.addClassNames(LumoUtility.FontSize.SMALL);
-
-        topRow.add(labelSpan, valueSpan);
-
-        Div progressContainer = new Div();
-        progressContainer.setWidthFull();
-        progressContainer.addClassNames(LumoUtility.Background.CONTRAST_10, LumoUtility.BorderRadius.SMALL);
-        progressContainer.setHeight("20px");
-        progressContainer.getStyle().set("position", "relative");
-
-        Div progressFill = new Div();
-        progressFill.setWidth(percentage + "%");
-        progressFill.setHeight("100%");
-        progressFill.addClassNames(LumoUtility.BorderRadius.SMALL);
-        progressFill.getStyle().set("background-color", color);
-
-        progressContainer.add(progressFill);
-
-        container.add(topRow, progressContainer);
         return container;
     }
+
 
     private void showSuccess(String message) {
         Notification notification = Notification.show(message);
