@@ -955,3 +955,13 @@ vaadin-tab-sheet::part(tabs) {
         transform: none !important;
     }
 }
+
+/* Override Vaadin top loading indicator color */
+.v-loading-indicator,
+.v-loading-indicator .v-loading-indicator-bar,
+v-loading-indicator,
+vaadin-progress-bar::part(value),
+vaadin-progress-bar::part(indeterminate) {
+    background-color: var(--highlight) !important;
+    z-index: 99999 !important;
+}
