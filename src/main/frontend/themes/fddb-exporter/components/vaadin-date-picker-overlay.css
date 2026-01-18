@@ -1,0 +1,10 @@
+/* Theme overrides applied inside the vaadin-date-picker-overlay shadow DOM*/
+
+/* Make the background of the Today button transparent in mobile mode */
+:host([fullscreen]) {
+    /* If Vaadin uses Lumo color variables to paint the toolbar, make them transparent here. */
+    --lumo-base-color: transparent !important;
+    --lumo-shade: transparent !important;
+    --lumo-contrast-10pct: transparent !important;
+    --lumo-contrast-20pct: transparent !important;
+}

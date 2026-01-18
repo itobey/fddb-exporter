@@ -39,7 +39,7 @@ html {
     --lumo-primary-color-10pct: rgba(78, 97, 155, 0.1);
     --lumo-primary-text-color: var(--accent-contrast);
 
-    --lumo-base-color: #0f0f11;
+    --lumo-base-color: #4e619b;
     --lumo-tint-5pct: rgba(255, 255, 255, 0.03);
     --lumo-tint-10pct: rgba(255, 255, 255, 0.05);
     --lumo-tint-20pct: rgba(255, 255, 255, 0.08);
