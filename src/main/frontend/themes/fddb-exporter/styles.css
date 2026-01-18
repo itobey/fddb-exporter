@@ -666,6 +666,45 @@ vaadin-notification-card[theme~="warning"] {
     box-shadow: var(--lumo-box-shadow-xs);
 }
 
+/* Highcharts - ensure text shown on bar charts (data labels and inside SVG text) uses the accent-active color */
+.highcharts-data-label, /* container */
+.highcharts-data-label text, /* svg text element */
+.highcharts-data-label tspan, /* svg tspan inside text */
+.highcharts-point-label, /* legacy point label class */
+.highcharts-data-labels .highcharts-data-label-box + text,
+.highcharts-data-labels .highcharts-data-label-box + tspan {
+    fill: var(--accent-active) !important; /* SVG text color */
+    color: var(--accent-active) !important; /* fallback for non-SVG text */
+    stroke: none !important;
+}
+
+/* Also apply to stacked/column/bar data labels rendered with class names starting with highcharts- */
+.highcharts-series .highcharts-data-label,
+.highcharts-series .highcharts-data-label text {
+    fill: var(--accent-active) !important;
+    color: var(--accent-active) !important;
+}
+
+/* Axis labels, tick labels, legend and titles */
+.highcharts-axis-labels text,
+.highcharts-axis-title text,
+.highcharts-xaxis-labels text,
+.highcharts-yaxis-labels text,
+.highcharts-legend text,
+.highcharts-title text,
+.highcharts-subtitle text,
+.highcharts-tooltip text,
+.highcharts-label text {
+    fill: var(--accent-active) !important;
+    color: var(--accent-active) !important;
+}
+
+/* Also ensure exported SVGs include the color */
+svg .highcharts-label, svg .highcharts-data-label, svg .highcharts-legend {
+    color: var(--accent-active) !important;
+    fill: var(--accent-active) !important;
+}
+
 /* Grid */
 vaadin-grid {
     border-radius: var(--lumo-border-radius-l);

@@ -181,7 +181,7 @@ public class RollingAveragesView extends VerticalLayout {
         content.setPadding(false);
 
         if (result.getAverages() != null) {
-            H3 heading = new H3("Averages for " + result.getFromDate() + " to " + result.getToDate());
+            H3 heading = new H3(result.getFromDate() + " ⮕ " + result.getToDate());
             content.add(heading);
 
             Div averagesGrid = createCardsGrid("120px");
@@ -247,7 +247,7 @@ public class RollingAveragesView extends VerticalLayout {
                     .set("text-align", "center")
                     .set("word-wrap", "break-word")
                     .set("overflow-wrap", "break-word")
-                    .set("color", "#222")
+                    .set("color", "var(--accent-active)")
                     .set("font-weight", "600")
                     .set("font-size", "0.85rem")
                     .set("line-height", "1.2");
@@ -269,7 +269,7 @@ public class RollingAveragesView extends VerticalLayout {
                     .set("text-align", "center")
                     .set("word-wrap", "break-word")
                     .set("overflow-wrap", "break-word")
-                    .set("color", "#022")
+                    .set("color", "var(--accent-active)")
                     .set("font-weight", "600")
                     .set("font-size", "0.85rem")
                     .set("line-height", "1.2");
@@ -291,7 +291,7 @@ public class RollingAveragesView extends VerticalLayout {
                     .set("text-align", "center")
                     .set("word-wrap", "break-word")
                     .set("overflow-wrap", "break-word")
-                    .set("color", "#022")
+                    .set("color", "var(--accent-active)")
                     .set("font-weight", "600")
                     .set("font-size", "0.85rem")
                     .set("line-height", "1.2");

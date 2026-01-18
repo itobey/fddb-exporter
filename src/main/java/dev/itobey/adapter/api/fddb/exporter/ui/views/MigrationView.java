@@ -52,7 +52,7 @@ public class MigrationView extends VerticalLayout {
 
         Div migrationCard = new Div();
         migrationCard.addClassNames(LumoUtility.Padding.LARGE, LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Background.BASE, LumoUtility.BoxShadow.SMALL);
+                LumoUtility.Background.CONTRAST_5, LumoUtility.BoxShadow.SMALL);
         migrationCard.setWidthFull();
 
         VerticalLayout cardContent = new VerticalLayout();
