@@ -175,7 +175,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         topRow.setFlexGrow(1, searchDatePicker);
 
         dateProductsGrid = createGrid(ProductDTO.class);
-        dateProductsGrid.addColumn(ProductDTO::getName).setHeader("Product Name").setSortable(true).setFlexGrow(3);
+        dateProductsGrid.addColumn(ProductDTO::getName).setHeader("Product Name").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addColumn(ProductDTO::getAmount).setHeader("Amount").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getCalories())).setHeader("Calories").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getFat())).setHeader("Fat (g)").setSortable(true).setAutoWidth(true);
