@@ -242,6 +242,15 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productSearchGrid.addComponentColumn(dto -> dto.getProduct() != null ? createFddbLink(dto.getProduct()) : new Paragraph(""))
                 .setHeader("Link").setAutoWidth(true);
 
+        productSearchGrid.addItemClickListener(event -> {
+            ProductWithDateDTO selectedData = event.getItem();
+            if (selectedData != null && selectedData.getDate() != null) {
+                tabSheet.setSelectedIndex(1);
+                searchDatePicker.setValue(selectedData.getDate());
+                searchByDate();
+            }
+        });
+
         layout.add(topRow, productSearchGrid);
         return layout;
     }
@@ -305,16 +314,25 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         try {
             List<FddbDataDTO> entries = fddbDataClient.getAllEntries();
             int count = entries != null ? entries.size() : 0;
-            allEntriesGrid.setVisible(true);
-            allEntriesGrid.setItems(entries);
-            // Expand grid safely based on number of rows
-            expandGridSafely(allEntriesGrid, count);
 
-            allEntriesCountLabel.setText(count + " entries");
-            allEntriesCountLabel.setVisible(true);
-            showSuccess("Loaded " + count + " entries");
+            if (count > 0) {
+                allEntriesGrid.setVisible(true);
+                allEntriesGrid.setItems(entries);
+                // Expand grid safely based on number of rows
+                expandGridSafely(allEntriesGrid, count);
+
+                allEntriesCountLabel.setText(count + " entries");
+                allEntriesCountLabel.setVisible(true);
+                showSuccess("Loaded " + count + " entries");
+            } else {
+                allEntriesGrid.setVisible(false);
+                allEntriesGrid.setItems();
+                allEntriesCountLabel.setVisible(false);
+                showError("No entries found");
+            }
         } catch (ApiException e) {
             showError(e.getMessage());
+            allEntriesGrid.setVisible(false);
             allEntriesGrid.setItems();
             allEntriesCountLabel.setVisible(false);
         }
@@ -329,8 +347,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         try {
             String date = searchDatePicker.getValue().format(DATE_FORMAT);
             FddbDataDTO data = fddbDataClient.getByDate(date);
-            dateProductsGrid.setVisible(true);
-            if (data != null && data.getProducts() != null) {
+            if (data != null && data.getProducts() != null && !data.getProducts().isEmpty()) {
                 // Update stats cards
                 dateStatsCards.removeAll();
                 dateStatsCards.add(
@@ -343,6 +360,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 );
                 dateStatsCards.setVisible(true);
 
+                dateProductsGrid.setVisible(true);
                 dateProductsGrid.setItems(data.getProducts());
                 // Expand grid safely based on product count
                 int productCount = data.getProducts() != null ? data.getProducts().size() : 0;
@@ -353,6 +371,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 showSuccess("Found " + data.getProducts().size() + " products for " + date);
             } else {
                 dateStatsCards.setVisible(false);
+                dateProductsGrid.setVisible(false);
                 dateProductsGrid.setItems();
                 dateProductsCountLabel.setVisible(false);
                 showError("No data found for " + date);
@@ -360,6 +379,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         } catch (ApiException e) {
             showError(e.getMessage());
             dateStatsCards.setVisible(false);
+            dateProductsGrid.setVisible(false);
             dateProductsGrid.setItems();
             dateProductsCountLabel.setVisible(false);
         }
@@ -372,19 +392,35 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             return;
         }
 
-        try {
-            List<ProductWithDateDTO> products = fddbDataClient.searchProducts(searchTerm.trim());
-            productSearchGrid.setVisible(true);
-            productSearchGrid.setItems(products);
-            // Expand grid safely based on result count
-            int productSearchCount = products != null ? products.size() : 0;
-            expandGridSafely(productSearchGrid, productSearchCount);
+        String trimmed = searchTerm.trim();
+        if (trimmed.length() == 1) {
+            // Explicitly require at least 2 characters to avoid overly broad or expensive searches
+            showError("Please enter at least 2 characters to search");
+            return;
+        }
 
-            productSearchCountLabel.setText(productSearchCount + " results");
-            productSearchCountLabel.setVisible(true);
-            showSuccess("Found " + productSearchCount + " matching products");
+        try {
+            List<ProductWithDateDTO> products = fddbDataClient.searchProducts(trimmed);
+            int productSearchCount = products != null ? products.size() : 0;
+
+            if (productSearchCount > 0) {
+                productSearchGrid.setVisible(true);
+                productSearchGrid.setItems(products);
+                // Expand grid safely based on result count
+                expandGridSafely(productSearchGrid, productSearchCount);
+
+                productSearchCountLabel.setText(productSearchCount + " results");
+                productSearchCountLabel.setVisible(true);
+                showSuccess("Found " + productSearchCount + " matching products");
+            } else {
+                productSearchGrid.setVisible(false);
+                productSearchGrid.setItems();
+                productSearchCountLabel.setVisible(false);
+                showError("No products found matching \"" + trimmed + "\"");
+            }
         } catch (ApiException e) {
             showError(e.getMessage());
+            productSearchGrid.setVisible(false);
             productSearchGrid.setItems();
             productSearchCountLabel.setVisible(false);
         }
