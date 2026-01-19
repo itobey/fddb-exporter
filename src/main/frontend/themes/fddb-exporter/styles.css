@@ -424,19 +424,13 @@ vaadin-side-nav-item[selected]::part(link) {
     border: 1px solid var(--card-border);
     border-radius: var(--lumo-border-radius-l);
     padding: 16px;
-    transition: transform var(--transition-normal), box-shadow var(--transition-normal), background-color var(--transition-fast);
     box-shadow: var(--lumo-box-shadow-xs);
     box-sizing: border-box;
 }
 
-.card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--lumo-box-shadow-m);
-    background: var(--card-hover-surface);
-}
-
 .card--highlight {
     cursor: pointer;
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal), background-color var(--transition-fast);
 }
 
 .card--highlight:hover {
@@ -639,6 +633,11 @@ vaadin-date-picker-overlay ::slotted(vaadin-button) {
     vaadin-text-area::part(input-field) {
         min-height: 44px;
         padding: 8px 10px;
+    }
+
+    vaadin-vertical-layout.data-query-tab-layout,
+    .data-query-tab-layout {
+        display: contents !important;
     }
 }
 
@@ -909,6 +908,37 @@ vaadin-tab-sheet::part(tabs) {
     }
 }
 
+/* Settings View Specific Styles */
+.settings-view {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.settings-view > vaadin-vertical-layout {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.settings-card {
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+.settings-card > * {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.settings-action-button {
+    width: auto;
+    max-width: 200px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 @media (max-width: 576px) {
     :root {
         --mobile-horizontal-padding: 0.25rem;
@@ -919,8 +949,14 @@ vaadin-tab-sheet::part(tabs) {
     .rolling-averages-view,
     .data-export-view,
     .correlation-view,
-    .migration-view {
+    .migration-view,
+    .settings-view {
         padding: var(--mobile-horizontal-padding) !important;
+    }
+
+    .settings-card {
+        max-width: calc(100vw - 0.5rem);
+        overflow-x: hidden;
     }
 
     vaadin-horizontal-layout {
@@ -992,6 +1028,12 @@ vaadin-tab-sheet::part(tabs) {
     .card--highlight:hover,
     vaadin-button:hover {
         transform: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .date-products-grid {
+        margin-top: 1rem;
     }
 }
 

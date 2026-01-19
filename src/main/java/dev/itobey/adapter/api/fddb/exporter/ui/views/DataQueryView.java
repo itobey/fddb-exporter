@@ -6,10 +6,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -48,6 +45,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     private Span allEntriesCountLabel;
 
     private DatePicker searchDatePicker;
+    private Div dateStatsCards;
     private Grid<ProductDTO> dateProductsGrid;
     private Span dateProductsCountLabel;
 
@@ -174,6 +172,15 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         topRow.setAlignItems(Alignment.END);
         topRow.setFlexGrow(1, searchDatePicker);
 
+        dateStatsCards = createCardsGrid("120px");
+        dateStatsCards.setVisible(false);
+        dateStatsCards.getStyle()
+                .set("width", "100%")
+                .set("margin-top", "1rem")
+                .set("margin-bottom", "1.5rem")
+                .set("position", "relative")
+                .set("z-index", "1");
+
         dateProductsGrid = createGrid(ProductDTO.class);
         dateProductsGrid.addColumn(ProductDTO::getName).setHeader("Product Name").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addColumn(ProductDTO::getAmount).setHeader("Amount").setSortable(true).setAutoWidth(true);
@@ -182,8 +189,14 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getCarbs())).setHeader("Carbs (g)").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getProtein())).setHeader("Protein (g)").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addComponentColumn(this::createFddbLink).setHeader("Link").setAutoWidth(true);
+        dateProductsGrid.addClassName("date-products-grid");
+        dateProductsGrid.getStyle()
+                .set("width", "100%")
+                .set("position", "relative")
+                .set("z-index", "0")
+                .set("overflow", "visible");
 
-        layout.add(topRow, dateProductsGrid);
+        layout.add(topRow, dateStatsCards, dateProductsGrid);
         return layout;
     }
 
@@ -229,6 +242,15 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productSearchGrid.addComponentColumn(dto -> dto.getProduct() != null ? createFddbLink(dto.getProduct()) : new Paragraph(""))
                 .setHeader("Link").setAutoWidth(true);
 
+        productSearchGrid.addItemClickListener(event -> {
+            ProductWithDateDTO selectedData = event.getItem();
+            if (selectedData != null && selectedData.getDate() != null) {
+                tabSheet.setSelectedIndex(1);
+                searchDatePicker.setValue(selectedData.getDate());
+                searchByDate();
+            }
+        });
+
         layout.add(topRow, productSearchGrid);
         return layout;
     }
@@ -238,8 +260,44 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         grid.addClassName("data-query-grid");
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid.setVisible(false);
-        grid.setAllRowsVisible(true);
+        // Removed unconditional setAllRowsVisible(true) to avoid Vaadin fetching too many pages.
         return grid;
+    }
+
+    // Helper: expand grid safely. Calls setAllRowsVisible(true) only when the number of pages
+    // that would be fetched is <= MAX_PAGES. Otherwise falls back to a bounded height (heightByRows)
+    // to avoid triggering Vaadin's max page-count exception and performance issues.
+    private void expandGridSafely(Grid<?> grid, int totalRows) {
+        if (totalRows <= 0) {
+            // Nothing to show — reset height and return
+            grid.getElement().getStyle().remove("height");
+            grid.getElement().getStyle().remove("overflow");
+            return;
+        }
+
+        final int MAX_PAGES = 10; // Vaadin's internal limit; be conservative
+        int pageSize = Math.max(1, grid.getPageSize());
+        int pages = (totalRows + pageSize - 1) / pageSize;
+
+        if (pages <= MAX_PAGES) {
+            // Safe to request all rows — set page size large enough so that fetching all rows
+            // doesn't require more than MAX_PAGES requests.
+            grid.setPageSize(Math.max(pageSize, totalRows));
+            grid.setAllRowsVisible(true);
+            // Remove any explicit height we may have set previously
+            grid.getElement().getStyle().remove("height");
+            grid.getElement().getStyle().remove("overflow");
+        } else {
+            // Too many pages: avoid fetching everything. Show a reasonable number of rows
+            // so the grid is expanded visually but doesn't try to download the whole dataset.
+            int visibleRows = Math.min(totalRows, 20); // choose a safe default (tweakable)
+            // Estimate row height (including padding). Adjust if needed for your theme.
+            int rowHeightPx = 40;
+            int heightPx = visibleRows * rowHeightPx;
+            grid.getElement().getStyle().set("height", heightPx + "px");
+            // ensure overflow is visible so items can overflow visually if needed
+            grid.getElement().getStyle().set("overflow", "visible");
+        }
     }
 
     private Anchor createFddbLink(ProductDTO product) {
@@ -255,13 +313,26 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     private void loadAllEntries() {
         try {
             List<FddbDataDTO> entries = fddbDataClient.getAllEntries();
-            allEntriesGrid.setVisible(true);
-            allEntriesGrid.setItems(entries);
-            allEntriesCountLabel.setText(entries.size() + " entries");
-            allEntriesCountLabel.setVisible(true);
-            showSuccess("Loaded " + entries.size() + " entries");
+            int count = entries != null ? entries.size() : 0;
+
+            if (count > 0) {
+                allEntriesGrid.setVisible(true);
+                allEntriesGrid.setItems(entries);
+                // Expand grid safely based on number of rows
+                expandGridSafely(allEntriesGrid, count);
+
+                allEntriesCountLabel.setText(count + " entries");
+                allEntriesCountLabel.setVisible(true);
+                showSuccess("Loaded " + count + " entries");
+            } else {
+                allEntriesGrid.setVisible(false);
+                allEntriesGrid.setItems();
+                allEntriesCountLabel.setVisible(false);
+                showError("No entries found");
+            }
         } catch (ApiException e) {
             showError(e.getMessage());
+            allEntriesGrid.setVisible(false);
             allEntriesGrid.setItems();
             allEntriesCountLabel.setVisible(false);
         }
@@ -276,19 +347,39 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         try {
             String date = searchDatePicker.getValue().format(DATE_FORMAT);
             FddbDataDTO data = fddbDataClient.getByDate(date);
-            dateProductsGrid.setVisible(true);
-            if (data != null && data.getProducts() != null) {
+            if (data != null && data.getProducts() != null && !data.getProducts().isEmpty()) {
+                // Update stats cards
+                dateStatsCards.removeAll();
+                dateStatsCards.add(
+                        createNutrientCard("Calories", formatNumber(data.getTotalCalories()), "kcal", "🔥", null),
+                        createNutrientCard("Fat", formatNumber(data.getTotalFat()), "g", "🧈", null),
+                        createNutrientCard("Carbs", formatNumber(data.getTotalCarbs()), "g", "🍞", null),
+                        createNutrientCard("Sugar", formatNumber(data.getTotalSugar()), "g", "🍬", null),
+                        createNutrientCard("Protein", formatNumber(data.getTotalProtein()), "g", "🥩", null),
+                        createNutrientCard("Fibre", formatNumber(data.getTotalFibre()), "g", "🥦", null)
+                );
+                dateStatsCards.setVisible(true);
+
+                dateProductsGrid.setVisible(true);
                 dateProductsGrid.setItems(data.getProducts());
-                dateProductsCountLabel.setText(data.getProducts().size() + " products");
+                // Expand grid safely based on product count
+                int productCount = data.getProducts() != null ? data.getProducts().size() : 0;
+                expandGridSafely(dateProductsGrid, productCount);
+
+                dateProductsCountLabel.setText(productCount + " products");
                 dateProductsCountLabel.setVisible(true);
                 showSuccess("Found " + data.getProducts().size() + " products for " + date);
             } else {
+                dateStatsCards.setVisible(false);
+                dateProductsGrid.setVisible(false);
                 dateProductsGrid.setItems();
                 dateProductsCountLabel.setVisible(false);
                 showError("No data found for " + date);
             }
         } catch (ApiException e) {
             showError(e.getMessage());
+            dateStatsCards.setVisible(false);
+            dateProductsGrid.setVisible(false);
             dateProductsGrid.setItems();
             dateProductsCountLabel.setVisible(false);
         }
@@ -301,15 +392,35 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             return;
         }
 
+        String trimmed = searchTerm.trim();
+        if (trimmed.length() == 1) {
+            // Explicitly require at least 2 characters to avoid overly broad or expensive searches
+            showError("Please enter at least 2 characters to search");
+            return;
+        }
+
         try {
-            List<ProductWithDateDTO> products = fddbDataClient.searchProducts(searchTerm.trim());
-            productSearchGrid.setVisible(true);
-            productSearchGrid.setItems(products);
-            productSearchCountLabel.setText(products.size() + " results");
-            productSearchCountLabel.setVisible(true);
-            showSuccess("Found " + products.size() + " matching products");
+            List<ProductWithDateDTO> products = fddbDataClient.searchProducts(trimmed);
+            int productSearchCount = products != null ? products.size() : 0;
+
+            if (productSearchCount > 0) {
+                productSearchGrid.setVisible(true);
+                productSearchGrid.setItems(products);
+                // Expand grid safely based on result count
+                expandGridSafely(productSearchGrid, productSearchCount);
+
+                productSearchCountLabel.setText(productSearchCount + " results");
+                productSearchCountLabel.setVisible(true);
+                showSuccess("Found " + productSearchCount + " matching products");
+            } else {
+                productSearchGrid.setVisible(false);
+                productSearchGrid.setItems();
+                productSearchCountLabel.setVisible(false);
+                showError("No products found matching \"" + trimmed + "\"");
+            }
         } catch (ApiException e) {
             showError(e.getMessage());
+            productSearchGrid.setVisible(false);
             productSearchGrid.setItems();
             productSearchCountLabel.setVisible(false);
         }
