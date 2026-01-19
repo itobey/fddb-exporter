@@ -1,0 +1,15 @@
+/* Component theme for vaadin-side-nav-item to style selection reliably */
+
+/* Style the active navbar item */
+:host([selected])::part(link),
+:host([active])::part(link),
+:host([current])::part(link),
+:host([aria-current="true"])::part(link),
+:host([aria-selected="true"])::part(link) {
+    background: rgba(174, 147, 87, 0.85);
+    color: #ffffff;
+    font-weight: 600 !important;
+    padding-left: 8px !important;
+    border-top-right-radius: var(--lumo-border-radius-m) !important;
+    border-bottom-right-radius: var(--lumo-border-radius-m) !important;
+}

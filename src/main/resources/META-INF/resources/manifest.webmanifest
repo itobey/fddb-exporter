@@ -1,0 +1,26 @@
+{
+  "name": "FDDB Exporter",
+  "short_name": "FDDB-Exporter",
+  "description": "Export and analyze your FDDB nutrition data",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#4e619b",
+  "background_color": "#4e619b",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
+

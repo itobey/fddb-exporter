@@ -1,0 +1,34 @@
+/* Component theme for vaadin-notification-card */
+/* Override Lumo default success and error colors */
+
+:host {
+    /* Override Lumo color variables at component level */
+    --lumo-base-color: #4e619b;
+    --lumo-success-color: #3f908c;
+    --lumo-success-color-50pct: rgba(63, 144, 140, 0.5);
+    --lumo-success-color-10pct: rgba(63, 144, 140, 0.1);
+    --lumo-success-text-color: #3f908c;
+    --lumo-success-contrast-color: #ffffff;
+
+    --lumo-error-color: #9a4b55;
+    --lumo-error-color-50pct: rgba(154, 75, 85, 0.5);
+    --lumo-error-color-10pct: rgba(154, 75, 85, 0.1);
+    --lumo-error-text-color: #9a4b55;
+    --lumo-error-contrast-color: #ffffff;
+}
+
+:host([theme~="success"]) {
+    background-color: rgba(63, 144, 140, 0.15) !important;
+    border: 1px solid #3f908c !important;
+    color: #ffffff;
+}
+
+:host([theme~="error"]) {
+    background-color: rgba(154, 75, 85, 0.15) !important;
+    border: 1px solid #9a4b55 !important;
+    color: #ffffff;
+}
+
+:host([theme~="warning"]) {
+    background-color: rgba(255, 152, 0, 0.15);
+}

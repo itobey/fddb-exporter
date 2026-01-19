@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.0 (Unreleased)
+
+### Added
+
+- Large update: FDDB-Exporter now includes a built-in frontend (single-page application).
+- The frontend is served at the application root (for example: http://localhost:8080/) and provides a graphical UI for
+  all operations that the API exposes.
+- Automatic version check: On startup and once per day FDDB-Exporter checks whether a new stable version is available;
+  the result is printed to the application logs and shown in the frontend UI.
+
 ## 1.7.0
 
 ### Changed
