@@ -424,19 +424,13 @@ vaadin-side-nav-item[selected]::part(link) {
     border: 1px solid var(--card-border);
     border-radius: var(--lumo-border-radius-l);
     padding: 16px;
-    transition: transform var(--transition-normal), box-shadow var(--transition-normal), background-color var(--transition-fast);
     box-shadow: var(--lumo-box-shadow-xs);
     box-sizing: border-box;
 }
 
-.card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--lumo-box-shadow-m);
-    background: var(--card-hover-surface);
-}
-
 .card--highlight {
     cursor: pointer;
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal), background-color var(--transition-fast);
 }
 
 .card--highlight:hover {
