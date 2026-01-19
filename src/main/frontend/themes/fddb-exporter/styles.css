@@ -908,6 +908,37 @@ vaadin-tab-sheet::part(tabs) {
     }
 }
 
+/* Settings View Specific Styles */
+.settings-view {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.settings-view > vaadin-vertical-layout {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.settings-card {
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+.settings-card > * {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.settings-action-button {
+    width: auto;
+    max-width: 200px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 @media (max-width: 576px) {
     :root {
         --mobile-horizontal-padding: 0.25rem;
@@ -918,8 +949,14 @@ vaadin-tab-sheet::part(tabs) {
     .rolling-averages-view,
     .data-export-view,
     .correlation-view,
-    .migration-view {
+    .migration-view,
+    .settings-view {
         padding: var(--mobile-horizontal-padding) !important;
+    }
+
+    .settings-card {
+        max-width: calc(100vw - 0.5rem);
+        overflow-x: hidden;
     }
 
     vaadin-horizontal-layout {

@@ -23,24 +23,24 @@ import dev.itobey.adapter.api.fddb.exporter.ui.service.MigrationClient;
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.applyResponsivePadding;
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createSection;
 
-@Route(value = "migration", layout = MainLayout.class)
-@PageTitle("Migration | FDDB Exporter")
-public class MigrationView extends VerticalLayout {
+@Route(value = "settings", layout = MainLayout.class)
+@PageTitle("Settings | FDDB Exporter")
+public class SettingsView extends VerticalLayout {
 
     private final MigrationClient migrationClient;
     private Div resultDiv;
     private ProgressBar progressBar;
 
-    public MigrationView(MigrationClient migrationClient) {
+    public SettingsView(MigrationClient migrationClient) {
         this.migrationClient = migrationClient;
 
-        addClassName("migration-view");
+        addClassName("settings-view");
         setSpacing(true);
         setPadding(true);
         applyResponsivePadding(this);
 
-        add(new H2("Data Migration"));
-        add(new Paragraph("Migrate data between storage backends."));
+        add(new H2("Settings"));
+        add(new Paragraph("Manage application settings and data operations."));
         add(createMigrationSection());
     }
 
@@ -50,10 +50,24 @@ public class MigrationView extends VerticalLayout {
         section.setAlignItems(Alignment.START);
         section.setWidthFull();
 
+        Div sectionHeader = new Div();
+        sectionHeader.addClassNames(LumoUtility.Display.FLEX, LumoUtility.AlignItems.CENTER, LumoUtility.Gap.MEDIUM);
+        sectionHeader.getStyle().set("flex-wrap", "wrap").set("margin-bottom", "1.5rem");
+
+        Icon settingsIcon = new Icon(VaadinIcon.COGS);
+        settingsIcon.setSize("24px");
+        settingsIcon.addClassNames(LumoUtility.TextColor.PRIMARY);
+
+        Span sectionTitle = new Span("Data Operations");
+        sectionTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.SEMIBOLD);
+        sectionHeader.add(settingsIcon, sectionTitle);
+
+        // Migration subsection
         Div migrationCard = new Div();
         migrationCard.addClassNames(LumoUtility.Padding.LARGE, LumoUtility.BorderRadius.MEDIUM,
                 LumoUtility.Background.CONTRAST_5, LumoUtility.BoxShadow.SMALL);
         migrationCard.setWidthFull();
+        migrationCard.addClassName("settings-card");
 
         VerticalLayout cardContent = new VerticalLayout();
         cardContent.setPadding(false);
@@ -88,7 +102,7 @@ public class MigrationView extends VerticalLayout {
         migrateButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         migrateButton.setIcon(new Icon(VaadinIcon.PLAY));
         migrateButton.addClickListener(e -> confirmMigration());
-        migrateButton.setWidthFull();
+        migrateButton.addClassName("settings-action-button");
 
         progressBar = new ProgressBar();
         progressBar.setIndeterminate(true);
@@ -101,7 +115,7 @@ public class MigrationView extends VerticalLayout {
 
         cardContent.add(header, description, warningNotice, migrateButton, progressBar, resultDiv);
         migrationCard.add(cardContent);
-        section.add(migrationCard);
+        section.add(sectionHeader, migrationCard);
 
         return section;
     }
@@ -184,4 +198,3 @@ public class MigrationView extends VerticalLayout {
         notification.setDuration(5000);
     }
 }
-
