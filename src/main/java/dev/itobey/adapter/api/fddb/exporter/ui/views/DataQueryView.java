@@ -251,8 +251,44 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         grid.addClassName("data-query-grid");
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid.setVisible(false);
-        grid.setAllRowsVisible(true);
+        // Removed unconditional setAllRowsVisible(true) to avoid Vaadin fetching too many pages.
         return grid;
+    }
+
+    // Helper: expand grid safely. Calls setAllRowsVisible(true) only when the number of pages
+    // that would be fetched is <= MAX_PAGES. Otherwise falls back to a bounded height (heightByRows)
+    // to avoid triggering Vaadin's max page-count exception and performance issues.
+    private void expandGridSafely(Grid<?> grid, int totalRows) {
+        if (totalRows <= 0) {
+            // Nothing to show — reset height and return
+            grid.getElement().getStyle().remove("height");
+            grid.getElement().getStyle().remove("overflow");
+            return;
+        }
+
+        final int MAX_PAGES = 10; // Vaadin's internal limit; be conservative
+        int pageSize = Math.max(1, grid.getPageSize());
+        int pages = (totalRows + pageSize - 1) / pageSize;
+
+        if (pages <= MAX_PAGES) {
+            // Safe to request all rows — set page size large enough so that fetching all rows
+            // doesn't require more than MAX_PAGES requests.
+            grid.setPageSize(Math.max(pageSize, totalRows));
+            grid.setAllRowsVisible(true);
+            // Remove any explicit height we may have set previously
+            grid.getElement().getStyle().remove("height");
+            grid.getElement().getStyle().remove("overflow");
+        } else {
+            // Too many pages: avoid fetching everything. Show a reasonable number of rows
+            // so the grid is expanded visually but doesn't try to download the whole dataset.
+            int visibleRows = Math.min(totalRows, 20); // choose a safe default (tweakable)
+            // Estimate row height (including padding). Adjust if needed for your theme.
+            int rowHeightPx = 40;
+            int heightPx = visibleRows * rowHeightPx;
+            grid.getElement().getStyle().set("height", heightPx + "px");
+            // ensure overflow is visible so items can overflow visually if needed
+            grid.getElement().getStyle().set("overflow", "visible");
+        }
     }
 
     private Anchor createFddbLink(ProductDTO product) {
@@ -268,11 +304,15 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     private void loadAllEntries() {
         try {
             List<FddbDataDTO> entries = fddbDataClient.getAllEntries();
+            int count = entries != null ? entries.size() : 0;
             allEntriesGrid.setVisible(true);
             allEntriesGrid.setItems(entries);
-            allEntriesCountLabel.setText(entries.size() + " entries");
+            // Expand grid safely based on number of rows
+            expandGridSafely(allEntriesGrid, count);
+
+            allEntriesCountLabel.setText(count + " entries");
             allEntriesCountLabel.setVisible(true);
-            showSuccess("Loaded " + entries.size() + " entries");
+            showSuccess("Loaded " + count + " entries");
         } catch (ApiException e) {
             showError(e.getMessage());
             allEntriesGrid.setItems();
@@ -304,7 +344,11 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 dateStatsCards.setVisible(true);
 
                 dateProductsGrid.setItems(data.getProducts());
-                dateProductsCountLabel.setText(data.getProducts().size() + " products");
+                // Expand grid safely based on product count
+                int productCount = data.getProducts() != null ? data.getProducts().size() : 0;
+                expandGridSafely(dateProductsGrid, productCount);
+
+                dateProductsCountLabel.setText(productCount + " products");
                 dateProductsCountLabel.setVisible(true);
                 showSuccess("Found " + data.getProducts().size() + " products for " + date);
             } else {
@@ -332,9 +376,13 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             List<ProductWithDateDTO> products = fddbDataClient.searchProducts(searchTerm.trim());
             productSearchGrid.setVisible(true);
             productSearchGrid.setItems(products);
-            productSearchCountLabel.setText(products.size() + " results");
+            // Expand grid safely based on result count
+            int productSearchCount = products != null ? products.size() : 0;
+            expandGridSafely(productSearchGrid, productSearchCount);
+
+            productSearchCountLabel.setText(productSearchCount + " results");
             productSearchCountLabel.setVisible(true);
-            showSuccess("Found " + products.size() + " matching products");
+            showSuccess("Found " + productSearchCount + " matching products");
         } catch (ApiException e) {
             showError(e.getMessage());
             productSearchGrid.setItems();
