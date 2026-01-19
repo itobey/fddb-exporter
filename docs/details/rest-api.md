@@ -112,10 +112,34 @@ Example responses:
 > **GET** `/api/v2/fddbdata/products?name={product}`
 
 - **Description:** Retrieves all entries matching the given product name as JSON. The search is fuzzy, allowing for
-  partial matches.
-- **Query Parameter:**
+  partial matches. Optionally you can restrict results to specific days of the week using the `days` query parameter.
+- **Query Parameters:**
     - `name` _(required)_: The name of the product to search for.
-- **Example:** `/api/v2/fddbdata/products?name=mountain` _(This will find entries like `Mountain Dew`.)_
+  - `days` _(optional)_: One or more day names (ISO weekday names) to filter results by day-of-week. Accepts a
+    comma-separated list of values. Valid values: `MONDAY`, `TUESDAY`, `WEDNESDAY`, `THURSDAY`, `FRIDAY`, `SATURDAY`,
+    `SUNDAY`.
+
+    - If `days` is omitted or empty, the endpoint returns matches for all dates.
+    - If one or more days are provided, the endpoint returns only the product occurrences whose date falls on any of the
+      specified weekdays.
+
+- **Examples:**
+  - All matches for "Strawberry":
+    `/api/v2/fddbdata/products?name=Strawberry`
+
+  - Matches for "Banana" that occurred on Mondays only:
+    `/api/v2/fddbdata/products?name=Banana&days=MONDAY`
+
+  - Matches for "Banana" that occurred on Mondays and Saturdays:
+    `/api/v2/fddbdata/products?name=Banana&days=MONDAY,SATURDAY`
+
+- **Behavior notes:**
+  - The `days` parameter uses the standard Java `DayOfWeek` names (ISO weekdays). Provide the weekday names in uppercase
+    to match the enum values; the OpenAPI spec documents the permitted values.
+  - The filtering is performed server-side in the v2 API. The response contains a list of objects with the `date` and a
+    `product` object. When filtered by days, only those entries whose `date`'s weekday matches any of the provided days
+    are returned.
+
 - **Response:** A JSON array containing all matching entries (see
   full [example response](../resources/example-response-products.json)).
 

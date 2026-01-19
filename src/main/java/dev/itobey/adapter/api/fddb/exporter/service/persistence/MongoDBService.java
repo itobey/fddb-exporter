@@ -64,6 +64,18 @@ public class MongoDBService {
      * @return a list of matches
      */
     public List<ProductWithDate> findByProduct(String name) {
+        return findByProduct(name, null);
+    }
+
+    /**
+     * Searches for a product name and returns the date with the product details,
+     * optionally filtered by days of the week.
+     *
+     * @param name       the name of the product
+     * @param daysOfWeek list of days to filter by (e.g., MONDAY, WEDNESDAY). If null or empty, no day filtering is applied.
+     * @return a list of matches
+     */
+    public List<ProductWithDate> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek) {
         AggregationOperation match = match(Criteria.where("products.name").regex(name, "i"));
         AggregationOperation unwind = unwind("products");
         AggregationOperation secondMatch = match(Criteria.where("products.name").regex(name, "i"));
@@ -76,7 +88,16 @@ public class MongoDBService {
         AggregationResults<ProductWithDate> results = mongoTemplate.aggregate(
                 aggregation, "fddb", ProductWithDate.class);
 
-        return results.getMappedResults();
+        List<ProductWithDate> allResults = results.getMappedResults();
+
+        // Filter by days of week if specified
+        if (daysOfWeek != null && !daysOfWeek.isEmpty()) {
+            return allResults.stream()
+                    .filter(result -> result.getDate() != null && daysOfWeek.contains(result.getDate().getDayOfWeek()))
+                    .toList();
+        }
+
+        return allResults;
     }
 
     public List<ProductWithDate> findByProductsWithExclusions(List<String> includeNames, List<String> excludeNames, LocalDate startDate) {

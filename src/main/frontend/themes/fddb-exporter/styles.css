@@ -592,6 +592,12 @@ vaadin-checkbox[disabled]::part(checkbox) {
     border-color: rgba(255, 255, 255, 0.04);
 }
 
+/* Override focused state for checkbox group labels to maintain secondary text color */
+vaadin-checkbox-group[focused]::part(label),
+:host([focused]):not([readonly]) [part="label"] {
+    color: var(--lumo-secondary-text-color) !important;
+}
+
 /* Native checkbox fallback */
 input[type="checkbox"] {
     accent-color: var(--highlight);
@@ -1045,4 +1051,9 @@ vaadin-progress-bar::part(value),
 vaadin-progress-bar::part(indeterminate) {
     background-color: var(--highlight) !important;
     z-index: 99999 !important;
+}
+
+.day-selection-group label {
+    padding-left: 0;
+    padding-right: 1.5rem;
 }

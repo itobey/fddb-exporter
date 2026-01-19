@@ -3,6 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.ui.views;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -27,6 +28,7 @@ import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -50,6 +52,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     private Span dateProductsCountLabel;
 
     private TextField productSearchField;
+    private CheckboxGroup<DayOfWeek> daySelectionGroup;
     private Grid<ProductWithDateDTO> productSearchGrid;
     private Span productSearchCountLabel;
 
@@ -212,6 +215,19 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productSearchField.setWidthFull();
         productSearchField.addKeyDownListener(Key.ENTER, e -> searchProducts());
 
+        daySelectionGroup = new CheckboxGroup<>();
+        daySelectionGroup.setLabel("Filter by Days (optional)");
+        daySelectionGroup.setItems(DayOfWeek.values());
+        daySelectionGroup.setItemLabelGenerator(day -> {
+            String name = day.name();
+            return name.charAt(0) + name.substring(1).toLowerCase();
+        });
+        daySelectionGroup.addClassName("day-selection-group");
+        daySelectionGroup.getStyle()
+                .set("display", "flex")
+                .set("flex-direction", "row")
+                .set("flex-wrap", "wrap");
+
         Button searchButton = new Button("Search");
         searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         searchButton.addClickListener(e -> searchProducts());
@@ -224,6 +240,11 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         topRow.setWidthFull();
         topRow.setAlignItems(Alignment.END);
         topRow.setFlexGrow(1, productSearchField);
+
+        HorizontalLayout daysRow = new HorizontalLayout(daySelectionGroup);
+        daysRow.setWidthFull();
+        daysRow.setAlignItems(Alignment.END);
+        daysRow.setFlexGrow(1, daySelectionGroup);
 
         productSearchGrid = createGrid(ProductWithDateDTO.class);
         productSearchGrid.addColumn(ProductWithDateDTO::getDate).setHeader("Date").setSortable(true).setAutoWidth(true);
@@ -251,7 +272,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             }
         });
 
-        layout.add(topRow, productSearchGrid);
+        layout.add(topRow, daysRow, productSearchGrid);
         return layout;
     }
 
@@ -400,7 +421,11 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         }
 
         try {
-            List<ProductWithDateDTO> products = fddbDataClient.searchProducts(trimmed);
+            List<DayOfWeek> selectedDays = daySelectionGroup.getValue() != null && !daySelectionGroup.getValue().isEmpty()
+                    ? daySelectionGroup.getValue().stream().toList()
+                    : null;
+
+            List<ProductWithDateDTO> products = fddbDataClient.searchProducts(trimmed, selectedDays);
             int productSearchCount = products != null ? products.size() : 0;
 
             if (productSearchCount > 0) {
@@ -409,14 +434,20 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                 // Expand grid safely based on result count
                 expandGridSafely(productSearchGrid, productSearchCount);
 
-                productSearchCountLabel.setText(productSearchCount + " results");
+                String daysInfo = selectedDays != null && !selectedDays.isEmpty()
+                        ? " (filtered by " + selectedDays.size() + " day(s))"
+                        : "";
+                productSearchCountLabel.setText(productSearchCount + " results" + daysInfo);
                 productSearchCountLabel.setVisible(true);
-                showSuccess("Found " + productSearchCount + " matching products");
+                showSuccess("Found " + productSearchCount + " matching products" + daysInfo);
             } else {
                 productSearchGrid.setVisible(false);
                 productSearchGrid.setItems();
                 productSearchCountLabel.setVisible(false);
-                showError("No products found matching \"" + trimmed + "\"");
+                String daysInfo = selectedDays != null && !selectedDays.isEmpty()
+                        ? " for the selected day(s)"
+                        : "";
+                showError("No products found matching \"" + trimmed + "\"" + daysInfo);
             }
         } catch (ApiException e) {
             showError(e.getMessage());

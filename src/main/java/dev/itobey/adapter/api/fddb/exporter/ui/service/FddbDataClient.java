@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.DayOfWeek;
 import java.util.List;
 
 /**
@@ -25,7 +27,6 @@ public class FddbDataClient {
     private static final String FDDBDATA_URL = "/api/v2/fddbdata";
     private static final String EXPORT_URL = "/api/v2/fddbdata/export?days={days}&includeToday={includeToday}";
     private static final String DATE_URL = "/api/v2/fddbdata/{date}";
-    private static final String PRODUCTS_URL = "/api/v2/fddbdata/products?name={name}";
 
     private final RestTemplate restTemplate;
 
@@ -117,15 +118,35 @@ public class FddbDataClient {
      * @throws ApiException if the API call fails
      */
     public List<ProductWithDateDTO> searchProducts(String name) throws ApiException {
+        return searchProducts(name, null);
+    }
+
+    /**
+     * Search products by name, optionally filtered by days of the week.
+     *
+     * @param name the product name to search
+     * @param days optional list of days of the week to filter results
+     * @return List of ProductWithDateDTO
+     * @throws ApiException if the API call fails
+     */
+    public List<ProductWithDateDTO> searchProducts(String name, List<DayOfWeek> days) throws ApiException {
         try {
-            String url = getBaseUrl() + PRODUCTS_URL;
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                    .fromUriString(getBaseUrl() + "/api/v2/fddbdata/products")
+                    .queryParam("name", name);
+
+            if (days != null && !days.isEmpty()) {
+                uriBuilder.queryParam("days", days.toArray());
+            }
+
+            String url = uriBuilder.toUriString();
+
             ResponseEntity<List<ProductWithDateDTO>> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
                     null,
                     new ParameterizedTypeReference<>() {
-                    },
-                    name
+                    }
             );
             return response.getBody();
         } catch (RestClientException e) {

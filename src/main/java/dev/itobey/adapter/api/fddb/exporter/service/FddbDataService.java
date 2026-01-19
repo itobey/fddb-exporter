@@ -43,6 +43,11 @@ public class FddbDataService {
         return fddbDataMapper.toProductWithDateDto(productsWithDate);
     }
 
+    public List<ProductWithDateDTO> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek) {
+        List<ProductWithDate> productsWithDate = persistenceService.findByProduct(name, daysOfWeek);
+        return fddbDataMapper.toProductWithDateDto(productsWithDate);
+    }
+
     public Optional<FddbDataDTO> findByDate(String dateString) {
         LocalDate date = LocalDate.parse(dateString);
         Optional<FddbData> fddbDataOptional = persistenceService.findByDate(date);
