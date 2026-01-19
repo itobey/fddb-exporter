@@ -189,11 +189,11 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getCarbs())).setHeader("Carbs (g)").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getProtein())).setHeader("Protein (g)").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addComponentColumn(this::createFddbLink).setHeader("Link").setAutoWidth(true);
+        dateProductsGrid.addClassName("date-products-grid");
         dateProductsGrid.getStyle()
                 .set("width", "100%")
                 .set("position", "relative")
                 .set("z-index", "0")
-                .set("margin-top", "1rem")
                 .set("overflow", "visible");
 
         layout.add(topRow, dateStatsCards, dateProductsGrid);

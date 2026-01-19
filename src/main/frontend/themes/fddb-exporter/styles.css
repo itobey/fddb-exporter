@@ -1000,6 +1000,12 @@ vaadin-tab-sheet::part(tabs) {
     }
 }
 
+@media (max-width: 768px) {
+    .date-products-grid {
+        margin-top: 1rem;
+    }
+}
+
 /* Override Vaadin top loading indicator color */
 .v-loading-indicator,
 .v-loading-indicator .v-loading-indicator-bar,
