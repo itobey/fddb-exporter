@@ -640,6 +640,11 @@ vaadin-date-picker-overlay ::slotted(vaadin-button) {
         min-height: 44px;
         padding: 8px 10px;
     }
+
+    vaadin-vertical-layout.data-query-tab-layout,
+    .data-query-tab-layout {
+        display: contents !important;
+    }
 }
 
 /* Notifications */

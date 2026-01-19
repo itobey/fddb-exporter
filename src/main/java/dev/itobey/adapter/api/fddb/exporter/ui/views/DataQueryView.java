@@ -6,10 +6,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -48,6 +45,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     private Span allEntriesCountLabel;
 
     private DatePicker searchDatePicker;
+    private Div dateStatsCards;
     private Grid<ProductDTO> dateProductsGrid;
     private Span dateProductsCountLabel;
 
@@ -174,6 +172,15 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         topRow.setAlignItems(Alignment.END);
         topRow.setFlexGrow(1, searchDatePicker);
 
+        dateStatsCards = createCardsGrid("120px");
+        dateStatsCards.setVisible(false);
+        dateStatsCards.getStyle()
+                .set("width", "100%")
+                .set("margin-top", "1rem")
+                .set("margin-bottom", "1.5rem")
+                .set("position", "relative")
+                .set("z-index", "1");
+
         dateProductsGrid = createGrid(ProductDTO.class);
         dateProductsGrid.addColumn(ProductDTO::getName).setHeader("Product Name").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addColumn(ProductDTO::getAmount).setHeader("Amount").setSortable(true).setAutoWidth(true);
@@ -182,8 +189,14 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getCarbs())).setHeader("Carbs (g)").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getProtein())).setHeader("Protein (g)").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addComponentColumn(this::createFddbLink).setHeader("Link").setAutoWidth(true);
+        dateProductsGrid.getStyle()
+                .set("width", "100%")
+                .set("position", "relative")
+                .set("z-index", "0")
+                .set("margin-top", "1rem")
+                .set("overflow", "visible");
 
-        layout.add(topRow, dateProductsGrid);
+        layout.add(topRow, dateStatsCards, dateProductsGrid);
         return layout;
     }
 
@@ -278,17 +291,31 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             FddbDataDTO data = fddbDataClient.getByDate(date);
             dateProductsGrid.setVisible(true);
             if (data != null && data.getProducts() != null) {
+                // Update stats cards
+                dateStatsCards.removeAll();
+                dateStatsCards.add(
+                        createNutrientCard("Calories", formatNumber(data.getTotalCalories()), "kcal", "🔥", null),
+                        createNutrientCard("Fat", formatNumber(data.getTotalFat()), "g", "🧈", null),
+                        createNutrientCard("Carbs", formatNumber(data.getTotalCarbs()), "g", "🍞", null),
+                        createNutrientCard("Sugar", formatNumber(data.getTotalSugar()), "g", "🍬", null),
+                        createNutrientCard("Protein", formatNumber(data.getTotalProtein()), "g", "🥩", null),
+                        createNutrientCard("Fibre", formatNumber(data.getTotalFibre()), "g", "🥦", null)
+                );
+                dateStatsCards.setVisible(true);
+
                 dateProductsGrid.setItems(data.getProducts());
                 dateProductsCountLabel.setText(data.getProducts().size() + " products");
                 dateProductsCountLabel.setVisible(true);
                 showSuccess("Found " + data.getProducts().size() + " products for " + date);
             } else {
+                dateStatsCards.setVisible(false);
                 dateProductsGrid.setItems();
                 dateProductsCountLabel.setVisible(false);
                 showError("No data found for " + date);
             }
         } catch (ApiException e) {
             showError(e.getMessage());
+            dateStatsCards.setVisible(false);
             dateProductsGrid.setItems();
             dateProductsCountLabel.setVisible(false);
         }
