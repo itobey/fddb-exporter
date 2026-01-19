@@ -187,7 +187,7 @@ paths:
       tags:
         - FDDB Data Query
       summary: Search products by name
-      description: Search for FDDB products by name across all dates. Requires MongoDB to be available.
+      description: Search for FDDB products by name across all dates, optionally filtered by specific days of the week. Requires MongoDB to be available.
       operationId: findByProduct
       parameters:
         - name: name
@@ -197,6 +197,25 @@ paths:
           schema:
             type: string
             example: "Banana"
+        - name: days
+          in: query
+          description: Optional days of week to filter results (e.g., MONDAY, WEDNESDAY, FRIDAY). Can specify multiple days.
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - MONDAY
+                - TUESDAY
+                - WEDNESDAY
+                - THURSDAY
+                - FRIDAY
+                - SATURDAY
+                - SUNDAY
+          style: form
+          explode: false
+          example: "MONDAY,FRIDAY"
       responses:
         '200':
           description: Search results

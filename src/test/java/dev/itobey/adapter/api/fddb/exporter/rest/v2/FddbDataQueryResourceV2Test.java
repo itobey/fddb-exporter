@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.DayOfWeek;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -79,9 +80,22 @@ class FddbDataQueryResourceV2Test {
     void testFindByProduct() {
         String productName = "TestProduct";
         List<ProductWithDateDTO> mockData = Arrays.asList(new ProductWithDateDTO(), new ProductWithDateDTO());
-        when(fddbDataService.findByProduct(productName)).thenReturn(mockData);
+        when(fddbDataService.findByProduct(productName, null)).thenReturn(mockData);
 
-        ResponseEntity<List<ProductWithDateDTO>> response = fddbDataQueryResourceV2.findByProduct(productName);
+        ResponseEntity<List<ProductWithDateDTO>> response = fddbDataQueryResourceV2.findByProduct(productName, null);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockData, response.getBody());
+    }
+
+    @Test
+    void testFindByProductWithDays() {
+        String productName = "TestProduct";
+        List<DayOfWeek> days = Arrays.asList(DayOfWeek.MONDAY, DayOfWeek.FRIDAY);
+        List<ProductWithDateDTO> mockData = Arrays.asList(new ProductWithDateDTO(), new ProductWithDateDTO());
+        when(fddbDataService.findByProduct(productName, days)).thenReturn(mockData);
+
+        ResponseEntity<List<ProductWithDateDTO>> response = fddbDataQueryResourceV2.findByProduct(productName, days);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockData, response.getBody());

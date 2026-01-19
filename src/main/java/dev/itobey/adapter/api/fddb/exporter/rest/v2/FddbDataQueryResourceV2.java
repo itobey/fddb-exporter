@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -93,12 +94,13 @@ public class FddbDataQueryResourceV2 {
     }
 
     /**
-     * Search for FDDB data products by name.
+     * Search for FDDB data products by name, optionally filtered by days of the week.
      *
      * @param name the name to search for
+     * @param days optional list of days of the week to filter results (e.g., MONDAY, WEDNESDAY)
      * @return a ResponseEntity containing a list of products matching the search criteria
      */
-    @Operation(summary = "Search products by name", description = "Search for FDDB products by name across all dates")
+    @Operation(summary = "Search products by name", description = "Search for FDDB products by name across all dates, optionally filtered by specific days of the week")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Search results",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductWithDateDTO.class))),
@@ -108,9 +110,11 @@ public class FddbDataQueryResourceV2 {
     @RequiresMongoDb
     public ResponseEntity<List<ProductWithDateDTO>> findByProduct(
             @Parameter(description = "Product name to search for", example = "Banana", required = true)
-            @RequestParam String name) {
-        log.debug("V2: Searching for products with name: {}", name);
-        List<ProductWithDateDTO> productWithDate = fddbDataService.findByProduct(name);
+            @RequestParam String name,
+            @Parameter(description = "Optional days of week to filter results (e.g., MONDAY, WEDNESDAY, FRIDAY)", example = "MONDAY,FRIDAY", required = false)
+            @RequestParam(required = false) List<DayOfWeek> days) {
+        log.debug("V2: Searching for products with name: {} and days: {}", name, days);
+        List<ProductWithDateDTO> productWithDate = fddbDataService.findByProduct(name, days);
         return ResponseEntity.ok(productWithDate);
     }
 

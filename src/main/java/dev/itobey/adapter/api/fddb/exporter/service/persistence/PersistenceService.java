@@ -51,6 +51,10 @@ public class PersistenceService {
         return mongoDBService.findByProduct(name);
     }
 
+    public List<ProductWithDate> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek) {
+        return mongoDBService.findByProduct(name, daysOfWeek);
+    }
+
     public Optional<FddbData> findByDate(LocalDate date) {
         return mongoDBService.findByDate(date);
     }
