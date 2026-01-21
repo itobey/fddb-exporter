@@ -9,6 +9,7 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -40,6 +41,7 @@ public class CorrelationView extends VerticalLayout {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final CorrelationClient correlationClient;
+    private final dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient;
 
     private TextField inclusionKeywordInput;
     private FlexLayout inclusionKeywordsContainer;
@@ -51,10 +53,11 @@ public class CorrelationView extends VerticalLayout {
 
     private TextArea occurrenceDatesInput;
     private DatePicker startDatePicker;
-    private Div resultDiv;
+    private VerticalLayout resultContainer;
 
-    public CorrelationView(CorrelationClient correlationClient) {
+    public CorrelationView(CorrelationClient correlationClient, dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient) {
         this.correlationClient = correlationClient;
+        this.statsClient = statsClient;
 
         addClassName("correlation-view");
         setSpacing(true);
@@ -63,8 +66,14 @@ public class CorrelationView extends VerticalLayout {
 
         add(new H2("Correlation Analysis"));
         add(new Paragraph("Analyze correlations between product consumption and specific events/dates."));
-        add(createInputForm());
-        add(createResultSection());
+
+        VerticalLayout contentWrapper = new VerticalLayout();
+        contentWrapper.setPadding(false);
+        contentWrapper.setSpacing(true);
+        contentWrapper.add(createInputForm());
+        contentWrapper.add(createResultSection());
+
+        add(contentWrapper);
     }
 
     private VerticalLayout createInputForm() {
@@ -104,7 +113,17 @@ public class CorrelationView extends VerticalLayout {
         datesSection.add(datesTitle, datesHelp, occurrenceDatesInput);
 
         startDatePicker = new DatePicker("Start Date");
-        startDatePicker.setValue(LocalDate.now().minusMonths(3));
+        // Try to get earliest entry date from stats, fallback to 3 months ago
+        try {
+            dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO stats = statsClient.getStats();
+            if (stats != null && stats.getFirstEntryDate() != null) {
+                startDatePicker.setValue(stats.getFirstEntryDate());
+            } else {
+                startDatePicker.setValue(LocalDate.now().minusMonths(3));
+            }
+        } catch (ApiException e) {
+            startDatePicker.setValue(LocalDate.now().minusMonths(3));
+        }
         startDatePicker.setHelperText("Start date for the analysis period");
         startDatePicker.setWidthFull();
         startDatePicker.setI18n(createDatePickerI18n());
@@ -274,18 +293,22 @@ public class CorrelationView extends VerticalLayout {
     }
 
     private VerticalLayout createResultSection() {
-        VerticalLayout section = new VerticalLayout();
-        section.setSpacing(true);
+        resultContainer = new VerticalLayout();
+        resultContainer.addClassNames(LumoUtility.Padding.MEDIUM, LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
+        resultContainer.setSpacing(true);
+        resultContainer.setPadding(false);
+        resultContainer.setWidthFull();
+        resultContainer.setVisible(false);
 
-        resultDiv = new Div();
-        resultDiv.setWidthFull();
-        resultDiv.setVisible(false);
-
-        section.add(resultDiv);
-        return section;
+        return resultContainer;
     }
 
     private void runCorrelation() {
+        if (inclusionKeywords.isEmpty()) {
+            showError("Please add at least one inclusion keyword");
+            return;
+        }
+
         if (occurrenceDatesInput.getValue() == null || occurrenceDatesInput.getValue().trim().isEmpty()) {
             showError("Please enter occurrence dates");
             return;
@@ -304,8 +327,8 @@ public class CorrelationView extends VerticalLayout {
             }
 
             CorrelationInputDto input = new CorrelationInputDto();
-            input.setInclusionKeywords(inclusionKeywords.isEmpty() ? null : new java.util.ArrayList<>(inclusionKeywords));
-            input.setExclusionKeywords(exclusionKeywords.isEmpty() ? null : new java.util.ArrayList<>(exclusionKeywords));
+            input.setInclusionKeywords(new java.util.ArrayList<>(inclusionKeywords));
+            input.setExclusionKeywords(exclusionKeywords.isEmpty() ? new java.util.ArrayList<>() : new java.util.ArrayList<>(exclusionKeywords));
             input.setOccurrenceDates(dates);
             input.setStartDate(startDatePicker.getValue() != null ? startDatePicker.getValue().format(DATE_FORMAT) : null);
 
@@ -318,101 +341,72 @@ public class CorrelationView extends VerticalLayout {
     }
 
     private void displayResult(CorrelationOutputDto result) {
-        resultDiv.removeAll();
-        resultDiv.setVisible(true);
-        resultDiv.addClassNames(LumoUtility.Padding.MEDIUM, LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
+        resultContainer.removeAll();
+        resultContainer.setVisible(true);
 
-        VerticalLayout content = new VerticalLayout();
-        content.setSpacing(true);
-        content.setPadding(false);
+        resultContainer.add(new H3("Correlation Results"));
 
-        content.add(new H3("Correlation Results"));
-
-        HorizontalLayout summary = new HorizontalLayout();
-        summary.addClassNames(LumoUtility.Gap.LARGE);
-        summary.setWidthFull();
-        summary.getStyle().set("flex-wrap", "wrap").set("justify-content", "center");
-
-        Div matchedProductsCard = createSummaryCard("Matched Products", String.valueOf(result.getAmountMatchedProducts()));
-        Div matchedDatesCard = createSummaryCard("Matched Dates", String.valueOf(result.getAmountMatchedDates()));
-
-        summary.add(matchedProductsCard, matchedDatesCard);
-        content.add(summary);
+        Div summaryCards = dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createCardsGrid("140px");
+        summaryCards.add(
+                createSummaryCard("Matched Products", String.valueOf(result.getAmountMatchedProducts())),
+                createSummaryCard("Matched Dates", String.valueOf(result.getAmountMatchedDates()))
+        );
+        resultContainer.add(summaryCards);
 
         if (result.getCorrelations() != null) {
-            content.add(new H4("Correlation by Time Window"));
+            resultContainer.add(new H4("Correlation by Time Window"));
 
-            HorizontalLayout correlationsLayout = new HorizontalLayout();
-            correlationsLayout.setWidthFull();
-            correlationsLayout.addClassNames(LumoUtility.Gap.MEDIUM);
-            correlationsLayout.getStyle().set("flex-wrap", "wrap").set("justify-content", "center");
+            Div correlationsGrid = dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createCardsGrid("140px");
 
             Correlations corr = result.getCorrelations();
             if (corr.getSameDay() != null) {
-                correlationsLayout.add(createCorrelationCard("Same Day", corr.getSameDay()));
+                correlationsGrid.add(createCorrelationCard("Same Day", corr.getSameDay()));
             }
             if (corr.getOneDayBefore() != null) {
-                correlationsLayout.add(createCorrelationCard("1 Day Before", corr.getOneDayBefore()));
+                correlationsGrid.add(createCorrelationCard("1 Day Before", corr.getOneDayBefore()));
             }
             if (corr.getTwoDaysBefore() != null) {
-                correlationsLayout.add(createCorrelationCard("2 Days Before", corr.getTwoDaysBefore()));
+                correlationsGrid.add(createCorrelationCard("2 Days Before", corr.getTwoDaysBefore()));
             }
             if (corr.getAcross2Days() != null) {
-                correlationsLayout.add(createCorrelationCard("Across 2 Days", corr.getAcross2Days()));
+                correlationsGrid.add(createCorrelationCard("Across 2 Days", corr.getAcross2Days()));
             }
             if (corr.getAcross3Days() != null) {
-                correlationsLayout.add(createCorrelationCard("Across 3 Days", corr.getAcross3Days()));
+                correlationsGrid.add(createCorrelationCard("Across 3 Days", corr.getAcross3Days()));
             }
 
-            content.add(correlationsLayout);
+            resultContainer.add(correlationsGrid);
         }
 
         if (result.getMatchedProducts() != null && !result.getMatchedProducts().isEmpty()) {
-            content.add(new H4("Matched Products"));
+            resultContainer.add(new H4("Matched Products"));
             UnorderedList productList = new UnorderedList();
             result.getMatchedProducts().stream().limit(20).forEach(p -> productList.add(new ListItem(p)));
             if (result.getMatchedProducts().size() > 20) {
                 productList.add(new ListItem("... and " + (result.getMatchedProducts().size() - 20) + " more"));
             }
-            content.add(productList);
+            resultContainer.add(productList);
         }
 
         if (result.getMatchedDates() != null && !result.getMatchedDates().isEmpty()) {
-            content.add(new H4("Matched Dates"));
+            resultContainer.add(new H4("Matched Dates"));
             UnorderedList dateList = new UnorderedList();
             result.getMatchedDates().stream().limit(20).forEach(d -> dateList.add(new ListItem(d.toString())));
             if (result.getMatchedDates().size() > 20) {
                 dateList.add(new ListItem("... and " + (result.getMatchedDates().size() - 20) + " more"));
             }
-            content.add(dateList);
+            resultContainer.add(dateList);
         }
-
-        resultDiv.add(content);
     }
 
     private Div createSummaryCard(String title, String value) {
-        Div card = new Div();
-        card.addClassNames(LumoUtility.Padding.MEDIUM, LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.PRIMARY_10);
-        card.getStyle().set("min-width", "140px").set("max-width", "200px").set("flex", "1 1 auto");
-
-        Span titleSpan = new Span(title);
-        titleSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-
-        Span valueSpan = new Span(value);
-        valueSpan.addClassNames(LumoUtility.FontSize.XXLARGE, LumoUtility.FontWeight.BOLD);
-
-        VerticalLayout layout = new VerticalLayout(titleSpan, valueSpan);
-        layout.setPadding(false);
-        layout.setSpacing(false);
-        layout.setAlignItems(Alignment.CENTER);
-        card.add(layout);
-        return card;
+        return (Div) dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createStatCard(title, value, "");
     }
 
     private Div createCorrelationCard(String timeWindow, CorrelationDetail detail) {
-        Div card = new Div();
-        card.addClassNames(LumoUtility.Padding.MEDIUM, LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_10);
-        card.getStyle().set("min-width", "140px").set("max-width", "180px").set("flex", "1 1 auto");
+        Div card = dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createCard();
+        card.addClassNames(LumoUtility.Padding.MEDIUM);
+        card.getStyle().set("min-width", "100px");
 
         Span windowSpan = new Span(timeWindow);
         windowSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
@@ -432,6 +426,7 @@ public class CorrelationView extends VerticalLayout {
         VerticalLayout layout = new VerticalLayout(windowSpan, percentageSpan, daysSpan);
         layout.setPadding(false);
         layout.setSpacing(false);
+        layout.setAlignItems(FlexComponent.Alignment.CENTER);
         card.add(layout);
         return card;
     }
