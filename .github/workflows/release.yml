@@ -19,4 +19,5 @@ jobs:
       image_name: fddb-exporter
       snapshot_version: ${{ github.event.inputs.snapshot_version }}
       release_version: ${{ github.event.inputs.release_version }}
+      ref: ${{ github.ref_name }}
     secrets: inherit
