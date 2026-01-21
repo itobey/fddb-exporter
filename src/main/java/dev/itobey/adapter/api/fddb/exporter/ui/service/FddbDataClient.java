@@ -139,10 +139,8 @@ public class FddbDataClient {
                 uriBuilder.queryParam("days", days.toArray());
             }
 
-            String url = uriBuilder.toUriString();
-
             ResponseEntity<List<ProductWithDateDTO>> response = restTemplate.exchange(
-                    url,
+                    uriBuilder.build().encode().toUri(),
                     HttpMethod.GET,
                     null,
                     new ParameterizedTypeReference<>() {

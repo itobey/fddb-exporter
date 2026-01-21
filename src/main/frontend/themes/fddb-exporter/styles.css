@@ -969,6 +969,18 @@ vaadin-tab-sheet::part(tabs) {
         flex-direction: column !important;
     }
 
+    /* Keep keyword input rows horizontal on mobile */
+    vaadin-horizontal-layout.keyword-input-row {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+
+    vaadin-horizontal-layout.keyword-input-row vaadin-button {
+        width: 20% !important;
+        flex-shrink: 0 !important;
+    }
+
     /* Keep preset buttons in 2-column layout even on mobile */
     vaadin-horizontal-layout.preset-buttons-container {
         flex-direction: row !important;

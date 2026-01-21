@@ -75,12 +75,10 @@ public class CorrelationView extends VerticalLayout {
         form.add(new H3("Input Parameters"));
 
         VerticalLayout inclusionSection = createKeywordSection("✓ Inclusion Keywords",
-                "Products matching these keywords will be included",
-                "rgba(63, 144, 140, 0.2)", "#3f908c", true);
+                "Products matching these keywords will be included", true);
 
         VerticalLayout exclusionSection = createKeywordSection("✗ Exclusion Keywords",
-                "Products matching these keywords will be excluded",
-                "rgba(154, 75, 85, 0.2)", "#9a4b55", false);
+                "Products matching these keywords will be excluded", false);
 
         VerticalLayout datesSection = new VerticalLayout();
         datesSection.setPadding(false);
@@ -121,18 +119,18 @@ public class CorrelationView extends VerticalLayout {
         return form;
     }
 
-    private VerticalLayout createKeywordSection(String title, String helpText, String bgColor, String titleColor, boolean isInclusion) {
+    private VerticalLayout createKeywordSection(String title, String helpText, boolean isInclusion) {
         VerticalLayout section = new VerticalLayout();
         section.setPadding(false);
         section.setSpacing(true);
         section.getStyle()
                 .set("padding", "0.75rem")
                 .set("border-radius", "8px")
-                .set("background", bgColor)
-                .set("border", "1px solid " + bgColor.replace("0.08", "0.2"));
+                .set("background", "rgba(78, 97, 155, 0.08)")
+                .set("border", "1px solid rgba(78, 97, 155, 0.2)");
 
         H4 sectionTitle = new H4(title);
-        sectionTitle.getStyle().set("margin", "0").set("color", titleColor);
+        sectionTitle.getStyle().set("margin", "0");
 
         Paragraph help = new Paragraph(helpText);
         help.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
@@ -142,10 +140,15 @@ public class CorrelationView extends VerticalLayout {
         keywordInput.setPlaceholder("Type keyword and press Enter...");
         keywordInput.setWidthFull();
         keywordInput.setClearButtonVisible(true);
+        keywordInput.getStyle()
+                .set("flex", "1 1 auto")
+                .set("min-width", "0");
 
-        Button addBtn = new Button("+");
-        addBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-        addBtn.getStyle().set("min-width", "36px");
+        Button addBtn = new Button("Add");
+        addBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        addBtn.getStyle()
+                .set("flex", "0 0 auto")
+                .set("white-space", "nowrap");
         addBtn.addClickListener(e -> {
             if (isInclusion) {
                 addInclusionKeyword();
@@ -162,10 +165,16 @@ public class CorrelationView extends VerticalLayout {
         });
 
         HorizontalLayout inputRow = new HorizontalLayout(keywordInput, addBtn);
+        inputRow.addClassName("keyword-input-row");
         inputRow.setPadding(false);
-        inputRow.setSpacing(false);
+        inputRow.setSpacing(true);
         inputRow.setWidthFull();
-        inputRow.getStyle().set("align-items", "center");
+        inputRow.setAlignItems(Alignment.END);
+        inputRow.getStyle()
+                .set("display", "flex")
+                .set("flex-wrap", "nowrap")
+                .set("gap", "0.5rem")
+                .set("align-items", "flex-end");
 
         FlexLayout keywordsContainer = isInclusion ? (inclusionKeywordsContainer = new FlexLayout()) : (exclusionKeywordsContainer = new FlexLayout());
         keywordsContainer.setWidthFull();
@@ -214,9 +223,7 @@ public class CorrelationView extends VerticalLayout {
 
     private Div createPill(String text, Runnable onRemove, boolean isInclusion) {
         Div pill = new Div();
-        pill.addClassNames(LumoUtility.Display.FLEX, LumoUtility.AlignItems.CENTER,
-                LumoUtility.Padding.Horizontal.SMALL, LumoUtility.Padding.Vertical.XSMALL,
-                LumoUtility.BorderRadius.LARGE);
+        pill.addClassNames(LumoUtility.Display.FLEX, LumoUtility.AlignItems.CENTER);
 
         if (isInclusion) {
             pill.getStyle()
@@ -229,15 +236,32 @@ public class CorrelationView extends VerticalLayout {
         }
 
         pill.getStyle()
-                .set("gap", "0.5rem")
-                .set("font-size", "var(--lumo-font-size-s)")
-                .set("white-space", "nowrap");
+                .set("padding", "0.25rem 0.625rem")
+                .set("border-radius", "16px")
+                .set("gap", "0.375rem")
+                .set("font-size", "0.875rem")
+                .set("white-space", "nowrap")
+                .set("height", "auto")
+                .set("line-height", "1.2")
+                .set("display", "inline-flex")
+                .set("align-items", "center");
 
         Span label = new Span(text);
+        label.getStyle()
+                .set("line-height", "1.2")
+                .set("padding", "0");
 
         Button removeBtn = new Button(new Icon(VaadinIcon.CLOSE_SMALL));
         removeBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_CONTRAST, ButtonVariant.LUMO_SMALL);
-        removeBtn.getStyle().set("min-width", "0").set("padding", "0").set("margin", "0").set("color", "inherit");
+        removeBtn.getStyle()
+                .set("min-width", "0")
+                .set("padding", "0")
+                .set("margin", "0 0 0 -0.125rem")
+                .set("color", "inherit")
+                .set("height", "18px")
+                .set("width", "18px")
+                .set("cursor", "pointer");
+        removeBtn.getElement().getStyle().set("--lumo-button-size", "18px");
         removeBtn.addClickListener(e -> onRemove.run());
 
         pill.add(label, removeBtn);
