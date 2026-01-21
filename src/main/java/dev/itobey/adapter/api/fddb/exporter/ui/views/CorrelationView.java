@@ -1,5 +1,8 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.views;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -42,7 +45,9 @@ public class CorrelationView extends VerticalLayout {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final CorrelationClient correlationClient;
     private final dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient;
+    private final ObjectMapper objectMapper;
 
+    private CorrelationOutputDto lastCorrelationResult;
     private TextField inclusionKeywordInput;
     private FlexLayout inclusionKeywordsContainer;
     private List<String> inclusionKeywords = new java.util.ArrayList<>();
@@ -58,6 +63,10 @@ public class CorrelationView extends VerticalLayout {
     public CorrelationView(CorrelationClient correlationClient, dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient) {
         this.correlationClient = correlationClient;
         this.statsClient = statsClient;
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+        this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
 
         addClassName("correlation-view");
         setSpacing(true);
@@ -299,6 +308,7 @@ public class CorrelationView extends VerticalLayout {
         resultContainer.setPadding(false);
         resultContainer.setWidthFull();
         resultContainer.setVisible(false);
+        resultContainer.setDefaultHorizontalComponentAlignment(Alignment.START);
 
         return resultContainer;
     }
@@ -341,10 +351,11 @@ public class CorrelationView extends VerticalLayout {
     }
 
     private void displayResult(CorrelationOutputDto result) {
+        this.lastCorrelationResult = result;
         resultContainer.removeAll();
         resultContainer.setVisible(true);
 
-        resultContainer.add(new H3("Correlation Results"));
+        resultContainer.add(createResultHeader());
 
         Div summaryCards = dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createCardsGrid("140px");
         summaryCards.add(
@@ -429,6 +440,64 @@ public class CorrelationView extends VerticalLayout {
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
         card.add(layout);
         return card;
+    }
+
+    private Div createResultHeader() {
+        Div header = new Div();
+        header.getStyle()
+                .set("display", "flex")
+                .set("flex-direction", "row")
+                .set("flex-wrap", "nowrap")
+                .set("align-items", "center")
+                .set("justify-content", "flex-start")
+                .set("gap", "0.5rem")
+                .set("width", "100%");
+
+        H3 title = new H3("Correlation Results");
+        title.getStyle()
+                .set("margin", "0")
+                .set("white-space", "nowrap");
+
+        Button copyButton = createCopyButton();
+
+        Div buttonWrapper = new Div();
+        buttonWrapper.getStyle()
+                .set("display", "inline-flex")
+                .set("align-items", "center")
+                .set("justify-content", "flex-start")
+                .set("width", "auto");
+        buttonWrapper.add(copyButton);
+
+        header.add(title, buttonWrapper);
+
+        return header;
+    }
+
+    private Button createCopyButton() {
+        Button copyButton = new Button("📋");
+        copyButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        copyButton.setTooltipText("Copy results as JSON");
+        copyButton.addClickListener(e -> copyResultsToClipboard());
+        copyButton.getStyle().set("cursor", "pointer");
+        return copyButton;
+    }
+
+    private void copyResultsToClipboard() {
+        if (lastCorrelationResult == null) {
+            showError("No results to copy");
+            return;
+        }
+
+        try {
+            String json = objectMapper.writeValueAsString(lastCorrelationResult);
+            getElement().executeJs(
+                    "navigator.clipboard.writeText($0).then(() => {}, (err) => { console.error('Failed to copy: ', err); });",
+                    json
+            );
+            showSuccess("Results copied to clipboard");
+        } catch (Exception e) {
+            showError("Failed to copy results: " + e.getMessage());
+        }
     }
 
     private void showSuccess(String message) {
