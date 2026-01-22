@@ -86,4 +86,28 @@ class StatsServiceTest {
         assertThat(result.getMostRecentMissingDay()).isNotNull();
     }
 
+    @Test
+    void getStats_shouldReturnZerosAndNullsForEmptyDatabase() {
+        // given
+        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(0L);
+
+        // when
+        StatsDTO result = statsService.getStats();
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getAmountEntries()).isEqualTo(0L);
+        assertThat(result.getFirstEntryDate()).isNull();
+        assertThat(result.getEntryPercentage()).isEqualTo(0.0);
+        assertThat(result.getUniqueProducts()).isEqualTo(0L);
+        assertThat(result.getAverageTotals()).isNull();
+        assertThat(result.getHighestCaloriesDay()).isNull();
+        assertThat(result.getHighestFatDay()).isNull();
+        assertThat(result.getHighestCarbsDay()).isNull();
+        assertThat(result.getHighestProteinDay()).isNull();
+        assertThat(result.getHighestFibreDay()).isNull();
+        assertThat(result.getHighestSugarDay()).isNull();
+        assertThat(result.getMostRecentMissingDay()).isNull();
+    }
+
 }

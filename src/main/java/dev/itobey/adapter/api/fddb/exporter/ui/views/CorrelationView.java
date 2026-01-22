@@ -21,6 +21,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationDetail;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationInputDto;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationOutputDto;
@@ -45,6 +46,7 @@ public class CorrelationView extends VerticalLayout {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final CorrelationClient correlationClient;
     private final dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient;
+    private final FddbExporterProperties properties;
     private final ObjectMapper objectMapper;
 
     private CorrelationOutputDto lastCorrelationResult;
@@ -60,9 +62,12 @@ public class CorrelationView extends VerticalLayout {
     private DatePicker startDatePicker;
     private VerticalLayout resultContainer;
 
-    public CorrelationView(CorrelationClient correlationClient, dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient) {
+    public CorrelationView(CorrelationClient correlationClient,
+                           dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient,
+                           FddbExporterProperties properties) {
         this.correlationClient = correlationClient;
         this.statsClient = statsClient;
+        this.properties = properties;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -74,6 +79,13 @@ public class CorrelationView extends VerticalLayout {
         applyResponsivePadding(this);
 
         add(new H2("Correlation Analysis"));
+
+        // Check if MongoDB is enabled
+        if (!isMongoDbEnabled()) {
+            displayMongoDbDisabledError();
+            return;
+        }
+
         add(new Paragraph("Analyze correlations between product consumption and specific events/dates."));
 
         VerticalLayout contentWrapper = new VerticalLayout();
@@ -83,6 +95,52 @@ public class CorrelationView extends VerticalLayout {
         contentWrapper.add(createResultSection());
 
         add(contentWrapper);
+    }
+
+    private boolean isMongoDbEnabled() {
+        return properties.getPersistence() != null
+                && properties.getPersistence().getMongodb() != null
+                && properties.getPersistence().getMongodb().isEnabled();
+    }
+
+    private void displayMongoDbDisabledError() {
+        VerticalLayout errorContainer = new VerticalLayout();
+        errorContainer.addClassNames(LumoUtility.Padding.LARGE, LumoUtility.BorderRadius.MEDIUM);
+        errorContainer.setSpacing(true);
+        errorContainer.getStyle()
+                .set("background", "rgba(154, 75, 85, 0.1)")
+                .set("border", "2px solid rgba(154, 75, 85, 0.3)")
+                .set("max-width", "600px")
+                .set("margin", "0 auto");
+
+        Icon errorIcon = new Icon(VaadinIcon.EXCLAMATION_CIRCLE_O);
+        errorIcon.setSize("48px");
+        errorIcon.getStyle().set("color", "#9a4b55");
+
+        H3 errorTitle = new H3("MongoDB Not Enabled");
+        errorTitle.getStyle().set("color", "#9a4b55").set("margin", "0.5rem 0");
+
+        Paragraph errorMessage = new Paragraph(
+                "The Correlation Analysis feature requires MongoDB to be enabled. " +
+                        "Please enable MongoDB persistence in your application configuration."
+        );
+        errorMessage.addClassName(LumoUtility.TextColor.SECONDARY);
+
+        Paragraph configHint = new Paragraph(
+                "Set the environment variable FDDB-EXPORTER_PERSISTENCE_MONGODB_ENABLED to true " +
+                        "or update the application.yml configuration."
+        );
+        configHint.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.TERTIARY);
+        configHint.getStyle()
+                .set("background", "rgba(0, 0, 0, 0.05)")
+                .set("padding", "0.75rem")
+                .set("border-radius", "4px")
+                .set("font-family", "monospace");
+
+        errorContainer.add(errorIcon, errorTitle, errorMessage, configHint);
+        errorContainer.setAlignItems(Alignment.CENTER);
+
+        add(errorContainer);
     }
 
     private VerticalLayout createInputForm() {

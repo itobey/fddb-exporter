@@ -30,6 +30,25 @@ public class StatsService {
 
     public StatsDTO getStats() {
         long amountEntries = getAmountEntries();
+
+        // Handle empty database - return stats with zero/null values
+        if (amountEntries == 0) {
+            return StatsDTO.builder()
+                    .amountEntries(0L)
+                    .firstEntryDate(null)
+                    .mostRecentMissingDay(null)
+                    .entryPercentage(0.0)
+                    .uniqueProducts(0L)
+                    .averageTotals(null)
+                    .highestCaloriesDay(null)
+                    .highestFatDay(null)
+                    .highestCarbsDay(null)
+                    .highestProteinDay(null)
+                    .highestFibreDay(null)
+                    .highestSugarDay(null)
+                    .build();
+        }
+
         LocalDate firstEntryDate = getFirstEntryDate();
         double entryPercentage = roundToOneDecimal(calculateEntryPercentage(firstEntryDate, amountEntries));
         StatsDTO.Averages averageTotals = roundAverages(getAverageTotals());
@@ -62,7 +81,7 @@ public class StatsService {
         Query query = new Query().with(Sort.by(Sort.Direction.ASC, "date")).limit(1);
         FddbData firstDocument = mongoTemplate.findOne(query, FddbData.class, COLLECTION_NAME);
         if (firstDocument == null) {
-            throw new IllegalStateException("No entries found in database");
+            return null;
         }
         return firstDocument.getDate();
     }
@@ -173,6 +192,12 @@ public class StatsService {
 
         try {
             LocalDate firstEntryDate = getFirstEntryDate();
+
+            // Handle empty database
+            if (firstEntryDate == null) {
+                return null;
+            }
+
             LocalDate today = LocalDate.now();
             LocalDate yesterday = today.minusDays(1);
 

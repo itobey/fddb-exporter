@@ -8,6 +8,7 @@ import dev.itobey.adapter.api.fddb.exporter.dto.correlation.Correlations;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.MongoDBService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -17,6 +18,7 @@ import java.util.List;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "fddb-exporter.persistence.mongodb.enabled", havingValue = "true")
 public class CorrelationService {
 
     private final MongoDBService mongoDBService;

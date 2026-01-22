@@ -55,6 +55,8 @@ management:
       enabled: true
     diskSpace:
       enabled: false
+    mongo:
+      enabled: false
 
 fddb-exporter:
   ui:

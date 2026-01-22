@@ -6,6 +6,7 @@ import dev.itobey.adapter.api.fddb.exporter.service.CorrelationService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 @RequiredArgsConstructor
 @Tag(name = "Correlation (DEPRECATED v1)", description = "⚠️ DEPRECATED: Legacy v1 API - Will be removed after 2026-06-30. Please use v2 API endpoints.")
+@ConditionalOnProperty(name = "fddb-exporter.persistence.mongodb.enabled", havingValue = "true")
 public class CorrelationResourceV1 {
 
     private final CorrelationService correlationService;
