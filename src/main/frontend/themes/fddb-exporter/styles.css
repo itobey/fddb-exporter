@@ -892,7 +892,7 @@ vaadin-tab-sheet::part(tabs) {
         --mobile-horizontal-padding: 0.5rem;
     }
 
-    .card, .cards-grid, .cards-container {
+    .card, .cards-grid, .cards-container, .health-cards-container {
         padding-left: var(--mobile-horizontal-padding);
         padding-right: var(--mobile-horizontal-padding);
         box-sizing: border-box;

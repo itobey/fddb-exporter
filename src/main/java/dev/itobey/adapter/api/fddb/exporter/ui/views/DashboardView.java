@@ -18,6 +18,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
+import dev.itobey.adapter.api.fddb.exporter.ui.service.HealthService;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 import dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils;
 
@@ -32,9 +33,11 @@ public class DashboardView extends VerticalLayout {
 
     private static final String HIGHLIGHT_COLOR = "#ae9357";
     private final StatsClient statsClient;
+    private final HealthService healthService;
 
-    public DashboardView(StatsClient statsClient) {
+    public DashboardView(StatsClient statsClient, HealthService healthService) {
         this.statsClient = statsClient;
+        this.healthService = healthService;
 
         addClassName("dashboard-view");
         setSpacing(true);
@@ -42,7 +45,109 @@ public class DashboardView extends VerticalLayout {
         applyResponsivePadding(this);
 
         add(new H2("Dashboard"));
+        loadHealthChecks();
         loadStats();
+    }
+
+    private void loadHealthChecks() {
+        try {
+            Map<String, HealthService.ComponentHealth> components = healthService.getHealthStatus();
+            displayHealthStatus(components);
+        } catch (Exception e) {
+            showError("Failed to load health status: " + e.getMessage());
+        }
+    }
+
+    private void displayHealthStatus(Map<String, HealthService.ComponentHealth> components) {
+        add(new H3("System Health"));
+
+        Div healthCardsContainer = new Div();
+        healthCardsContainer.setWidthFull();
+        healthCardsContainer.addClassName("health-cards-container");
+
+        if (components.containsKey("fddb-login-check")) {
+            HealthService.ComponentHealth fddbHealth = components.get("fddb-login-check");
+            Div fddbCard = (Div) createHealthCard("FDDB Connection", fddbHealth, "🌐");
+            fddbCard.addClassName("health-card-fddb");
+            healthCardsContainer.add(fddbCard);
+        }
+
+        Div databaseCardsWrapper = new Div();
+        databaseCardsWrapper.addClassName("database-cards-wrapper");
+
+        if (components.containsKey("mongodb")) {
+            HealthService.ComponentHealth mongoHealth = components.get("mongodb");
+            Div mongoCard = (Div) createHealthCard("MongoDB", mongoHealth, "🍃");
+            mongoCard.addClassName("health-card-database");
+            databaseCardsWrapper.add(mongoCard);
+        }
+
+        if (components.containsKey("influxdb")) {
+            HealthService.ComponentHealth influxHealth = components.get("influxdb");
+            Div influxCard = (Div) createHealthCard("InfluxDB", influxHealth, "📊");
+            influxCard.addClassName("health-card-database");
+            databaseCardsWrapper.add(influxCard);
+        }
+
+        healthCardsContainer.add(databaseCardsWrapper);
+        add(healthCardsContainer);
+    }
+
+    private Component createHealthCard(String name, HealthService.ComponentHealth health, String emoji) {
+        Div card = ViewUtils.createCard();
+        card.addClassNames(LumoUtility.Padding.LARGE, LumoUtility.BorderRadius.LARGE);
+
+        String status = health.getStatus();
+        String borderColor;
+
+        if ("UP".equalsIgnoreCase(status)) {
+            borderColor = "#3f908c";
+        } else if ("DISABLED".equalsIgnoreCase(status)) {
+            borderColor = "#ae9357";
+        } else {
+            borderColor = "#9a4b55";
+        }
+
+        card.getStyle()
+                .set("min-width", "160px")
+                .set("border-left", "4px solid " + borderColor);
+
+        Span emojiSpan = new Span(emoji);
+        emojiSpan.addClassNames(LumoUtility.FontSize.XXLARGE);
+        emojiSpan.getStyle().set("display", "block").set("margin-bottom", "0.5rem");
+
+        Span nameSpan = new Span(name);
+        nameSpan.addClassNames(LumoUtility.FontSize.MEDIUM, LumoUtility.FontWeight.SEMIBOLD);
+        nameSpan.addClassName("label-small");
+
+        Span statusSpan = new Span(status);
+        statusSpan.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD);
+        statusSpan.getStyle()
+                .set("text-align", "center")
+                .set("width", "100%")
+                .set("color", borderColor);
+
+        // Add additional details if available
+        VerticalLayout layout = new VerticalLayout(emojiSpan, nameSpan, statusSpan);
+
+        if (health.getDetails() != null && !health.getDetails().isEmpty()) {
+            for (Map.Entry<String, Object> detail : health.getDetails().entrySet()) {
+                if (!"error".equalsIgnoreCase(detail.getKey()) && detail.getValue() != null) {
+                    String detailText = detail.getKey() + ": " + detail.getValue();
+                    Span detailSpan = new Span(detailText);
+                    detailSpan.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
+                    detailSpan.getStyle().set("text-align", "center");
+                    layout.add(detailSpan);
+                }
+            }
+        }
+
+        layout.setPadding(false);
+        layout.setSpacing(false);
+        layout.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        card.add(layout);
+        return card;
     }
 
     private void loadStats() {
@@ -54,6 +159,8 @@ public class DashboardView extends VerticalLayout {
     }
 
     private void displayStats(StatsDTO stats) {
+        add(new H3("Global Stats"));
+
         Div overviewCards = createCardsGrid("140px");
         overviewCards.add(
                 createStatCard("Total Entries", String.valueOf(stats.getAmountEntries()), "entries in database"),

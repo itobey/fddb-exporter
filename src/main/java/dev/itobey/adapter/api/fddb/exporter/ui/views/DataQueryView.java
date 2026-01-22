@@ -79,6 +79,16 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         headerLayout.add(new Paragraph("Query and search your stored FDDB data."));
         add(headerLayout);
 
+        if (!isMongoDbEnabled(properties)) {
+            VerticalLayout warningWrapper = new VerticalLayout();
+            warningWrapper.setPadding(true);
+            warningWrapper.setSpacing(true);
+            applyResponsivePadding(warningWrapper);
+            warningWrapper.add(createMongoDbDisabledWarning("Data Query"));
+            add(warningWrapper);
+            return;
+        }
+
         tabSheet.setSizeFull();
         tabSheet.add("All Entries", createAllEntriesTab());
         tabSheet.add("Search by Date", createDateSearchTab());

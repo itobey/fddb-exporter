@@ -21,6 +21,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationDetail;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationInputDto;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationOutputDto;
@@ -35,8 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.applyResponsivePadding;
-import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createDatePickerI18n;
+import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 
 @Route(value = "correlation", layout = MainLayout.class)
 @PageTitle("Correlation Analysis | FDDB Exporter")
@@ -45,6 +45,7 @@ public class CorrelationView extends VerticalLayout {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final CorrelationClient correlationClient;
     private final dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient;
+    private final FddbExporterProperties properties;
     private final ObjectMapper objectMapper;
 
     private CorrelationOutputDto lastCorrelationResult;
@@ -60,9 +61,12 @@ public class CorrelationView extends VerticalLayout {
     private DatePicker startDatePicker;
     private VerticalLayout resultContainer;
 
-    public CorrelationView(CorrelationClient correlationClient, dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient) {
+    public CorrelationView(CorrelationClient correlationClient,
+                           dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient,
+                           FddbExporterProperties properties) {
         this.correlationClient = correlationClient;
         this.statsClient = statsClient;
+        this.properties = properties;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -74,6 +78,12 @@ public class CorrelationView extends VerticalLayout {
         applyResponsivePadding(this);
 
         add(new H2("Correlation Analysis"));
+
+        if (!isMongoDbEnabled(properties)) {
+            add(createMongoDbDisabledWarning("Correlation Analysis"));
+            return;
+        }
+
         add(new Paragraph("Analyze correlations between product consumption and specific events/dates."));
 
         VerticalLayout contentWrapper = new VerticalLayout();
@@ -84,6 +94,7 @@ public class CorrelationView extends VerticalLayout {
 
         add(contentWrapper);
     }
+
 
     private VerticalLayout createInputForm() {
         VerticalLayout form = new VerticalLayout();

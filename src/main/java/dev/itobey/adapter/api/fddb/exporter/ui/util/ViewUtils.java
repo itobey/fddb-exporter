@@ -3,12 +3,17 @@ package dev.itobey.adapter.api.fddb.exporter.ui.util;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 
 public class ViewUtils {
 
@@ -144,5 +149,59 @@ public class ViewUtils {
         notification.setDuration(5000);
         // Apply custom color styling
         notification.getElement().getThemeList().add("error");
+    }
+
+    /**
+     * Check if MongoDB is enabled in the application configuration
+     */
+    public static boolean isMongoDbEnabled(FddbExporterProperties properties) {
+        return properties.getPersistence() != null
+                && properties.getPersistence().getMongodb() != null
+                && properties.getPersistence().getMongodb().isEnabled();
+    }
+
+    /**
+     * Create a MongoDB disabled error message component
+     *
+     * @param featureName the name of the feature that requires MongoDB (e.g., "Correlation Analysis")
+     */
+    public static VerticalLayout createMongoDbDisabledWarning(String featureName) {
+        VerticalLayout errorContainer = new VerticalLayout();
+        errorContainer.addClassNames(LumoUtility.Padding.LARGE, LumoUtility.BorderRadius.MEDIUM);
+        errorContainer.setSpacing(true);
+        errorContainer.getStyle()
+                .set("background", "rgba(154, 75, 85, 0.1)")
+                .set("border", "2px solid rgba(154, 75, 85, 0.3)")
+                .set("max-width", "600px")
+                .set("margin", "0 auto");
+
+        Icon errorIcon = new Icon(VaadinIcon.EXCLAMATION_CIRCLE_O);
+        errorIcon.setSize("48px");
+        errorIcon.getStyle().set("color", "#9a4b55");
+
+        H3 errorTitle = new H3("MongoDB Not Enabled");
+        errorTitle.getStyle().set("color", "#9a4b55").set("margin", "0.5rem 0");
+
+        Paragraph errorMessage = new Paragraph(
+                "The " + featureName + " feature requires MongoDB to be enabled. " +
+                        "Please enable MongoDB persistence in your application configuration."
+        );
+        errorMessage.addClassName(LumoUtility.TextColor.SECONDARY);
+
+        Paragraph configHint = new Paragraph(
+                "Set the environment variable FDDB-EXPORTER_PERSISTENCE_MONGODB_ENABLED to true " +
+                        "or update the application.yml configuration."
+        );
+        configHint.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.TERTIARY);
+        configHint.getStyle()
+                .set("background", "rgba(0, 0, 0, 0.05)")
+                .set("padding", "0.75rem")
+                .set("border-radius", "4px")
+                .set("font-family", "monospace");
+
+        errorContainer.add(errorIcon, errorTitle, errorMessage, configHint);
+        errorContainer.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        return errorContainer;
     }
 }
