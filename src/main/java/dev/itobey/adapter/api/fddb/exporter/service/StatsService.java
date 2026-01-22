@@ -39,6 +39,7 @@ public class StatsService {
                     .mostRecentMissingDay(null)
                     .entryPercentage(0.0)
                     .uniqueProducts(0L)
+                    .totalProducts(0L)
                     .averageTotals(null)
                     .highestCaloriesDay(null)
                     .highestFatDay(null)
@@ -53,6 +54,7 @@ public class StatsService {
         double entryPercentage = roundToOneDecimal(calculateEntryPercentage(firstEntryDate, amountEntries));
         StatsDTO.Averages averageTotals = roundAverages(getAverageTotals());
         long uniqueProducts = getUniqueProductsCount();
+        long totalProducts = getTotalProductsCount();
 
         return StatsDTO.builder()
                 .amountEntries(amountEntries)
@@ -60,6 +62,7 @@ public class StatsService {
                 .mostRecentMissingDay(getMostRecentMissingDay())
                 .entryPercentage(entryPercentage)
                 .uniqueProducts(uniqueProducts)
+                .totalProducts(totalProducts)
                 .averageTotals(averageTotals)
                 .highestCaloriesDay(roundDayStats(getDayWithHighestTotal("totalCalories")))
                 .highestFatDay(roundDayStats(getDayWithHighestTotal("totalFat")))
@@ -152,6 +155,20 @@ public class StatsService {
             return 0L;
         }
         Object val = doc.get("uniqueCount");
+        return val instanceof Number ? ((Number) val).longValue() : 0L;
+    }
+
+    private long getTotalProductsCount() {
+        Aggregation aggregation = newAggregation(
+                unwind("products"),
+                count().as("totalCount")
+        );
+        AggregationResults<Document> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, Document.class);
+        Document doc = results.getUniqueMappedResult();
+        if (doc == null) {
+            return 0L;
+        }
+        Object val = doc.get("totalCount");
         return val instanceof Number ? ((Number) val).longValue() : 0L;
     }
 
