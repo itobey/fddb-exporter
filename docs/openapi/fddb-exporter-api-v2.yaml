@@ -521,6 +521,11 @@ components:
           format: int64
           description: Number of unique products consumed
           example: 150
+        totalProducts:
+          type: integer
+          format: int64
+          description: Total number of products across all days
+          example: 2450
         averageTotals:
           $ref: '#/components/schemas/Averages'
         highestCaloriesDay:

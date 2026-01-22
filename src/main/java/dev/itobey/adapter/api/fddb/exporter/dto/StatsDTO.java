@@ -26,6 +26,9 @@ public class StatsDTO {
     @Schema(description = "Number of unique products consumed", example = "150")
     long uniqueProducts;
 
+    @Schema(description = "Total number of products across all days", example = "2450")
+    long totalProducts;
+
     @Schema(description = "Average nutritional values across all entries")
     Averages averageTotals;
 

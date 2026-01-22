@@ -163,9 +163,10 @@ public class DashboardView extends VerticalLayout {
 
         Div overviewCards = createCardsGrid("140px");
         overviewCards.add(
-                createStatCard("Total Entries", String.valueOf(stats.getAmountEntries()), "entries in database"),
+                createStatCard("Total Entries", String.valueOf(stats.getAmountEntries()), "days in database"),
                 createStatCard("Entry Coverage", String.format("%.1f%%", stats.getEntryPercentage()), "of days tracked"),
                 createStatCard("Unique Products", String.valueOf(stats.getUniqueProducts()), "different products"),
+                createStatCard("Total Products", String.valueOf(stats.getTotalProducts()), "entries logged"),
                 createStatCard("First Entry", stats.getFirstEntryDate() != null ? stats.getFirstEntryDate().toString() : "N/A", "start date"),
                 createStatCard("Missing Day", stats.getMostRecentMissingDay() != null ? stats.getMostRecentMissingDay().toString() : "N/A", "most recent")
         );
