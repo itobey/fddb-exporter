@@ -22,13 +22,16 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
+import dev.itobey.adapter.api.fddb.exporter.domain.UserSettings;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationDetail;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationInputDto;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationOutputDto;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.Correlations;
+import dev.itobey.adapter.api.fddb.exporter.service.UserSettingsService;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.CorrelationClient;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -46,6 +49,7 @@ public class CorrelationView extends VerticalLayout {
     private final CorrelationClient correlationClient;
     private final dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient;
     private final FddbExporterProperties properties;
+    private final UserSettingsService userSettingsService;
     private final ObjectMapper objectMapper;
 
     private CorrelationOutputDto lastCorrelationResult;
@@ -63,10 +67,12 @@ public class CorrelationView extends VerticalLayout {
 
     public CorrelationView(CorrelationClient correlationClient,
                            dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient,
-                           FddbExporterProperties properties) {
+                           FddbExporterProperties properties,
+                           @Autowired(required = false) UserSettingsService userSettingsService) {
         this.correlationClient = correlationClient;
         this.statsClient = statsClient;
         this.properties = properties;
+        this.userSettingsService = userSettingsService;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -93,6 +99,8 @@ public class CorrelationView extends VerticalLayout {
         contentWrapper.add(createResultSection());
 
         add(contentWrapper);
+
+        loadSavedSettings();
     }
 
 
@@ -353,6 +361,8 @@ public class CorrelationView extends VerticalLayout {
             input.setOccurrenceDates(dates);
             input.setStartDate(startDatePicker.getValue() != null ? startDatePicker.getValue().format(DATE_FORMAT) : null);
 
+            saveCurrentSettings();
+
             CorrelationOutputDto result = correlationClient.createCorrelation(input);
             displayResult(result);
             showSuccess("Correlation analysis completed");
@@ -508,6 +518,76 @@ public class CorrelationView extends VerticalLayout {
             showSuccess("Results copied to clipboard");
         } catch (Exception e) {
             showError("Failed to copy results: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Saves current correlation view settings to MongoDB for multi-device synchronization.
+     */
+    private void saveCurrentSettings() {
+        if (userSettingsService == null) {
+            return; // MongoDB is disabled
+        }
+
+        try {
+            UserSettings settings = userSettingsService.getSettings();
+
+            // Save current form values
+            settings.setCorrelationInclusionKeywords(new java.util.ArrayList<>(inclusionKeywords));
+            settings.setCorrelationExclusionKeywords(new java.util.ArrayList<>(exclusionKeywords));
+            settings.setCorrelationOccurrenceDates(occurrenceDatesInput.getValue());
+            settings.setCorrelationStartDate(startDatePicker.getValue());
+
+            userSettingsService.saveSettings(settings);
+        } catch (Exception exception) {
+            // Log but don't show error to user - settings are not critical
+            System.err.println("Failed to save settings: " + exception.getMessage());
+        }
+    }
+
+    /**
+     * Loads saved settings from MongoDB and populates the correlation view form.
+     */
+    private void loadSavedSettings() {
+        if (userSettingsService == null) {
+            return; // MongoDB is disabled
+        }
+
+        try {
+            UserSettings settings = userSettingsService.getSettings();
+
+            // Restore inclusion keywords
+            if (settings.getCorrelationInclusionKeywords() != null && !settings.getCorrelationInclusionKeywords().isEmpty()) {
+                inclusionKeywords.clear();
+                inclusionKeywords.addAll(settings.getCorrelationInclusionKeywords());
+                inclusionKeywords.forEach(keyword ->
+                        inclusionKeywordsContainer.add(createPill(keyword, () -> removeInclusionKeyword(keyword), true))
+                );
+                inclusionKeywordsContainer.setVisible(true);
+            }
+
+            // Restore exclusion keywords
+            if (settings.getCorrelationExclusionKeywords() != null && !settings.getCorrelationExclusionKeywords().isEmpty()) {
+                exclusionKeywords.clear();
+                exclusionKeywords.addAll(settings.getCorrelationExclusionKeywords());
+                exclusionKeywords.forEach(keyword ->
+                        exclusionKeywordsContainer.add(createPill(keyword, () -> removeExclusionKeyword(keyword), false))
+                );
+                exclusionKeywordsContainer.setVisible(true);
+            }
+
+            // Restore occurrence dates
+            if (settings.getCorrelationOccurrenceDates() != null && !settings.getCorrelationOccurrenceDates().isEmpty()) {
+                occurrenceDatesInput.setValue(settings.getCorrelationOccurrenceDates());
+            }
+
+            // Restore start date
+            if (settings.getCorrelationStartDate() != null) {
+                startDatePicker.setValue(settings.getCorrelationStartDate());
+            }
+        } catch (Exception exception) {
+            // Silently fail if settings can't be loaded - use defaults
+            System.err.println("Failed to load settings: " + exception.getMessage());
         }
     }
 
