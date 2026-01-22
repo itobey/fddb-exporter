@@ -14,6 +14,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.dto.RollingAveragesDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
@@ -34,12 +35,14 @@ public class RollingAveragesView extends VerticalLayout {
     private static final String HIGHLIGHT_COLOR = "#ae9357";
 
     private final StatsClient statsClient;
+    private final FddbExporterProperties properties;
     private DatePicker fromDatePicker;
     private DatePicker toDatePicker;
     private Div resultDiv;
 
-    public RollingAveragesView(StatsClient statsClient) {
+    public RollingAveragesView(StatsClient statsClient, FddbExporterProperties properties) {
         this.statsClient = statsClient;
+        this.properties = properties;
 
         addClassName("rolling-averages-view");
         setSpacing(true);
@@ -48,6 +51,12 @@ public class RollingAveragesView extends VerticalLayout {
 
         add(new H2("Rolling Averages"));
         add(new Paragraph("View average nutritional values over a specified date range."));
+
+        if (!isMongoDbEnabled(properties)) {
+            add(createMongoDbDisabledWarning("Rolling Averages"));
+            return;
+        }
+
         add(createDateRangeForm());
         add(createResultSection());
     }

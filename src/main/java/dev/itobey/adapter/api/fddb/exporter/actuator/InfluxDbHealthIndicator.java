@@ -31,23 +31,17 @@ public class InfluxDbHealthIndicator implements HealthIndicator {
 
             if (isAlive) {
                 return Health.up()
-                        .withDetail("influxdb-status", "CONNECTED")
-                        .withDetail("url", properties.getInfluxdb().getUrl())
-                        .withDetail("org", properties.getInfluxdb().getOrg())
                         .withDetail("bucket", properties.getInfluxdb().getBucket())
                         .build();
             } else {
                 return Health.down()
                         .withDetail("error", "InfluxDB ping failed")
-                        .withDetail("influxdb-status", "DISCONNECTED")
-                        .withDetail("url", properties.getInfluxdb().getUrl())
                         .build();
             }
         } catch (Exception e) {
             log.error("InfluxDB health check failed", e);
             return Health.down()
                     .withDetail("error", e.getMessage())
-                    .withDetail("url", properties.getInfluxdb().getUrl())
                     .build();
         }
     }

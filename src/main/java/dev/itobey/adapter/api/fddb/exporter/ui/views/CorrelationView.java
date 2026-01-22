@@ -36,8 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.applyResponsivePadding;
-import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createDatePickerI18n;
+import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 
 @Route(value = "correlation", layout = MainLayout.class)
 @PageTitle("Correlation Analysis | FDDB Exporter")
@@ -80,9 +79,8 @@ public class CorrelationView extends VerticalLayout {
 
         add(new H2("Correlation Analysis"));
 
-        // Check if MongoDB is enabled
-        if (!isMongoDbEnabled()) {
-            displayMongoDbDisabledError();
+        if (!isMongoDbEnabled(properties)) {
+            add(createMongoDbDisabledWarning("Correlation Analysis"));
             return;
         }
 
@@ -97,51 +95,6 @@ public class CorrelationView extends VerticalLayout {
         add(contentWrapper);
     }
 
-    private boolean isMongoDbEnabled() {
-        return properties.getPersistence() != null
-                && properties.getPersistence().getMongodb() != null
-                && properties.getPersistence().getMongodb().isEnabled();
-    }
-
-    private void displayMongoDbDisabledError() {
-        VerticalLayout errorContainer = new VerticalLayout();
-        errorContainer.addClassNames(LumoUtility.Padding.LARGE, LumoUtility.BorderRadius.MEDIUM);
-        errorContainer.setSpacing(true);
-        errorContainer.getStyle()
-                .set("background", "rgba(154, 75, 85, 0.1)")
-                .set("border", "2px solid rgba(154, 75, 85, 0.3)")
-                .set("max-width", "600px")
-                .set("margin", "0 auto");
-
-        Icon errorIcon = new Icon(VaadinIcon.EXCLAMATION_CIRCLE_O);
-        errorIcon.setSize("48px");
-        errorIcon.getStyle().set("color", "#9a4b55");
-
-        H3 errorTitle = new H3("MongoDB Not Enabled");
-        errorTitle.getStyle().set("color", "#9a4b55").set("margin", "0.5rem 0");
-
-        Paragraph errorMessage = new Paragraph(
-                "The Correlation Analysis feature requires MongoDB to be enabled. " +
-                        "Please enable MongoDB persistence in your application configuration."
-        );
-        errorMessage.addClassName(LumoUtility.TextColor.SECONDARY);
-
-        Paragraph configHint = new Paragraph(
-                "Set the environment variable FDDB-EXPORTER_PERSISTENCE_MONGODB_ENABLED to true " +
-                        "or update the application.yml configuration."
-        );
-        configHint.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.TERTIARY);
-        configHint.getStyle()
-                .set("background", "rgba(0, 0, 0, 0.05)")
-                .set("padding", "0.75rem")
-                .set("border-radius", "4px")
-                .set("font-family", "monospace");
-
-        errorContainer.add(errorIcon, errorTitle, errorMessage, configHint);
-        errorContainer.setAlignItems(Alignment.CENTER);
-
-        add(errorContainer);
-    }
 
     private VerticalLayout createInputForm() {
         VerticalLayout form = new VerticalLayout();
