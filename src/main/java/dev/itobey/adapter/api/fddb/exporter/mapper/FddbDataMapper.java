@@ -20,6 +20,19 @@ public interface FddbDataMapper {
 
     List<FddbDataDTO> toFddbDataDTO(List<FddbData> fddbData);
 
+    /**
+     * Converts FddbDataDTO to a version without id and products (daily totals only).
+     * Used for data downloads when only daily summaries are needed.
+     *
+     * @param fddbData the full FDDB data
+     * @return a FddbDataDTO with only date and nutrition totals (id and products are null)
+     */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "products", ignore = true)
+    FddbDataDTO toFddbDataDTOWithoutProducts(FddbDataDTO fddbData);
+
+    List<FddbDataDTO> toFddbDataDTOWithoutProducts(List<FddbDataDTO> fddbData);
+
     ProductWithDateDTO toProductWithDateDto(ProductWithDate product);
 
     List<ProductWithDateDTO> toProductWithDateDto(List<ProductWithDate> product);

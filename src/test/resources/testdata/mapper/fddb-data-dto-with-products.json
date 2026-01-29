@@ -1,0 +1,31 @@
+{
+  "id": "123",
+  "date": "2024-01-01",
+  "totalCalories": 2000.5,
+  "totalFat": 70.3,
+  "totalCarbs": 250.2,
+  "totalSugar": 50.1,
+  "totalProtein": 100.4,
+  "totalFibre": 30.6,
+  "products": [
+    {
+      "name": "Banana",
+      "amount": "100 g",
+      "calories": 89.0,
+      "fat": 0.3,
+      "carbs": 23.0,
+      "protein": 1.1,
+      "link": "http://link1"
+    },
+    {
+      "name": "Apple",
+      "amount": "150 g",
+      "calories": 78.0,
+      "fat": 0.2,
+      "carbs": 21.0,
+      "protein": 0.5,
+      "link": "http://link2"
+    }
+  ]
+}
+

@@ -1,0 +1,25 @@
+[
+  {
+    "id": null,
+    "date": "2024-01-02",
+    "totalCalories": 2100.0,
+    "totalFat": 75.0,
+    "totalCarbs": 260.0,
+    "totalSugar": 55.0,
+    "totalProtein": 110.0,
+    "totalFibre": 35.0,
+    "products": null
+  },
+  {
+    "id": null,
+    "date": "2024-01-03",
+    "totalCalories": 1900.0,
+    "totalFat": 65.0,
+    "totalCarbs": 240.0,
+    "totalSugar": 45.0,
+    "totalProtein": 95.0,
+    "totalFibre": 28.0,
+    "products": null
+  }
+]
+

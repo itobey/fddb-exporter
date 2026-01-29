@@ -1,0 +1,12 @@
+{
+  "id": "test-id",
+  "date": "2024-06-15",
+  "totalCalories": 2345.67,
+  "totalFat": 89.12,
+  "totalCarbs": 345.89,
+  "totalSugar": 67.34,
+  "totalProtein": 123.45,
+  "totalFibre": 45.67,
+  "products": []
+}
+
