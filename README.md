@@ -21,7 +21,12 @@ This application is especially useful for individuals who want to keep their FDD
 FDDB only stores entries for up to 2 years for premium members, and even less for free users.
 Additionally, it is very handy if you want to query your data to see on which days you have entered specific products.
 See the [documentation](https://itobey.github.io/fddb-exporter/) for a deep dive.
-There is also a [Flutter app](https://github.com/itobey/fddb-exporter-app) available as a frontend.
+
+<div align="center">
+  <a href="https://itobey.github.io/fddb-exporter/visualization/web-ui" style="display: block; width: 100%; max-width: 100%;">
+    <img src="docs/images/desktop-dashboard.jpg" alt="FDDB Exporter Dashboard" style="width: 100%; height: auto; display: block;"/>
+  </a>
+</div>
 
 # Key Features
 
