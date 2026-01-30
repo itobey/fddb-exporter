@@ -101,7 +101,7 @@ If you have another feature in mind please open up an issue or contact me.
 
 # Resource Usage
 
-The service typically uses around 300 MB of RAM with minimal CPU usage when idle.
+The service typically uses around 950 MB of RAM with minimal CPU usage when idle.
 
 # Contributing
 
