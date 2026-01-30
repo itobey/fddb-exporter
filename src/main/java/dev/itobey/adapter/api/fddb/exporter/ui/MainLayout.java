@@ -28,8 +28,7 @@ public class MainLayout extends AppLayout {
 
     public MainLayout(Optional<BuildProperties> buildProperties, VersionCheckService versionCheckService) {
         this.appVersion = buildProperties.map(BuildProperties::getVersion)
-                .map(v -> "v" + v)
-                .orElse("vdev");
+                .orElse("dev");
         this.versionCheckService = versionCheckService;
 
         createHeader();
@@ -120,8 +119,9 @@ public class MainLayout extends AppLayout {
         versionContainer.setSpacing(false);
         versionContainer.getStyle().set("padding", "0.75rem 0.25rem 0.75rem 0.5rem");
 
-        Span appVersionSpan = new Span(this.appVersion);
+        Span appVersionSpan = new Span("Version " + this.appVersion);
         appVersionSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        appVersionSpan.getStyle().set("margin-left", "0.5rem");
         versionContainer.add(appVersionSpan);
 
         Optional<String> latestVersion = versionCheckService.getLatestVersionIfNewer();
@@ -141,7 +141,8 @@ public class MainLayout extends AppLayout {
                         .set("display", "flex")
                         .set("align-items", "center")
                         .set("gap", "0.25rem")
-                        .set("white-space", "nowrap");
+                        .set("white-space", "nowrap")
+                        .set("margin-left", "0.5rem");
                 updateLink.add(updateIcon, new Span("New Version " + latestVersion.get() + " available"));
                 versionContainer.add(updateLink);
             } else {
@@ -154,7 +155,8 @@ public class MainLayout extends AppLayout {
                 updateLayout.getStyle()
                         .set("color", "#3f908c")
                         .set("gap", "0.25rem")
-                        .set("white-space", "nowrap");
+                        .set("white-space", "nowrap")
+                        .set("margin-left", "0.5rem");
                 versionContainer.add(updateLayout);
             }
         }
@@ -162,5 +164,4 @@ public class MainLayout extends AppLayout {
         return versionContainer;
     }
 }
-
 

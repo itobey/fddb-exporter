@@ -62,6 +62,7 @@ export default {
                 text: "Visualization",
                 collapsible: true,
                 items: [
+                    {text: "Web UI", link: "/visualization/web-ui.html"},
                     { text: "Grafana Dashboard", link: "/visualization/grafana-dashboard.html" },
                     { text: "Flutter App", link: "/visualization/flutter-app.html" }
                 ]
