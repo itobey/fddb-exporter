@@ -306,6 +306,54 @@ Example responses:
 
 ---
 
+### Download Data in Various Formats
+
+> **GET** `/api/v2/fddbdata/download`
+
+- **Description:** Download your FDDB data in CSV or JSON format. This endpoint allows you to export your nutritional
+  data for further analysis or backup purposes. You can choose to download all data or filter by a specific date range,
+  include product details or just daily totals, and customize CSV formatting options.
+- **Query Parameters:**
+  - `fromDate` _(optional)_: Start date for filtering (inclusive), format: `YYYY-MM-DD`. If not provided, downloads from
+    the beginning.
+  - `toDate` _(optional)_: End date for filtering (inclusive), format: `YYYY-MM-DD`. If not provided, downloads until
+    the most recent entry.
+  - `format` _(required)_: Download format. Valid values: `CSV`, `JSON`.
+  - `includeProducts` _(optional)_: Whether to include product details (`true`) or just daily totals (`false`). Defaults
+    to `false`.
+  - `decimalSeparator` _(optional)_: Decimal separator for CSV format. Valid values: `comma`, `dot`. Defaults to
+    `comma`. Only applicable when format is `CSV`.
+
+- **Examples:**
+  - Download all data as CSV with daily totals only:
+    `/api/v2/fddbdata/download?format=CSV&includeProducts=false`
+
+  - Download data for January 2024 as JSON with product details:
+    `/api/v2/fddbdata/download?fromDate=2024-01-01&toDate=2024-01-31&format=JSON&includeProducts=true`
+
+  - Download all data as CSV with dot decimal separator and product details:
+    `/api/v2/fddbdata/download?format=CSV&includeProducts=true&decimalSeparator=dot`
+
+- **Response:** Binary file download with appropriate content type and filename. The filename is automatically generated
+  based on the selected parameters (e.g., `fddb-export-2024-01-01-to-2024-01-31-with-products.csv`).
+
+- **CSV Format:**
+  - **Daily totals only** (`includeProducts=false`): Each row represents one day with columns for date, total calories,
+    total fat, total carbs, total sugar, total protein, and total fiber.
+  - **With product details** (`includeProducts=true`): Each row represents one product consumed on a specific date,
+    including all nutritional values and product information.
+
+- **JSON Format:**
+  - Returns data in the same structure as the `/api/v2/fddbdata` endpoint, but filtered by the specified date range if
+    provided.
+
+- **Error Responses:**
+  - Returns HTTP 400 Bad Request if `fromDate` is after `toDate`.
+  - Returns HTTP 400 Bad Request if an invalid `format`, `decimalSeparator`, or date format is provided.
+  - Returns HTTP 503 Service Unavailable if MongoDB is not enabled.
+
+---
+
 ### Migrate MongoDB data to InfluxDb
 
 > **POST** `/api/v2/migration/toInfluxDb`
