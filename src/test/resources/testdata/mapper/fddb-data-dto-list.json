@@ -1,0 +1,56 @@
+[
+  {
+    "id": "1",
+    "date": "2024-01-01",
+    "totalCalories": 2000.0,
+    "totalFat": 70.0,
+    "totalCarbs": 250.0,
+    "totalSugar": 50.0,
+    "totalProtein": 100.0,
+    "totalFibre": 30.0,
+    "products": [
+      {
+        "name": "Banana",
+        "amount": "100 g",
+        "calories": 89.0,
+        "fat": 0.3,
+        "carbs": 23.0,
+        "protein": 1.1,
+        "link": "http://link1"
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "date": "2024-01-02",
+    "totalCalories": 2100.0,
+    "totalFat": 75.0,
+    "totalCarbs": 260.0,
+    "totalSugar": 55.0,
+    "totalProtein": 110.0,
+    "totalFibre": 35.0,
+    "products": [
+      {
+        "name": "Apple",
+        "amount": "150 g",
+        "calories": 78.0,
+        "fat": 0.2,
+        "carbs": 21.0,
+        "protein": 0.5,
+        "link": "http://link2"
+      }
+    ]
+  },
+  {
+    "id": "3",
+    "date": "2024-01-03",
+    "totalCalories": 1900.0,
+    "totalFat": 65.0,
+    "totalCarbs": 240.0,
+    "totalSugar": 45.0,
+    "totalProtein": 95.0,
+    "totalFibre": 28.0,
+    "products": null
+  }
+]
+

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "1",
+    "date": "2024-01-01",
+    "totalCalories": 2000.0,
+    "totalFat": 70.0,
+    "totalCarbs": 250.0,
+    "totalSugar": 50.0,
+    "totalProtein": 100.0,
+    "totalFibre": 30.0,
+    "products": []
+  }
+]
+

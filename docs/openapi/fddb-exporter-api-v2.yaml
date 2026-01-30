@@ -38,6 +38,8 @@ tags:
     description: Export FDDB data for specified date ranges
   - name: FDDB Data Query
     description: Query FDDB nutrition data entries
+  - name: FDDB Data Download
+    description: Download FDDB data in various formats (CSV, JSON)
   - name: FDDB Data Statistics
     description: Statistics and analytics for FDDB data
   - name: FDDB Data Migration
@@ -232,6 +234,94 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v2/fddbdata/download:
+    get:
+      tags:
+        - FDDB Data Download
+      summary: Download FDDB data
+      description: |
+        Download FDDB data as CSV or JSON. Optionally filter by date range and choose whether to include product details or just daily totals.
+        
+        When includeProducts is false (default), only daily totals are returned with columns: Date, Calories, Fat, Carbs, Sugar, Protein, Fibre.
+        
+        When includeProducts is true, the data is flattened with one row per product, including both product details and daily totals.
+      operationId: downloadData
+      parameters:
+        - name: fromDate
+          in: query
+          description: Start date for filtering (inclusive), format YYYY-MM-DD. If not provided, downloads from the beginning.
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: toDate
+          in: query
+          description: End date for filtering (inclusive), format YYYY-MM-DD. If not provided, downloads until the most recent entry.
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: format
+          in: query
+          description: Download format (CSV or JSON)
+          required: true
+          schema:
+            type: string
+            enum:
+              - CSV
+              - JSON
+            example: "CSV"
+        - name: includeProducts
+          in: query
+          description: Whether to include product details (true) or just daily totals (false)
+          required: false
+          schema:
+            type: boolean
+            default: false
+            example: false
+        - name: decimalSeparator
+          in: query
+          description: Decimal separator for CSV format (. or ,). Only applies when format is CSV.
+          required: false
+          schema:
+            type: string
+            enum:
+              - "comma"
+              - "dot"
+            default: "comma"
+            example: "comma"
+      responses:
+        '200':
+          description: Data downloaded successfully
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FddbDataDTO'
+                description: |
+                  Returns an array of FddbDataDTO objects.
+                  When includeProducts=false, the 'id' and 'products' fields will be null.
+                  When includeProducts=true, all fields are populated.
+        '400':
+          description: Invalid parameters (e.g., fromDate is after toDate)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v2/stats:
     get:
       tags:
@@ -405,7 +495,8 @@ components:
       properties:
         id:
           type: string
-          description: Unique identifier
+          nullable: true
+          description: Unique identifier (null when used for daily totals downloads)
           example: "507f1f77bcf86cd799439011"
         date:
           type: string
@@ -414,7 +505,8 @@ components:
           example: "2024-12-22"
         products:
           type: array
-          description: List of products consumed on this day
+          nullable: true
+          description: List of products consumed on this day (null when used for daily totals downloads)
           items:
             $ref: '#/components/schemas/ProductDTO'
         totalCalories:
