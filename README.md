@@ -62,27 +62,6 @@ The interactive API documentation is available at:
 
 See the [documentation](https://itobey.github.io/fddb-exporter/) for detailed setup instructions.
 
-# Web UI
-
-The FDDB Exporter comes with a modern, built-in web interface that provides access to all features. The UI is fully
-responsive and works great on mobile devices. You can even install it as a Progressive Web App (PWA) for quick access
-from your home screen.
-
-<details>
-<summary><b>📸 Click to view screenshots</b></summary>
-
-<br>
-
-|                   Dashboard                   |                     Product Search                      |
-|:---------------------------------------------:|:-------------------------------------------------------:|
-| ![Dashboard](docs/resources/ui-dashboard.png) | ![Product Search](docs/resources/ui-product-search.png) |
-
-|                   Statistics                    |               Correlation Analysis                |
-|:-----------------------------------------------:|:-------------------------------------------------:|
-| ![Statistics](docs/resources/ui-statistics.png) | ![Correlation](docs/resources/ui-correlation.png) |
-
-</details>
-
 # Technology Stack
 
 - [Spring Boot](https://spring.io/projects/spring-boot)
