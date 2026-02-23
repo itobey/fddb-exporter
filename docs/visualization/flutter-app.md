@@ -4,6 +4,14 @@ The FDDB Exporter App is a Flutter-based mobile application that serves as a use
 the [FDDB Exporter](https://github.com/itobey/fddb-exporter) backend system. This companion app provides convenient
 access to the backend API endpoints through an intuitive mobile interface.
 
+::: tip Alternative: Built-in Web UI
+FDDB Exporter now includes a [built-in Web UI](/visualization/web-ui.html) that provides all the same features directly
+in your browser. The Web UI is mobile-friendly and can be installed as a Progressive Web App (PWA). Consider using the
+Web UI if you prefer not to install a separate app.
+The app will not get new features and is deprecated now. Currently, it still works with FDDB Exporter backend version
+1.17.x.
+:::
+
 ## Overview
 
 The Flutter app is available on [GitHub](https://github.com/itobey/fddb-exporter-app) and provides a complete mobile

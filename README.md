@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/FDDB-Exporter-Logo.jpg" width=1000/>
+  <img src="docs/images/FDDB-Exporter-Logo.png" width=854/>
   <p><i>Export data from FDDB.info with ease and flexibility</i></p>
 
 ## [Documentation](https://itobey.github.io/fddb-exporter/)
@@ -21,17 +21,26 @@ This application is especially useful for individuals who want to keep their FDD
 FDDB only stores entries for up to 2 years for premium members, and even less for free users.
 Additionally, it is very handy if you want to query your data to see on which days you have entered specific products.
 See the [documentation](https://itobey.github.io/fddb-exporter/) for a deep dive.
-There is also a [Flutter app](https://github.com/itobey/fddb-exporter-app) available as a frontend.
+
+<div align="center">
+  <a href="https://itobey.github.io/fddb-exporter/visualization/web-ui" style="display: block; width: 100%; max-width: 100%;">
+    <img src="docs/images/desktop-dashboard.jpg" alt="FDDB Exporter Dashboard" style="width: 100%; height: auto; display: block;"/>
+  </a>
+</div>
 
 # Key Features
 
+- **Built-in Web UI** for easy access to all features without API knowledge
+- **Mobile-friendly** web interface that can be installed as a Progressive Web App (PWA)
 - Exports daily nutritional totals: calories, fat, carbohydrates, sugar, protein, and fiber
 - Stores detailed information on consumed products, including name, amount, nutritional values, and link to the product
   page
 - Supports scheduled daily exports and manual exports for specific date ranges
+- **Product search** with optional filtering by day of the week (e.g., only Mondays and Thursdays)
 - Provides a RESTful API for data retrieval and export operations
 - Interactive Swagger UI for easy API exploration and testing
 - A special API endpoint to find correlations to matching dates for checking food allergies
+- **Automatic version checks** with notifications when updates are available
 
 # Prerequisites
 
@@ -43,15 +52,20 @@ There is also a [Flutter app](https://github.com/itobey/fddb-exporter-app) avail
 
 # Quick Start
 
-Once the application is running, you can access the interactive API documentation at:
+Once the application is running, you can access the web interface at:
+
+**Web UI:** `http://localhost:8080/`
+
+The interactive API documentation is available at:
 
 **Swagger UI:** `http://localhost:8080/swagger-ui.html`
 
-See [Swagger UI Setup Guide](docs/SWAGGER-UI-SETUP.md) for detailed documentation.
+See the [documentation](https://itobey.github.io/fddb-exporter/) for detailed setup instructions.
 
 # Technology Stack
 
 - [Spring Boot](https://spring.io/projects/spring-boot)
+- [Vaadin](https://vaadin.com/) / [Hilla](https://hilla.dev/) (Web UI)
 - Java 21
 - MongoDB
 - Docker (optional)
@@ -73,20 +87,21 @@ I plan on implementing the following features in the future:
 
 - [x] Helm Chart for deployment
 - [x] product search API: to get only relevant data instead of the entire day
-- [ ] product search API: limit search by date or weekday instead of searching and returning every day
+- [x] product search API: filter search by weekday to only return matches on specific days
 - [x] correlation API: find products correlating with given dates
 - [x] new stats endpoint: display some stats of your data
 - [x] ARM container release
-- [ ] Alerting feature to notify when the Scheduler run failed
+- [x] ~~Alerting feature to notify when the Scheduler run failed~~
 - [x] accompanying Flutter app as a frontend
 - [x] InfluxDB as additional persistence layer
-- [ ] embedded Vaadin Frontend UI
+- [x] embedded Vaadin Frontend UI
+- [x] automatic version check with notifications for new releases
 
 If you have another feature in mind please open up an issue or contact me.
 
 # Resource Usage
 
-The service typically uses around 300 MB of RAM with minimal CPU usage when idle.
+The service typically uses around 950 MB of RAM with minimal CPU usage when idle.
 
 # Contributing
 

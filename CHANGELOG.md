@@ -1,14 +1,23 @@
 # Changelog
 
-## 2.0.0 (Unreleased)
+## 2.0.0
 
 ### Added
 
-- Large update: FDDB-Exporter now includes a built-in frontend (single-page application).
-- The frontend is served at the application root (for example: http://localhost:8080/) and provides a graphical UI for
-  all operations that the API exposes.
-- Automatic version check: On startup and once per day FDDB-Exporter checks whether a new stable version is available;
-  the result is printed to the application logs and shown in the frontend UI.
+- **Built-in Web UI**: FDDB-Exporter now includes a built-in frontend (single-page application) served at the
+  application root (for example: http://localhost:8080/). The web UI provides a graphical interface for all operations
+  that the API exposes.
+- **Automatic Version Check**: On startup and once per day, FDDB-Exporter checks whether a new stable version is
+  available. The result is printed to the application logs and shown in the frontend UI.
+- **Product Search**: Find products with optional day-of-week filtering to display only products consumed on specific
+  days (e.g., only products eaten on Mondays).
+- **Data Download**: Download exported data in multiple formats (CSV and JSON) directly from the application.
+
+### Deprecated
+
+- **Flutter App**: The Flutter app is now deprecated with the release of the built-in web UI. The Flutter app will
+  continue to work with FDDB-Exporter version 1.7.0 but will not be updated for version 2.0.0 and later. Users are
+  encouraged to migrate to the built-in web UI.
 
 ## 1.7.0
 
