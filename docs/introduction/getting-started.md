@@ -47,7 +47,7 @@ configuration can be found on this [detail page](/details/helm.md).
 
 - Use the pre-built Helm Chart:
    ```
-   helm install fddb-exporter oci://ghcr.io/itobey/charts/fddb-exporter --version 1.1.5
+   helm install fddb-exporter oci://ghcr.io/itobey/charts/fddb-exporter --version 1.1.6
    ```
 
 - or checkout the [Fddb-Exporter Chart](https://github.com/itobey/charts/tree/master/fddb-exporter) yourself
