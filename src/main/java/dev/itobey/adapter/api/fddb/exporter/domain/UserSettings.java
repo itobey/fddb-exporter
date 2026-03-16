@@ -28,4 +28,7 @@ public class UserSettings {
     private String correlationOccurrenceDates;
     private LocalDate correlationStartDate;
 
+    // Rolling Averages View Settings
+    private List<RollingAveragePreset> rollingAveragePresets = new ArrayList<>();
+
 }

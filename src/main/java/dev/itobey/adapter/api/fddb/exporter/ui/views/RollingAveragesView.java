@@ -15,14 +15,17 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
+import dev.itobey.adapter.api.fddb.exporter.domain.RollingAveragePreset;
 import dev.itobey.adapter.api.fddb.exporter.dto.RollingAveragesDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.service.UserSettingsService;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 
@@ -36,13 +39,16 @@ public class RollingAveragesView extends VerticalLayout {
 
     private final StatsClient statsClient;
     private final FddbExporterProperties properties;
+    private final UserSettingsService userSettingsService;
     private DatePicker fromDatePicker;
     private DatePicker toDatePicker;
     private Div resultDiv;
 
-    public RollingAveragesView(StatsClient statsClient, FddbExporterProperties properties) {
+    public RollingAveragesView(StatsClient statsClient, FddbExporterProperties properties,
+                               @org.springframework.beans.factory.annotation.Autowired(required = false) UserSettingsService userSettingsService) {
         this.statsClient = statsClient;
         this.properties = properties;
+        this.userSettingsService = userSettingsService;
 
         addClassName("rolling-averages-view");
         setSpacing(true);
@@ -98,6 +104,13 @@ public class RollingAveragesView extends VerticalLayout {
                 createYearButton()
         );
 
+        List<RollingAveragePreset> customPresets = userSettingsService != null
+                ? userSettingsService.getSettings().getRollingAveragePresets()
+                : java.util.Collections.emptyList();
+        for (RollingAveragePreset preset : customPresets) {
+            quickButtons.add(createCustomPresetButton(preset));
+        }
+
         Button calculateButton = new Button("Calculate Averages");
         calculateButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         calculateButton.addClickListener(e -> calculateAverages());
@@ -145,6 +158,21 @@ public class RollingAveragesView extends VerticalLayout {
         toDatePicker.setValue(LocalDate.now().minusDays(1));
     }
 
+    private Button createCustomPresetButton(RollingAveragePreset preset) {
+        Button button = new Button(preset.getName(), e -> {
+            fromDatePicker.setValue(preset.getFromDate());
+            toDatePicker.setValue(preset.getToDate());
+            calculateAverages();
+        });
+        button.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        button.addClassName("preset-btn");
+        button.getStyle()
+                .set("flex", "1 1 calc(50% - 0.25rem)")
+                .set("min-width", "calc(50% - 0.25rem)")
+                .set("color", HIGHLIGHT_COLOR);
+        return button;
+    }
+
     private VerticalLayout createResultSection() {
         VerticalLayout section = new VerticalLayout();
         section.setSpacing(true);
@@ -175,9 +203,10 @@ public class RollingAveragesView extends VerticalLayout {
 
             RollingAveragesDTO result = statsClient.getRollingAverages(fromDate, toDate);
             displayResult(result);
+            resultDiv.getElement().executeJs("this.scrollIntoView({behavior: 'smooth', block: 'start'})");
             showSuccess("Averages calculated successfully");
-        } catch (ApiException e) {
-            showError(e.getMessage());
+        } catch (ApiException apiException) {
+            showError(apiException.getMessage());
         }
     }
 
@@ -248,19 +277,25 @@ public class RollingAveragesView extends VerticalLayout {
             fatSection.getStyle().set("box-sizing", "border-box");
             fatSection.getStyle().set("background-color", "#FFE66D");
             fatSection.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
-            fatSection.getStyle().set("flex-direction", "column");  // Stack label parts vertically
+            fatSection.getStyle().set("flex-direction", "column");
             fatSection.getStyle().set("padding", "0.25rem");
-            Span fatLabel = new Span("Fat " + formatNumber(fatPercentage) + "%");
-            fatLabel.getStyle()
+            Span fatNameLabel = new Span("Fat");
+            fatNameLabel.getStyle()
                     .set("width", "100%")
                     .set("text-align", "center")
-                    .set("word-wrap", "break-word")
-                    .set("overflow-wrap", "break-word")
                     .set("color", "var(--accent-active)")
                     .set("font-weight", "600")
                     .set("font-size", "0.85rem")
                     .set("line-height", "1.2");
-            fatSection.add(fatLabel);
+            Span fatPctLabel = new Span(formatNumber(fatPercentage) + "%");
+            fatPctLabel.getStyle()
+                    .set("width", "100%")
+                    .set("text-align", "center")
+                    .set("color", "var(--accent-active)")
+                    .set("font-weight", "600")
+                    .set("font-size", "0.85rem")
+                    .set("line-height", "1.2");
+            fatSection.add(fatNameLabel, fatPctLabel);
 
             Div carbsSection = new Div();
             carbsSection.setWidth(carbsPercentage + "%");
@@ -272,17 +307,23 @@ public class RollingAveragesView extends VerticalLayout {
             carbsSection.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
             carbsSection.getStyle().set("flex-direction", "column");
             carbsSection.getStyle().set("padding", "0.25rem");
-            Span carbsLabel = new Span("Carbs " + formatNumber(carbsPercentage) + "%");
-            carbsLabel.getStyle()
+            Span carbsNameLabel = new Span("Carbs");
+            carbsNameLabel.getStyle()
                     .set("width", "100%")
                     .set("text-align", "center")
-                    .set("word-wrap", "break-word")
-                    .set("overflow-wrap", "break-word")
                     .set("color", "var(--accent-active)")
                     .set("font-weight", "600")
                     .set("font-size", "0.85rem")
                     .set("line-height", "1.2");
-            carbsSection.add(carbsLabel);
+            Span carbsPctLabel = new Span(formatNumber(carbsPercentage) + "%");
+            carbsPctLabel.getStyle()
+                    .set("width", "100%")
+                    .set("text-align", "center")
+                    .set("color", "var(--accent-active)")
+                    .set("font-weight", "600")
+                    .set("font-size", "0.85rem")
+                    .set("line-height", "1.2");
+            carbsSection.add(carbsNameLabel, carbsPctLabel);
 
             Div proteinSection = new Div();
             proteinSection.setWidth(proteinPercentage + "%");
@@ -294,17 +335,23 @@ public class RollingAveragesView extends VerticalLayout {
             proteinSection.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
             proteinSection.getStyle().set("flex-direction", "column");
             proteinSection.getStyle().set("padding", "0.25rem");
-            Span proteinLabel = new Span("Protein " + formatNumber(proteinPercentage) + "%");
-            proteinLabel.getStyle()
+            Span proteinNameLabel = new Span("Protein");
+            proteinNameLabel.getStyle()
                     .set("width", "100%")
                     .set("text-align", "center")
-                    .set("word-wrap", "break-word")
-                    .set("overflow-wrap", "break-word")
                     .set("color", "var(--accent-active)")
                     .set("font-weight", "600")
                     .set("font-size", "0.85rem")
                     .set("line-height", "1.2");
-            proteinSection.add(proteinLabel);
+            Span proteinPctLabel = new Span(formatNumber(proteinPercentage) + "%");
+            proteinPctLabel.getStyle()
+                    .set("width", "100%")
+                    .set("text-align", "center")
+                    .set("color", "var(--accent-active)")
+                    .set("font-weight", "600")
+                    .set("font-size", "0.85rem")
+                    .set("line-height", "1.2");
+            proteinSection.add(proteinNameLabel, proteinPctLabel);
 
             stackedBar.add(fatSection, carbsSection, proteinSection);
 
@@ -322,7 +369,7 @@ public class RollingAveragesView extends VerticalLayout {
     private void showSuccess(String message) {
         Notification notification = Notification.show(message);
         notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-        notification.setDuration(3000);
+        notification.setDuration(1000);
     }
 
     private void showError(String message) {

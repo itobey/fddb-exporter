@@ -88,6 +88,54 @@ adaptations for optimal display on different screen sizes.
   </tr>
 </table>
 
+## Feature Details
+
+### Rolling Averages
+
+The **Rolling Averages** view allows you to calculate average nutritional values over any custom date range. This is
+useful
+for analyzing your nutritional patterns over specific periods.
+
+#### Quick-Select Buttons
+
+The view includes several preset buttons for common time periods:
+
+- **Last 7 Days** — Averages for the past week
+- **Last 30 Days** — Averages for the past month
+- **Last 90 Days** — Averages for the past quarter
+- **Last Year** — Averages for the past 365 days
+- **Current Year** — Averages from January 1 to yesterday of the current year
+
+#### Custom Presets
+
+You can also create **custom date range presets** that will appear as additional quick-select buttons:
+
+1. Navigate to **Settings** in the menu
+2. Scroll to the **"Rolling Average Presets"** section
+3. Enter a name for your preset (e.g., "Q1 2025", "Summer 2024")
+4. Select the **From Date** and **To Date** for your custom range
+5. Click **"Add Preset"**
+
+Once saved, your custom preset will appear as a button on the Rolling Averages view, allowing you to quickly calculate
+averages for that date range with a single click.
+To create a custom preset which tracks to the current date, simply set the **To Date** to a future date (e.g., December
+31, 2030). This way, the preset will always calculate averages up to yesterday's date, making it ideal for tracking
+ongoing periods like the current quarter or year.
+
+**Example use cases for custom presets:**
+
+- Compare quarterly performance (Q1, Q2, Q3, Q4)
+- Analyze seasonal patterns (e.g., "Summer 2024", "Winter 2023")
+- Track specific project or diet phases (e.g., "Keto Phase 1", "Training Period")
+
+#### Results
+
+After selecting a date range and clicking **Calculate Averages**, the view displays:
+
+- **Individual nutrient cards** — Average values for calories, fat, carbs, sugar, protein, and fiber
+- **Macro distribution bar** — Visual representation showing the percentage breakdown of macronutrients (fat, carbs,
+  protein) in your average daily intake
+
 ## Mobile Support
 
 The web UI is fully responsive and works seamlessly on mobile devices. You can access all features from your smartphone

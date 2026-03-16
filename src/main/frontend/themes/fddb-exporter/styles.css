@@ -914,6 +914,30 @@ vaadin-tab-sheet::part(tabs) {
     }
 }
 
+/* Settings View - Two-column responsive layout for sections */
+.settings-sections-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    width: 100%;
+    align-items: flex-start;
+}
+
+.settings-sections-grid > * {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+@media (max-width: 1199px) {
+    .settings-sections-grid {
+        flex-direction: column;
+    }
+
+    .settings-sections-grid > * {
+        width: 100%;
+    }
+}
+
 /* Settings View Specific Styles */
 .settings-view {
     max-width: 100%;
