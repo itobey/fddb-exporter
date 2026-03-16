@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0
+
+### Added
+
+- **Custom Rolling Average Presets**: Users can now create and save custom rolling average presets in the Settings to
+  display quick-select buttons with custom time ranges on the Rolling Averages view. This allows for quick calculation
+  of averages for frequently used date ranges (e.g., quarterly or seasonal analysis).
+
 ## 2.0.0
 
 ### Added
