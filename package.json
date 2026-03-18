@@ -5,7 +5,7 @@
   "dependencies": {
     "@polymer/polymer": "3.5.2",
     "@vaadin/bundles": "24.6.3",
-    "@vaadin/common-frontend": "0.0.19",
+    "@vaadin/common-frontend": "0.0.22",
     "@vaadin/polymer-legacy-adapter": "24.6.3",
     "@vaadin/react-components": "24.6.3",
     "@vaadin/vaadin-development-mode-detector": "2.0.7",
