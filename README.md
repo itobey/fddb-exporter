@@ -24,7 +24,7 @@ See the [documentation](https://itobey.github.io/fddb-exporter/) for a deep dive
 
 <div align="center">
   <a href="https://itobey.github.io/fddb-exporter/visualization/web-ui" style="display: block; width: 100%; max-width: 100%;">
-    <img src="docs/images/desktop-dashboard.jpg" alt="FDDB Exporter Dashboard" style="width: 100%; height: auto; display: block;"/>
+    <img src="docs/public/images/desktop-dashboard.jpg" alt="FDDB Exporter Dashboard" style="width: 100%; height: auto; display: block;"/>
   </a>
 </div>
 
