@@ -7,7 +7,7 @@
 The official Helm Chart can be used to deploy the FDDB-Exporter application to a Kubernetes cluster.
 
 ```
-helm install fddb-exporter oci://ghcr.io/itobey/charts/fddb-exporter --version 1.1.6
+helm install fddb-exporter oci://ghcr.io/itobey/charts/fddb-exporter --version 1.1.7
 ```
 
 Or checkout the [Fddb-Exporter Chart](https://github.com/itobey/charts/tree/master/fddb-exporter) yourself.

@@ -39,13 +39,13 @@ adaptations for optimal display on different screen sizes.
   </tr>
   <tr>
     <td align="center">
-      <a href="../images/desktop-dashboard.jpg" target="_blank">
-        <img src="../images/desktop-dashboard.jpg" alt="Dashboard" width="400"/>
+      <a :href="'/fddb-exporter/images/desktop-dashboard.jpg'" target="_blank">
+        <img :src="'/fddb-exporter/images/desktop-dashboard.jpg'" alt="Dashboard" width="400"/>
       </a>
     </td>
     <td align="center">
-      <a href="../images/desktop-product-search.jpg" target="_blank">
-        <img src="../images/desktop-product-search.jpg" alt="Product Search" width="400"/>
+      <a :href="'/fddb-exporter/images/desktop-product-search.jpg'" target="_blank">
+        <img :src="'/fddb-exporter/images/desktop-product-search.jpg'" alt="Product Search" width="400"/>
       </a>
     </td>
   </tr>
@@ -55,13 +55,13 @@ adaptations for optimal display on different screen sizes.
   </tr>
   <tr>
     <td align="center">
-      <a href="../images/desktop-rolling-averages.jpg" target="_blank">
-        <img src="../images/desktop-rolling-averages.jpg" alt="Rolling Averages" width="400"/>
+      <a :href="'/fddb-exporter/images/desktop-rolling-averages.jpg'" target="_blank">
+        <img :src="'/fddb-exporter/images/desktop-rolling-averages.jpg'" alt="Rolling Averages" width="400"/>
       </a>
     </td>
     <td align="center">
-      <a href="../images/desktop-correlation.jpg" target="_blank">
-        <img src="../images/desktop-correlation.jpg" alt="Correlation Analysis" width="400"/>
+      <a :href="'/fddb-exporter/images/desktop-correlation.jpg'" target="_blank">
+        <img :src="'/fddb-exporter/images/desktop-correlation.jpg'" alt="Correlation Analysis" width="400"/>
       </a>
     </td>
   </tr>
@@ -76,13 +76,13 @@ adaptations for optimal display on different screen sizes.
   </tr>
   <tr>
     <td align="center">
-      <a href="../images/mobile-export.jpg" target="_blank">
-        <img src="../images/mobile-export.jpg" alt="Mobile Export" width="200"/>
+      <a :href="'/fddb-exporter/images/mobile-export.jpg'" target="_blank">
+        <img :src="'/fddb-exporter/images/mobile-export.jpg'" alt="Mobile Export" width="200"/>
       </a>
     </td>
     <td align="center">
-      <a href="../images/mobile-download.jpg" target="_blank">
-        <img src="../images/mobile-download.jpg" alt="Mobile Download" width="200"/>
+      <a :href="'/fddb-exporter/images/mobile-download.jpg'" target="_blank">
+        <img :src="'/fddb-exporter/images/mobile-download.jpg'" alt="Mobile Download" width="200"/>
       </a>
     </td>
   </tr>
