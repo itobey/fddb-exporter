@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/images/FDDB-Exporter-Logo.png" width=854/>
+  <img src="docs/public/images/FDDB-Exporter-Logo.png" width=854/>
   <p><i>Export data from FDDB.info with ease and flexibility</i></p>
 
 ## [Documentation](https://itobey.github.io/fddb-exporter/)
