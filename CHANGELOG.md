@@ -14,6 +14,16 @@
 - **Frontend Dependencies**: Updated date-fns to 4.4.0, TypeScript to 7.0.2, magic-string to 1.0.0, and Node types to
   26.1.1
 
+### ⚠️ Breaking Changes
+
+- **MongoDB Configuration Properties**: Spring Boot 4 has moved MongoDB configuration from Spring Data to Spring
+  directly. If you use external configuration, update the following environment variables:
+  - `SPRING_DATA_MONGODB_HOST` → `SPRING_MONGODB_HOST`
+  - `SPRING_DATA_MONGODB_PORT` → `SPRING_MONGODB_PORT`
+  - `SPRING_DATA_MONGODB_DATABASE` → `SPRING_MONGODB_DATABASE`
+  - `SPRING_DATA_MONGODB_USERNAME` → `SPRING_MONGODB_USERNAME`
+  - `SPRING_DATA_MONGODB_PASSWORD` → `SPRING_MONGODB_PASSWORD`
+
 ### Fixed
 
 - Fixed CSS build failures related to invalid lightningcss minify operations
