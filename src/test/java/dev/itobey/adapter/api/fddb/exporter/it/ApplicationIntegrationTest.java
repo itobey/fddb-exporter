@@ -2,8 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.it;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
@@ -14,10 +13,11 @@ import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import lombok.SneakyThrows;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
@@ -47,16 +47,23 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 @SpringBootTest
 @Testcontainers
 @EnableFeignClients
-@WireMockTest
 @ActiveProfiles("test")
 @Import(TestConfig.class)
 class ApplicationIntegrationTest {
 
     public static final String ADMIN_TOKEN = "token";
-    private static int wireMockPort;
+    private static final WireMockServer wireMockServer;
+
+    static {
+        wireMockServer = new WireMockServer(0);
+        wireMockServer.start();
+        configureFor("localhost", wireMockServer.port());
+    }
 
     @Container
+    @ServiceConnection
     static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:7.0.9");
+
     @Container
     static InfluxDBContainer<?> influxDBContainer =
             new InfluxDBContainer<>(DockerImageName.parse("influxdb:2.0.7"))
@@ -73,15 +80,14 @@ class ApplicationIntegrationTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
-    @BeforeAll
-    static void beforeAll(WireMockRuntimeInfo wmRuntimeInfo) {
-        wireMockPort = wmRuntimeInfo.getHttpPort();
+    @AfterAll
+    static void afterAll() {
+        wireMockServer.stop();
     }
 
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
-        registry.add("fddb-exporter.fddb.url", () -> "http://localhost:" + wireMockPort);
+        registry.add("fddb-exporter.fddb.url", () -> "http://localhost:" + wireMockServer.port());
         registry.add("fddb-exporter.influxdb.url", () -> "http://localhost:" + influxDBContainer.getMappedPort(8086));
     }
 

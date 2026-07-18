@@ -2,7 +2,7 @@
 
 ## Configuration Options
 
-The FDDB Exporter application is a [Spring Boot](https://spring.io/projects/spring-boot) 3 application.
+The FDDB Exporter application is a [Spring Boot](https://spring.io/projects/spring-boot) 4 application.
 It is pre-configured with a basic configuration embedded in the application. However, some properties need to be
 configured to make the application work for your use case and environment. The easiest way to do this is via
 environment variables.
@@ -51,11 +51,11 @@ the MongoDB connection. You can disable MongoDB persistence by setting `FDDB-EXP
 | Variable                                    | Default               | Description                |
 |---------------------------------------------|-----------------------|----------------------------|
 | `FDDB-EXPORTER_PERSISTENCE_MONGODB_ENABLED` | true                  | Use MongoDB as persistence |
-| `SPRING_DATA_MONGODB_HOST`                  | localhost             | MongoDB host               |
-| `SPRING_DATA_MONGODB_PORT`                  | 27017                 | MongoDB port               |
-| `SPRING_DATA_MONGODB_DATABASE`              | fddb                  | MongoDB database name      |
-| `SPRING_DATA_MONGODB_USERNAME`              | mongodb_fddb_user     | MongoDB username           |
-| `SPRING_DATA_MONGODB_PASSWORD`              | mongodb_fddb_password | MongoDB password           |
+| `SPRING_MONGODB_HOST`                       | localhost             | MongoDB host               |
+| `SPRING_MONGODB_PORT`                       | 27017                 | MongoDB port               |
+| `SPRING_MONGODB_DATABASE`                   | fddb                  | MongoDB database name      |
+| `SPRING_MONGODB_USERNAME`                   | mongodb_fddb_user     | MongoDB username           |
+| `SPRING_MONGODB_PASSWORD`                   | mongodb_fddb_password | MongoDB password           |
 
 ### InfluxDB Configuration
 

@@ -3,6 +3,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
 html {
+    /* Enable dark mode for Vaadin 25 */
+    color-scheme: dark;
+    
     /* Accent colors */
     --accent: #4e619b;
     --accent-hover: #5d72b3;
@@ -742,10 +745,6 @@ vaadin-grid::part(row) {
 
 vaadin-grid::part(row):hover {
     background: rgba(174, 147, 87, 0.1);
-}
-
-vaadin-grid::part(row):hover::part(cell) {
-    background: transparent;
 }
 
 /* Striped rows variant */
