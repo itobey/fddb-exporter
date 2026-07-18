@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.2.0
+
+### Technical Updates
+
+- **Spring Boot 4**: Updated from Spring Boot 3.x to Spring Boot 4.1.0 for enhanced performance and latest framework
+  improvements
+- **Vaadin 25**: Migrated from Vaadin 24 to Vaadin 25 with the following technical changes:
+  - Switched from deprecated `@Theme` variant annotation to CSS-based dark mode using `color-scheme: dark`
+  - Added `@StyleSheet(Lumo.UTILITY_STYLESHEET)` annotation to properly load Lumo utility styles in Vaadin 25
+  - Removed invalid CSS pseudo-element chaining (`::part()`) that is not supported in CSS specifications
+  - Updated frontend dependencies to latest compatible versions (Vaadin Aura 25.2.5, Vaadin Lumo Styles 25.2.5)
+- **Frontend Dependencies**: Updated date-fns to 4.4.0, TypeScript to 7.0.2, magic-string to 1.0.0, and Node types to
+  26.1.1
+
+### Fixed
+
+- Fixed CSS build failures related to invalid lightningcss minify operations
+- Resolved styling inconsistencies after framework migration by properly configuring Vaadin 25 theme system
+- Fixed deprecation warnings related to Vaadin theme configuration
+
 ## 2.1.0
 
 ### Added

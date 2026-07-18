@@ -1,18 +1,17 @@
 spring:
   application:
     name: fddb-exporter
-  data:
-    mongodb:
-      host: localhost
-      port: 27017
-      database: fddb
-      username: mongodb_fddb_user
-      password: mongodb_fddb_password
   cloud:
     discovery:
       client:
         composite-indicator:
           enabled: false
+  mongodb:
+    database: fddb
+    password: mongodb_fddb_password
+    username: mongodb_fddb_user
+    port: 27017
+    host: localhost
 
 vaadin:
   launch-browser: false
@@ -46,16 +45,20 @@ management:
       show-details: always
       group:
         liveness:
-          include: fddb-login-check,livenessState
+          include:
+            - fddb-login-check
+            - livenessState
         readiness:
-          include: readinessState
-          exclude: fddb-login-check
+          include:
+            - readinessState
+          exclude:
+            - fddb-login-check
   health:
     defaults:
       enabled: true
     diskSpace:
       enabled: false
-    mongo:
+    mongodb:
       enabled: false
 
 fddb-exporter:

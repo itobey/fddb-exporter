@@ -47,11 +47,11 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATA_MONGODB_HOST: mongodb
-      SPRING_DATA_MONGODB_PORT: 27017
-      SPRING_DATA_MONGODB_DATABASE: fddb
-      SPRING_DATA_MONGODB_USERNAME: mongodb_fddb_user
-      SPRING_DATA_MONGODB_PASSWORD: mongodb_fddb_password
+      SPRING_MONGODB_HOST: mongodb
+      SPRING_MONGODB_PORT: 27017
+      SPRING_MONGODB_DATABASE: fddb
+      SPRING_MONGODB_USERNAME: mongodb_fddb_user
+      SPRING_MONGODB_PASSWORD: mongodb_fddb_password
       FDDB-EXPORTER_FDDB_USERNAME: ---
       FDDB-EXPORTER_FDDB_PASSWORD: ---
       TZ: Europe/Berlin

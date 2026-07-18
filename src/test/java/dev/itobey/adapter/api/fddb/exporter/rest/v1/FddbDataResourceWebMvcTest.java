@@ -8,9 +8,12 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.json.AutoConfigureJsonTesters;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -24,16 +27,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @Deprecated
 @WebMvcTest(FddbDataResourceV1.class)
+@AutoConfigureJsonTesters
 @Tag("v1-compat")
 class FddbDataResourceWebMvcTest {
+
+    @TestConfiguration
+    static class ObjectMapperConfig {
+        @Bean
+        ObjectMapper objectMapper() {
+            return new ObjectMapper();
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
-    @MockBean
+    @MockitoBean
     private FddbDataService fddbDataService;
-    @MockBean
+    @MockitoBean
     private DataMigrationService dataMigrationService;
 
     @Test

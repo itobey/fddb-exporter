@@ -7,9 +7,12 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.json.AutoConfigureJsonTesters;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -20,15 +23,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * WebMvc test for v2 Export API.
  */
 @WebMvcTest(FddbDataExportResourceV2.class)
+@AutoConfigureJsonTesters
 @Tag("v2")
 @SuppressWarnings("deprecation")
 class FddbDataExportResourceV2WebMvcTest {
+
+    @TestConfiguration
+    static class ObjectMapperConfig {
+        @Bean
+        ObjectMapper objectMapper() {
+            return new ObjectMapper();
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
-    @MockBean
+    @MockitoBean
     @SuppressWarnings("unused")
     private FddbDataService fddbDataService;
 

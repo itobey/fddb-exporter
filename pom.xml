@@ -5,17 +5,31 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.15</version>
+        <version>4.1.0</version>
     </parent>
     <groupId>dev.itobey.adapter.api.fddb.exporter</groupId>
     <artifactId>fddbexporter</artifactId>
-    <version>2.1.1-SNAPSHOT</version>
+    <version>2.2.0-SNAPSHOT</version>
     <name>FDDB-Exporter</name>
     <description>Exports data from fddb.info to a database and supports endpoints to query the data</description>
     <properties>
         <java.version>21</java.version>
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
-        <vaadin.version>24.6.4</vaadin.version>
+        <spring-cloud.version>2025.1.2</spring-cloud.version>
+        <vaadin.version>25.2.3</vaadin.version>
+        <jsoup.version>1.22.2</jsoup.version>
+        <commons-lang3.version>3.20.0</commons-lang3.version>
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
+        <influxdb-client-java.version>7.4.0</influxdb-client-java.version>
+        <commons-io.version>2.21.0</commons-io.version>
+        <jasypt-spring-boot-starter.version>4.0.4</jasypt-spring-boot-starter.version>
+        <java-telegram-bot-api.version>8.3.0</java-telegram-bot-api.version>
+        <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
+        <opencsv.version>5.11.1</opencsv.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
+        <wiremock-spring-boot.version>4.2.2</wiremock-spring-boot.version>
+        <jasypt-maven-plugin.version>4.0.4</jasypt-maven-plugin.version>
+        <spring-boot-aop.version>3.5.16</spring-boot-aop.version>
     </properties>
 
     <dependencyManagement>
@@ -39,6 +53,39 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-actuator-autoconfigure</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-health</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-spring-boot-starter</artifactId>
         </dependency>
@@ -49,6 +96,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -74,27 +125,27 @@
         <dependency>
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
-            <version>1.22.2</version>
+            <version>${jsoup.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.20.0</version>
+            <version>${commons-lang3.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
-            <version>1.6.3</version>
+            <version>${mapstruct.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct-processor</artifactId>
-            <version>1.6.3</version>
+            <version>${mapstruct.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok-mapstruct-binding</artifactId>
-            <version>0.2.0</version>
+            <version>${lombok-mapstruct-binding.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
@@ -103,42 +154,52 @@
         <dependency>
             <groupId>com.influxdb</groupId>
             <artifactId>influxdb-client-java</artifactId>
-            <version>7.4.0</version>
+            <version>${influxdb-client-java.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+            <version>${spring-boot-aop.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.21.0</version>
+            <version>${commons-io.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.ulisesbocchio</groupId>
             <artifactId>jasypt-spring-boot-starter</artifactId>
-            <version>3.0.5</version>
+            <version>${jasypt-spring-boot-starter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>vaadin-dev</artifactId>
         </dependency>
         <dependency>
             <groupId>com.github.pengrad</groupId>
             <artifactId>java-telegram-bot-api</artifactId>
-            <version>8.3.0</version>
+            <version>${java-telegram-bot-api.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.8.16</version>
+            <version>${springdoc-openapi-starter-webmvc-ui.version}</version>
         </dependency>
         <dependency>
             <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
-            <version>5.11.1</version>
+            <version>${opencsv.version}</version>
         </dependency>
 
         <!-- Test Dependencies-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -149,31 +210,31 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>2.0.5</version>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-junit-jupiter</artifactId>
-            <version>2.0.5</version>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-mongodb</artifactId>
-            <version>2.0.5</version>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-influxdb</artifactId>
-            <version>2.0.5</version>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.wiremock.integrations</groupId>
             <artifactId>wiremock-spring-boot</artifactId>
-            <version>3.10.6</version>
+            <version>${wiremock-spring-boot.version}</version>
         </dependency>
     </dependencies>
 
@@ -209,7 +270,7 @@
             <plugin>
                 <groupId>com.github.ulisesbocchio</groupId>
                 <artifactId>jasypt-maven-plugin</artifactId>
-                <version>3.0.5</version>
+                <version>${jasypt-maven-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>com.vaadin</groupId>
