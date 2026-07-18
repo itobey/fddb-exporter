@@ -35,7 +35,7 @@ services:
           memory: 256M
 
   influxdb:
-    image: influxdb:2.8
+    image: influxdb:2.9
     container_name: influxdb
     ports:
       - "127.0.0.1:8086:8086"  # Bind to localhost only for security
