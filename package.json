@@ -5,7 +5,7 @@
   "dependencies": {
     "@vaadin/aura": "25.2.4",
     "@vaadin/common-frontend": "0.0.23",
-    "@vaadin/react-components": "25.2.4",
+    "@vaadin/react-components": "25.2.5",
     "@vaadin/vaadin-development-mode-detector": "2.0.7",
     "@vaadin/vaadin-lumo-styles": "25.2.4",
     "@vaadin/vaadin-themable-mixin": "25.2.4",
