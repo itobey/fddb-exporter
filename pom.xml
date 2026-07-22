@@ -23,7 +23,7 @@
         <influxdb-client-java.version>7.5.0</influxdb-client-java.version>
         <commons-io.version>2.22.0</commons-io.version>
         <jasypt-spring-boot-starter.version>4.0.4</jasypt-spring-boot-starter.version>
-        <java-telegram-bot-api.version>8.3.0</java-telegram-bot-api.version>
+        <java-telegram-bot-api.version>10.1.0</java-telegram-bot-api.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
         <opencsv.version>5.12.0</opencsv.version>
         <testcontainers.version>2.0.5</testcontainers.version>
