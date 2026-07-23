@@ -1,7 +1,11 @@
 {
   "amountEntries": 606,
   "firstEntryDate": "2023-01-01",
+  "lastEntryDate": "2024-12-22",
   "mostRecentMissingDay": "2024-12-20",
+  "missingDaysCount": 18,
+  "currentStreak": 2,
+  "longestStreak": 94,
   "entryPercentage": 95.1,
   "uniqueProducts": 150,
   "averageTotals": {

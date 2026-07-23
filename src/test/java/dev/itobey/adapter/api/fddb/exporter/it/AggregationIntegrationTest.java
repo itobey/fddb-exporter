@@ -3,18 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.it;
 import dev.itobey.adapter.api.fddb.exporter.config.TestConfig;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.Product;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExtremeDirection;
-import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.MacroSplitDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductRanking;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductSummaryDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.WeekdayStatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import org.junit.jupiter.api.BeforeEach;
@@ -241,6 +230,20 @@ class AggregationIntegrationTest {
                 LocalDate.of(2024, 1, 4),
                 LocalDate.of(2024, 1, 5),
                 LocalDate.of(2024, 1, 7));
+    }
+
+    @Test
+    void getStats_shouldReportCoverageAcrossTheWholeHistory() {
+        StatsDTO result = fddbDataService.getStats();
+
+        assertThat(result.getFirstEntryDate()).isEqualTo(LocalDate.of(2024, 1, 1));
+        assertThat(result.getLastEntryDate()).isEqualTo(LocalDate.of(2024, 1, 8));
+        // the four gaps inside the fixture plus every day since the last entry
+        assertThat(result.getMissingDaysCount()).isGreaterThan(4L);
+        assertThat(result.getMostRecentMissingDay()).isEqualTo(LocalDate.now().minusDays(1));
+        assertThat(result.getCurrentStreak()).isZero();
+        // 2024-01-01 and -02 are the only two consecutive logged days
+        assertThat(result.getLongestStreak()).isEqualTo(2);
     }
 
     private FddbData day(LocalDate date, double calories, double fat, double carbs, double protein,

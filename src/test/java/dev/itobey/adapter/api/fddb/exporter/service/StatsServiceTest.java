@@ -1,13 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExtremeDirection;
-import dev.itobey.adapter.api.fddb.exporter.dto.MacroSplitDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.WeekdayStatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -93,6 +87,48 @@ class StatsServiceTest {
         assertThat(result.getHighestFibreDay()).isEqualTo(mockDayStats);
         assertThat(result.getHighestSugarDay()).isEqualTo(mockDayStats);
         assertThat(result.getMostRecentMissingDay()).isNotNull();
+        assertThat(result.getLastEntryDate()).isEqualTo(LocalDate.of(2023, 1, 1));
+        assertThat(result.getMissingDaysCount()).isPositive();
+        // nothing is logged in this setup, so there is no streak to report
+        assertThat(result.getCurrentStreak()).isZero();
+        assertThat(result.getLongestStreak()).isZero();
+    }
+
+    @Test
+    void getStats_shouldDeriveMissingDayCountAndStreaksFromOneQuery() {
+        // given
+        LocalDate today = LocalDate.now();
+        LocalDate firstEntryDate = today.minusDays(4);
+        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(3L);
+
+        FddbData mockData = new FddbData();
+        mockData.setDate(firstEntryDate);
+        when(mongoTemplate.findOne(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME))).thenReturn(mockData);
+
+        // logged: -4, -3, -1 - so -2 is a gap and today is not logged yet
+        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
+                .thenReturn(List.of(
+                        entry(today.minusDays(4), 2000),
+                        entry(today.minusDays(3), 2000),
+                        entry(today.minusDays(1), 2000)));
+
+        Document rawResults = new Document();
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.Averages.class)))
+                .thenReturn(new AggregationResults<>(Collections.singletonList(StatsDTO.Averages.builder().build()), rawResults));
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.DayStats.class)))
+                .thenReturn(new AggregationResults<>(Collections.emptyList(), rawResults));
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(Document.class)))
+                .thenReturn(new AggregationResults<>(Collections.singletonList(new Document("uniqueCount", 3L)), rawResults));
+
+        // when
+        StatsDTO result = statsService.getStats();
+
+        // then
+        assertThat(result.getMostRecentMissingDay()).isEqualTo(today.minusDays(2));
+        assertThat(result.getMissingDaysCount()).isEqualTo(1L);
+        // yesterday is logged and today being unlogged does not break the streak yet
+        assertThat(result.getCurrentStreak()).isEqualTo(1);
+        assertThat(result.getLongestStreak()).isEqualTo(2);
     }
 
     @Test
@@ -117,6 +153,10 @@ class StatsServiceTest {
         assertThat(result.getHighestFibreDay()).isNull();
         assertThat(result.getHighestSugarDay()).isNull();
         assertThat(result.getMostRecentMissingDay()).isNull();
+        assertThat(result.getLastEntryDate()).isNull();
+        assertThat(result.getMissingDaysCount()).isZero();
+        assertThat(result.getCurrentStreak()).isZero();
+        assertThat(result.getLongestStreak()).isZero();
     }
 
     @Test
@@ -162,12 +202,12 @@ class StatsServiceTest {
 
         // then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getBucket()).isEqualTo("2024-W01");
-        assertThat(result.get(0).getDayCount()).isEqualTo(3);
-        assertThat(result.get(0).getTotal()).isEqualTo(7500.0);
-        assertThat(result.get(0).getAverage()).isEqualTo(2500.0);
-        assertThat(result.get(0).getFromDate()).isEqualTo(LocalDate.of(2024, 1, 1));
-        assertThat(result.get(0).getToDate()).isEqualTo(LocalDate.of(2024, 1, 3));
+        assertThat(result.getFirst().getBucket()).isEqualTo("2024-W01");
+        assertThat(result.getFirst().getDayCount()).isEqualTo(3);
+        assertThat(result.getFirst().getTotal()).isEqualTo(7500.0);
+        assertThat(result.getFirst().getAverage()).isEqualTo(2500.0);
+        assertThat(result.getFirst().getFromDate()).isEqualTo(LocalDate.of(2024, 1, 1));
+        assertThat(result.getFirst().getToDate()).isEqualTo(LocalDate.of(2024, 1, 3));
         assertThat(result.get(1).getBucket()).isEqualTo("2024-W02");
         assertThat(result.get(1).getDayCount()).isEqualTo(1);
     }

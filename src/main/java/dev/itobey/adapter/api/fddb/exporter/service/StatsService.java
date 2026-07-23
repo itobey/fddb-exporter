@@ -1,13 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExtremeDirection;
-import dev.itobey.adapter.api.fddb.exporter.dto.MacroSplitDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.WeekdayStatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -24,12 +18,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.IsoFields;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.ToDoubleFunction;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
@@ -54,7 +43,11 @@ public class StatsService {
             return StatsDTO.builder()
                     .amountEntries(0L)
                     .firstEntryDate(null)
+                    .lastEntryDate(null)
                     .mostRecentMissingDay(null)
+                    .missingDaysCount(0L)
+                    .currentStreak(0)
+                    .longestStreak(0)
                     .entryPercentage(0.0)
                     .uniqueProducts(0L)
                     .totalProducts(0L)
@@ -69,15 +62,21 @@ public class StatsService {
         }
 
         LocalDate firstEntryDate = getFirstEntryDate();
+        LocalDate lastEntryDate = getLastEntryDate();
         double entryPercentage = roundToOneDecimal(calculateEntryPercentage(firstEntryDate, amountEntries));
         StatsDTO.Averages averageTotals = roundAverages(getAverageTotals());
         long uniqueProducts = getUniqueProductsCount();
         long totalProducts = getTotalProductsCount();
+        Coverage coverage = getCoverage(firstEntryDate);
 
         return StatsDTO.builder()
                 .amountEntries(amountEntries)
                 .firstEntryDate(firstEntryDate)
-                .mostRecentMissingDay(getMostRecentMissingDay())
+                .lastEntryDate(lastEntryDate)
+                .mostRecentMissingDay(coverage.mostRecentMissingDay())
+                .missingDaysCount(coverage.missingDaysCount())
+                .currentStreak(coverage.currentStreak())
+                .longestStreak(coverage.longestStreak())
                 .entryPercentage(entryPercentage)
                 .uniqueProducts(uniqueProducts)
                 .totalProducts(totalProducts)
@@ -96,13 +95,22 @@ public class StatsService {
     }
 
     private LocalDate getFirstEntryDate() {
+        return getEntryDateAtEdge(Sort.Direction.ASC);
+    }
+
+    private LocalDate getLastEntryDate() {
+        return getEntryDateAtEdge(Sort.Direction.DESC);
+    }
+
+    private LocalDate getEntryDateAtEdge(Sort.Direction direction) {
         requireMongoTemplate();
-        Query query = new Query().with(Sort.by(Sort.Direction.ASC, "date")).limit(1);
-        FddbData firstDocument = mongoTemplate.findOne(query, FddbData.class, COLLECTION_NAME);
-        if (firstDocument == null) {
+        Query query = new Query().with(Sort.by(direction, "date")).limit(1);
+        query.fields().exclude("products");
+        FddbData document = mongoTemplate.findOne(query, FddbData.class, COLLECTION_NAME);
+        if (document == null) {
             return null;
         }
-        return firstDocument.getDate();
+        return document.getDate();
     }
 
     private StatsDTO.Averages getAverageTotals() {
@@ -254,17 +262,32 @@ public class StatsService {
      */
     public List<LocalDate> getMissingDays(LocalDate fromDate, LocalDate toDate) {
         validateDateRange(fromDate, toDate);
+
+        return collectMissingDays(findLoggedDates(fromDate, toDate), fromDate, toDate);
+    }
+
+    /**
+     * Loads the dates in a range that have an entry with at least one calorie. A day with an entry
+     * but no calories counts as unlogged, since that is what an aborted or empty export looks like.
+     *
+     * @param fromDate the first date to load
+     * @param toDate   the last date to load
+     * @return the logged dates, for cheap membership checks
+     */
+    private Set<LocalDate> findLoggedDates(LocalDate fromDate, LocalDate toDate) {
         requireMongoTemplate();
 
         Query query = new Query(Criteria.where("date").gte(fromDate).lte(toDate).and("totalCalories").gt(0));
         query.fields().exclude("products");
-        List<FddbData> loggedDays = mongoTemplate.find(query, FddbData.class, COLLECTION_NAME);
 
-        java.util.Set<LocalDate> loggedDates = new java.util.HashSet<>();
-        for (FddbData entry : loggedDays) {
+        Set<LocalDate> loggedDates = new HashSet<>();
+        for (FddbData entry : mongoTemplate.find(query, FddbData.class, COLLECTION_NAME)) {
             loggedDates.add(entry.getDate());
         }
+        return loggedDates;
+    }
 
+    private List<LocalDate> collectMissingDays(Set<LocalDate> loggedDates, LocalDate fromDate, LocalDate toDate) {
         List<LocalDate> missingDays = new ArrayList<>();
         for (LocalDate date = fromDate; !date.isAfter(toDate); date = date.plusDays(1)) {
             if (!loggedDates.contains(date)) {
@@ -372,28 +395,82 @@ public class StatsService {
                 .build();
     }
 
-    private Object getMostRecentMissingDay() {
+    /**
+     * Walks the logged and unlogged days between the first entry and today a single time, so the
+     * overall statistics can report the most recent gap, the total number of gaps and both streaks
+     * from one query.
+     *
+     * @param firstEntryDate the date of the first entry, or null for an empty database
+     * @return the coverage figures, with null values if they cannot be determined
+     */
+    private Coverage getCoverage(LocalDate firstEntryDate) {
         if (mongoTemplate == null) {
-            return "only available with MongoDB";
+            return Coverage.unavailable();
         }
 
         try {
-            LocalDate firstEntryDate = getFirstEntryDate();
-
             // Handle empty database
             if (firstEntryDate == null) {
-                return null;
+                return Coverage.unknown();
             }
 
-            LocalDate yesterday = LocalDate.now().minusDays(1);
-            if (yesterday.isBefore(firstEntryDate)) {
-                return null;
-            }
+            LocalDate today = LocalDate.now();
+            Set<LocalDate> loggedDates = findLoggedDates(firstEntryDate, today);
 
-            List<LocalDate> missingDays = getMissingDays(firstEntryDate, yesterday);
-            return missingDays.isEmpty() ? null : missingDays.getLast();
+            // today is deliberately left out of the gaps: a day still in progress is not a missing day
+            LocalDate lastCompleteDay = today.minusDays(1);
+            List<LocalDate> missingDays = lastCompleteDay.isBefore(firstEntryDate)
+                    ? List.of()
+                    : collectMissingDays(loggedDates, firstEntryDate, lastCompleteDay);
+
+            return new Coverage(
+                    missingDays.isEmpty() ? null : missingDays.getLast(),
+                    (long) missingDays.size(),
+                    currentStreak(loggedDates, firstEntryDate, today),
+                    longestStreak(loggedDates, firstEntryDate, today));
         } catch (Exception e) {
-            return "only available with MongoDB";
+            return Coverage.unavailable();
+        }
+    }
+
+    /**
+     * Counts the logged days in a row up to now. Today only counts once it has an entry, but its
+     * absence does not end the streak either - otherwise every streak would look broken until the
+     * scheduler runs.
+     */
+    private int currentStreak(Set<LocalDate> loggedDates, LocalDate firstEntryDate, LocalDate today) {
+        int streak = 0;
+        for (LocalDate date = loggedDates.contains(today) ? today : today.minusDays(1);
+             !date.isBefore(firstEntryDate) && loggedDates.contains(date);
+             date = date.minusDays(1)) {
+            streak++;
+        }
+        return streak;
+    }
+
+    private int longestStreak(Set<LocalDate> loggedDates, LocalDate firstEntryDate, LocalDate today) {
+        int longest = 0;
+        int running = 0;
+        for (LocalDate date = firstEntryDate; !date.isAfter(today); date = date.plusDays(1)) {
+            running = loggedDates.contains(date) ? running + 1 : 0;
+            longest = Math.max(longest, running);
+        }
+        return longest;
+    }
+
+    /**
+     * How completely the diary is filled in: the most recent gap, the number of gaps and the
+     * streaks. Every value is null when it cannot be determined without MongoDB.
+     */
+    private record Coverage(Object mostRecentMissingDay, Long missingDaysCount, Integer currentStreak,
+                            Integer longestStreak) {
+
+        private static Coverage unavailable() {
+            return new Coverage("only available with MongoDB", null, null, null);
+        }
+
+        private static Coverage unknown() {
+            return new Coverage(null, null, null, null);
         }
     }
 
@@ -456,10 +533,10 @@ public class StatsService {
         }
         Criteria criteria = Criteria.where("date");
         if (fromDate != null) {
-            criteria = criteria.gte(fromDate);
+            criteria.gte(fromDate);
         }
         if (toDate != null) {
-            criteria = criteria.lte(toDate);
+            criteria.lte(toDate);
         }
         return criteria;
     }
