@@ -59,6 +59,14 @@ public class PersistenceService {
         return mongoDBService.findByDate(date);
     }
 
+    public List<FddbData> findByDateBetween(LocalDate fromDate, LocalDate toDate) {
+        return mongoDBService.findByDateBetween(fromDate, toDate);
+    }
+
+    public Optional<FddbData> findLatestEntry() {
+        return mongoDBService.findLatestEntry();
+    }
+
     public void saveOrUpdate(FddbData dataToPersist) {
         saveToMongoDbIfEnabled(dataToPersist);
         saveToInfluxDbIfEnabled(dataToPersist);

@@ -40,9 +40,12 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 public class DataQueryView extends VerticalLayout implements BeforeEnterObserver {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
     private final FddbDataClient fddbDataClient;
     private final String fddbLinkPrefix;
 
+    private DatePicker entriesFromDatePicker;
+    private DatePicker entriesToDatePicker;
     private Grid<FddbDataDTO> allEntriesGrid;
     private Span allEntriesCountLabel;
 
@@ -116,24 +119,24 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private VerticalLayout createAllEntriesTab() {
-        VerticalLayout layout = new VerticalLayout();
-        layout.setPadding(true);
-        layout.setSpacing(true);
-        layout.setSizeFull();
-        layout.addClassName("data-query-tab-layout");
+        VerticalLayout layout = createTabLayout();
 
-        Button loadButton = new Button("Load All Entries");
+        entriesFromDatePicker = createOptionalDatePicker("From Date");
+        entriesToDatePicker = createOptionalDatePicker("To Date");
+
+        Button loadButton = new Button("Load Entries");
         loadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         loadButton.addClickListener(e -> loadAllEntries());
 
-        allEntriesCountLabel = new Span();
-        allEntriesCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        allEntriesCountLabel.setVisible(false);
+        allEntriesCountLabel = createCountLabel();
 
-        HorizontalLayout topRow = new HorizontalLayout(loadButton, allEntriesCountLabel);
+        HorizontalLayout topRow = new HorizontalLayout(entriesFromDatePicker, entriesToDatePicker, loadButton, allEntriesCountLabel);
         topRow.setWidthFull();
-        topRow.setAlignItems(Alignment.CENTER);
+        topRow.setAlignItems(Alignment.END);
         topRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+
+        Paragraph hint = new Paragraph("Set both dates to load a single range from the database instead of the whole history.");
+        hint.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
 
         allEntriesGrid = createGrid(FddbDataDTO.class);
         allEntriesGrid.addColumn(FddbDataDTO::getDate).setHeader("Date").setSortable(true).setAutoWidth(true);
@@ -155,16 +158,12 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
             }
         });
 
-        layout.add(topRow, allEntriesGrid);
+        layout.add(topRow, hint, allEntriesGrid);
         return layout;
     }
 
     private VerticalLayout createDateSearchTab() {
-        VerticalLayout layout = new VerticalLayout();
-        layout.setPadding(true);
-        layout.setSpacing(true);
-        layout.setSizeFull();
-        layout.addClassName("data-query-tab-layout");
+        VerticalLayout layout = createTabLayout();
 
         searchDatePicker = new DatePicker("Select Date");
         searchDatePicker.setPlaceholder("Select date...");
@@ -176,9 +175,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         searchButton.addClickListener(e -> searchByDate());
 
-        dateProductsCountLabel = new Span();
-        dateProductsCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        dateProductsCountLabel.setVisible(false);
+        dateProductsCountLabel = createCountLabel();
 
         HorizontalLayout topRow = new HorizontalLayout(searchDatePicker, searchButton, dateProductsCountLabel);
         topRow.setWidthFull();
@@ -214,11 +211,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private VerticalLayout createProductSearchTab() {
-        VerticalLayout layout = new VerticalLayout();
-        layout.setPadding(true);
-        layout.setSpacing(true);
-        layout.setSizeFull();
-        layout.addClassName("data-query-tab-layout");
+        VerticalLayout layout = createTabLayout();
 
         productSearchField = new TextField("Product Name");
         productSearchField.setPlaceholder("Enter product name...");
@@ -242,9 +235,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         searchButton.addClickListener(e -> searchProducts());
 
-        productSearchCountLabel = new Span();
-        productSearchCountLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        productSearchCountLabel.setVisible(false);
+        productSearchCountLabel = createCountLabel();
 
         HorizontalLayout topRow = new HorizontalLayout(productSearchField, searchButton, productSearchCountLabel);
         topRow.setWidthFull();
@@ -286,8 +277,69 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         return layout;
     }
 
+    private VerticalLayout createTabLayout() {
+        VerticalLayout layout = new VerticalLayout();
+        layout.setPadding(true);
+        layout.setSpacing(true);
+        layout.setSizeFull();
+        layout.addClassName("data-query-tab-layout");
+        return layout;
+    }
+
+    private DatePicker createOptionalDatePicker(String label) {
+        DatePicker picker = new DatePicker(label);
+        picker.setPlaceholder("optional");
+        picker.setClearButtonVisible(true);
+        picker.setI18n(createDatePickerI18n());
+        return picker;
+    }
+
+    private Span createCountLabel() {
+        Span label = new Span();
+        label.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        label.setVisible(false);
+        return label;
+    }
+
+    /**
+     * Populate a grid and its count label with the given items, or hide/clear both when the result is
+     * empty. Notifications are left to the caller since their wording differs per tab.
+     *
+     * @return the number of items shown
+     */
+    private <T> int populateGrid(Grid<T> grid, Span countLabel, List<T> items, String countText) {
+        int count = items != null ? items.size() : 0;
+        if (count > 0) {
+            grid.setVisible(true);
+            grid.setItems(items);
+            expandGridSafely(grid, count);
+            countLabel.setText(countText);
+            countLabel.setVisible(true);
+        } else {
+            clearGrid(grid, countLabel);
+        }
+        return count;
+    }
+
+    private void clearGrid(Grid<?> grid, Span countLabel) {
+        grid.setVisible(false);
+        grid.setItems();
+        countLabel.setVisible(false);
+    }
+
+    private int size(List<?> items) {
+        return items != null ? items.size() : 0;
+    }
+
     private <T> Grid<T> createGrid(Class<T> beanType) {
-        Grid<T> grid = new Grid<>(beanType, false);
+        return configureGrid(new Grid<>(beanType, false));
+    }
+
+    private <T> Grid<T> createGrid() {
+        return configureGrid(new Grid<>());
+    }
+
+    private <T> Grid<T> configureGrid(Grid<T> grid) {
         grid.addClassName("data-query-grid");
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid.setVisible(false);
@@ -342,30 +394,32 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private void loadAllEntries() {
+        LocalDate from = entriesFromDatePicker.getValue();
+        LocalDate to = entriesToDatePicker.getValue();
+
+        if (from != null && to != null && from.isAfter(to)) {
+            showError("From date must be before or equal to to date");
+            return;
+        }
+        if ((from == null) != (to == null)) {
+            showError("Please set both dates to load a range, or clear both to load everything");
+            return;
+        }
+
         try {
-            List<FddbDataDTO> entries = fddbDataClient.getAllEntries();
-            int count = entries != null ? entries.size() : 0;
+            List<FddbDataDTO> entries = from != null
+                    ? fddbDataClient.getByDateRange(from.format(DATE_FORMAT), to.format(DATE_FORMAT), true)
+                    : fddbDataClient.getAllEntries();
+            int count = populateGrid(allEntriesGrid, allEntriesCountLabel, entries, size(entries) + " entries");
 
             if (count > 0) {
-                allEntriesGrid.setVisible(true);
-                allEntriesGrid.setItems(entries);
-                // Expand grid safely based on number of rows
-                expandGridSafely(allEntriesGrid, count);
-
-                allEntriesCountLabel.setText(count + " entries");
-                allEntriesCountLabel.setVisible(true);
                 showSuccess("Loaded " + count + " entries");
             } else {
-                allEntriesGrid.setVisible(false);
-                allEntriesGrid.setItems();
-                allEntriesCountLabel.setVisible(false);
                 showError("No entries found");
             }
         } catch (ApiException e) {
             showError(e.getMessage());
-            allEntriesGrid.setVisible(false);
-            allEntriesGrid.setItems();
-            allEntriesCountLabel.setVisible(false);
+            clearGrid(allEntriesGrid, allEntriesCountLabel);
         }
     }
 
@@ -378,8 +432,10 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         try {
             String date = searchDatePicker.getValue().format(DATE_FORMAT);
             FddbDataDTO data = fddbDataClient.getByDate(date);
-            if (data != null && data.getProducts() != null && !data.getProducts().isEmpty()) {
-                // Update stats cards
+            List<ProductDTO> products = data != null ? data.getProducts() : null;
+            int count = populateGrid(dateProductsGrid, dateProductsCountLabel, products, size(products) + " products");
+
+            if (count > 0) {
                 dateStatsCards.removeAll();
                 dateStatsCards.add(
                         createNutrientCard("Calories", formatNumber(data.getTotalCalories()), "kcal", "🔥", null),
@@ -390,29 +446,15 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                         createNutrientCard("Fibre", formatNumber(data.getTotalFibre()), "g", "🥦", null)
                 );
                 dateStatsCards.setVisible(true);
-
-                dateProductsGrid.setVisible(true);
-                dateProductsGrid.setItems(data.getProducts());
-                // Expand grid safely based on product count
-                int productCount = data.getProducts() != null ? data.getProducts().size() : 0;
-                expandGridSafely(dateProductsGrid, productCount);
-
-                dateProductsCountLabel.setText(productCount + " products");
-                dateProductsCountLabel.setVisible(true);
-                showSuccess("Found " + data.getProducts().size() + " products for " + date);
+                showSuccess("Found " + count + " products for " + date);
             } else {
                 dateStatsCards.setVisible(false);
-                dateProductsGrid.setVisible(false);
-                dateProductsGrid.setItems();
-                dateProductsCountLabel.setVisible(false);
                 showError("No data found for " + date);
             }
         } catch (ApiException e) {
             showError(e.getMessage());
             dateStatsCards.setVisible(false);
-            dateProductsGrid.setVisible(false);
-            dateProductsGrid.setItems();
-            dateProductsCountLabel.setVisible(false);
+            clearGrid(dateProductsGrid, dateProductsCountLabel);
         }
     }
 
@@ -436,34 +478,21 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
                     : null;
 
             List<ProductWithDateDTO> products = fddbDataClient.searchProducts(trimmed, selectedDays);
-            int productSearchCount = products != null ? products.size() : 0;
+            boolean daysFiltered = selectedDays != null && !selectedDays.isEmpty();
+
+            String daysInfo = daysFiltered ? " (filtered by " + selectedDays.size() + " day(s))" : "";
+            int productSearchCount = populateGrid(productSearchGrid, productSearchCountLabel, products,
+                    size(products) + " results" + daysInfo);
 
             if (productSearchCount > 0) {
-                productSearchGrid.setVisible(true);
-                productSearchGrid.setItems(products);
-                // Expand grid safely based on result count
-                expandGridSafely(productSearchGrid, productSearchCount);
-
-                String daysInfo = selectedDays != null && !selectedDays.isEmpty()
-                        ? " (filtered by " + selectedDays.size() + " day(s))"
-                        : "";
-                productSearchCountLabel.setText(productSearchCount + " results" + daysInfo);
-                productSearchCountLabel.setVisible(true);
                 showSuccess("Found " + productSearchCount + " matching products" + daysInfo);
             } else {
-                productSearchGrid.setVisible(false);
-                productSearchGrid.setItems();
-                productSearchCountLabel.setVisible(false);
-                String daysInfo = selectedDays != null && !selectedDays.isEmpty()
-                        ? " for the selected day(s)"
-                        : "";
-                showError("No products found matching \"" + trimmed + "\"" + daysInfo);
+                showError("No products found matching \"" + trimmed + "\""
+                        + (daysFiltered ? " for the selected day(s)" : ""));
             }
         } catch (ApiException e) {
             showError(e.getMessage());
-            productSearchGrid.setVisible(false);
-            productSearchGrid.setItems();
-            productSearchCountLabel.setVisible(false);
+            clearGrid(productSearchGrid, productSearchCountLabel);
         }
     }
 

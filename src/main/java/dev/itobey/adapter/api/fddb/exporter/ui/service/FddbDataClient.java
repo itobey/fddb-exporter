@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.time.DayOfWeek;
 import java.util.List;
 
@@ -27,6 +28,8 @@ public class FddbDataClient {
     private static final String FDDBDATA_URL = "/api/v2/fddbdata";
     private static final String EXPORT_URL = "/api/v2/fddbdata/export?days={days}&includeToday={includeToday}";
     private static final String DATE_URL = "/api/v2/fddbdata/{date}";
+    private static final String RANGE_URL = "/api/v2/fddbdata/range";
+    private static final String LATEST_URL = "/api/v2/fddbdata/latest";
 
     private final RestTemplate restTemplate;
 
@@ -107,6 +110,53 @@ public class FddbDataClient {
         } catch (RestClientException e) {
             log.error("Failed to get data for date: {}", date, e);
             throw new ApiException("Failed to retrieve data for date: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get FDDB data entries for a date range.
+     *
+     * @param fromDate        start date in YYYY-MM-DD format
+     * @param toDate          end date in YYYY-MM-DD format
+     * @param includeProducts whether the product lists should be part of the response
+     * @return List of FddbDataDTO, oldest first
+     * @throws ApiException if the API call fails
+     */
+    public List<FddbDataDTO> getByDateRange(String fromDate, String toDate, boolean includeProducts) throws ApiException {
+        try {
+            URI uri = UriComponentsBuilder.fromUriString(getBaseUrl() + RANGE_URL)
+                    .queryParam("fromDate", fromDate)
+                    .queryParam("toDate", toDate)
+                    .queryParam("includeProducts", includeProducts)
+                    .build().encode().toUri();
+
+            ResponseEntity<List<FddbDataDTO>> response = restTemplate.exchange(
+                    uri, HttpMethod.GET, null, new ParameterizedTypeReference<>() {
+                    });
+            return response.getBody();
+        } catch (HttpClientErrorException.BadRequest e) {
+            log.error("Invalid date range {} to {}", fromDate, toDate, e);
+            throw new ApiException("Invalid date range: " + e.getResponseBodyAsString(), e);
+        } catch (RestClientException e) {
+            log.error("Failed to get entries for range {} to {}", fromDate, toDate, e);
+            throw new ApiException("Failed to retrieve entries for the date range: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get the most recent FDDB data entry.
+     *
+     * @return the newest FddbDataDTO, or null if there is no data at all
+     * @throws ApiException if the API call fails
+     */
+    public FddbDataDTO getLatestEntry() throws ApiException {
+        try {
+            return restTemplate.getForObject(getBaseUrl() + LATEST_URL, FddbDataDTO.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            return null;
+        } catch (RestClientException e) {
+            log.error("Failed to get the most recent entry", e);
+            throw new ApiException("Failed to retrieve the most recent entry: " + e.getMessage(), e);
         }
     }
 

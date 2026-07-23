@@ -5,11 +5,13 @@ import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -27,6 +29,8 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 @Service
 @ConditionalOnProperty(name = "fddb-exporter.persistence.mongodb.enabled", havingValue = "true")
 public class MongoDBService {
+
+    private static final String COLLECTION_NAME = "fddb";
 
     @Autowired(required = false)
     private FddbDataRepository fddbDataRepository;
@@ -54,6 +58,37 @@ public class MongoDBService {
      */
     public Optional<FddbData> findByDate(LocalDate date) {
         return fddbDataRepository.findFirstByDate(date);
+    }
+
+    /**
+     * Retrieves all entries between two dates, both bounds inclusive, oldest first.
+     * Either bound may be null to leave that side of the range open.
+     *
+     * @param fromDate the first date to include, or null for no lower bound
+     * @param toDate   the last date to include, or null for no upper bound
+     * @return the matching entries ordered by date ascending
+     */
+    public List<FddbData> findByDateBetween(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate != null) {
+            return fddbDataRepository.findInDateRange(fromDate, toDate);
+        }
+
+        Query query = new Query();
+        Criteria criteria = buildDateCriteria(fromDate, toDate);
+        if (criteria != null) {
+            query.addCriteria(criteria);
+        }
+        query.with(Sort.by(Sort.Direction.ASC, "date"));
+        return mongoTemplate.find(query, FddbData.class, COLLECTION_NAME);
+    }
+
+    /**
+     * Retrieves the most recent entry in the database.
+     *
+     * @return an Optional of the newest {@link FddbData}
+     */
+    public Optional<FddbData> findLatestEntry() {
+        return fddbDataRepository.findFirstByOrderByDateDesc();
     }
 
     /**
@@ -137,6 +172,20 @@ public class MongoDBService {
                 aggregation, "fddb", ProductWithDate.class);
 
         return results.getMappedResults();
+    }
+
+    private Criteria buildDateCriteria(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate == null && toDate == null) {
+            return null;
+        }
+        Criteria criteria = Criteria.where("date");
+        if (fromDate != null) {
+            criteria = criteria.gte(fromDate);
+        }
+        if (toDate != null) {
+            criteria = criteria.lte(toDate);
+        }
+        return criteria;
     }
 
 }

@@ -13,11 +13,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -91,6 +93,90 @@ public class FddbDataQueryResourceV2 {
         }
         Optional<FddbDataDTO> entry = fddbDataService.findByDate(date);
         return entry.isPresent() ? ResponseEntity.ok(entry) : ResponseEntity.notFound().build();
+    }
+
+    /**
+     * Retrieves all FDDB data entries within a date range.
+     *
+     * @param fromDate        the first date to include (inclusive)
+     * @param toDate          the last date to include (inclusive)
+     * @param includeProducts whether the product lists should be part of the response
+     * @return a ResponseEntity containing the matching entries, oldest first
+     */
+    @Operation(summary = "Get FDDB data for a date range",
+            description = "Retrieves all entries between two dates (both inclusive), oldest first. Product lists are "
+                    + "omitted unless explicitly requested, since a long range with products is a very large response. "
+                    + "The range is limited to " + FddbDataService.MAX_RANGE_DAYS + " days.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Entries for the specified range",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = FddbDataDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid or too large date range", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+    })
+    @GetMapping("/range")
+    @RequiresMongoDb
+    public ResponseEntity<List<FddbDataDTO>> findByDateRange(
+            @Parameter(description = "Start date (inclusive), format: YYYY-MM-DD", example = "2024-12-01", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+
+            @Parameter(description = "End date (inclusive), format: YYYY-MM-DD", example = "2024-12-31", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+
+            @Parameter(description = "Whether to include the product list of each day", example = "false")
+            @RequestParam(defaultValue = "false") boolean includeProducts) {
+        log.debug("V2: Retrieving FDDB data for range {} to {} (includeProducts={})", fromDate, toDate, includeProducts);
+        return ResponseEntity.ok(fddbDataService.findByDateRange(fromDate, toDate, includeProducts));
+    }
+
+    /**
+     * Retrieves the FDDB data entries of the last N days, today included.
+     *
+     * @param days            how many days to look back
+     * @param includeProducts whether the product lists should be part of the response
+     * @return a ResponseEntity containing the matching entries, oldest first
+     */
+    @Operation(summary = "Get FDDB data for the last N days",
+            description = "Convenience wrapper around the range endpoint for the most common query: the last N days, "
+                    + "today included.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Entries for the last N days",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = FddbDataDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid number of days", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+    })
+    @GetMapping("/recent")
+    @RequiresMongoDb
+    public ResponseEntity<List<FddbDataDTO>> findRecentDays(
+            @Parameter(description = "Number of days to look back, today included", example = "7")
+            @RequestParam(defaultValue = "7") int days,
+
+            @Parameter(description = "Whether to include the product list of each day", example = "false")
+            @RequestParam(defaultValue = "false") boolean includeProducts) {
+        log.debug("V2: Retrieving FDDB data for the last {} days (includeProducts={})", days, includeProducts);
+        return ResponseEntity.ok(fddbDataService.findRecentDays(days, includeProducts));
+    }
+
+    /**
+     * Retrieves the most recent entry in the database.
+     *
+     * @return a ResponseEntity containing the newest entry, or 404 if the database is empty
+     */
+    @Operation(summary = "Get the most recent entry",
+            description = "Retrieves the newest entry in the database - the cheapest way to find out how far the "
+                    + "exported data reaches.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "The most recent entry",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = FddbDataDTO.class))),
+            @ApiResponse(responseCode = "404", description = "No data at all", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+    })
+    @GetMapping("/latest")
+    @RequiresMongoDb
+    public ResponseEntity<FddbDataDTO> findLatestEntry() {
+        log.debug("V2: Retrieving the most recent FDDB data entry");
+        return fddbDataService.findLatestEntry()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**
