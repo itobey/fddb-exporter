@@ -54,6 +54,18 @@ public class FddbDataService {
         return fddbDataMapper.toProductWithDateDto(productsWithDate);
     }
 
+    /**
+     * Searches for a product, optionally narrowed down by days of the week, a date range and a
+     * maximum number of results.
+     */
+    public List<ProductWithDateDTO> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek,
+                                                  LocalDate fromDate, LocalDate toDate, Integer limit) {
+        validateRange(fromDate, toDate);
+        List<ProductWithDate> productsWithDate =
+                persistenceService.findByProduct(name, daysOfWeek, fromDate, toDate, limit);
+        return fddbDataMapper.toProductWithDateDto(productsWithDate);
+    }
+
     public Optional<FddbDataDTO> findByDate(String dateString) {
         LocalDate date = LocalDate.parse(dateString);
         Optional<FddbData> fddbDataOptional = persistenceService.findByDate(date);
@@ -106,6 +118,20 @@ public class FddbDataService {
      */
     public Optional<FddbDataDTO> findLatestEntry() {
         return persistenceService.findLatestEntry().map(fddbDataMapper::toFddbDataDTO);
+    }
+
+    public ProductSummaryDTO getProductSummary(String name, LocalDate fromDate, LocalDate toDate) {
+        validateRange(fromDate, toDate);
+        return persistenceService.getProductSummary(name, fromDate, toDate);
+    }
+
+    public List<TopProductDTO> getTopProducts(ProductRanking ranking, LocalDate fromDate, LocalDate toDate, int limit) {
+        validateRange(fromDate, toDate);
+        return persistenceService.getTopProducts(ranking, fromDate, toDate, limit);
+    }
+
+    public List<String> findDistinctProductNames(String search, int limit) {
+        return persistenceService.findDistinctProductNames(search, limit);
     }
 
     private void validateRange(LocalDate fromDate, LocalDate toDate) {

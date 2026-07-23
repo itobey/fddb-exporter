@@ -3,6 +3,9 @@ package dev.itobey.adapter.api.fddb.exporter.service.persistence;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
+import dev.itobey.adapter.api.fddb.exporter.dto.ProductRanking;
+import dev.itobey.adapter.api.fddb.exporter.dto.ProductSummaryDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +56,23 @@ public class PersistenceService {
 
     public List<ProductWithDate> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek) {
         return mongoDBService.findByProduct(name, daysOfWeek);
+    }
+
+    public List<ProductWithDate> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek,
+                                               LocalDate fromDate, LocalDate toDate, Integer limit) {
+        return mongoDBService.findByProduct(name, daysOfWeek, fromDate, toDate, limit);
+    }
+
+    public ProductSummaryDTO getProductSummary(String name, LocalDate fromDate, LocalDate toDate) {
+        return mongoDBService.getProductSummary(name, fromDate, toDate);
+    }
+
+    public List<TopProductDTO> getTopProducts(ProductRanking ranking, LocalDate fromDate, LocalDate toDate, int limit) {
+        return mongoDBService.getTopProducts(ranking, fromDate, toDate, limit);
+    }
+
+    public List<String> findDistinctProductNames(String search, int limit) {
+        return mongoDBService.findDistinctProductNames(search, limit);
     }
 
     public Optional<FddbData> findByDate(LocalDate date) {

@@ -4,10 +4,12 @@ import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -23,7 +25,9 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ProductRanking;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
@@ -40,6 +44,8 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 public class DataQueryView extends VerticalLayout implements BeforeEnterObserver {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final int DEFAULT_TOP_PRODUCTS_LIMIT = 20;
+    private static final int MAX_TOP_PRODUCTS_LIMIT = 500;
 
     private final FddbDataClient fddbDataClient;
     private final String fddbLinkPrefix;
@@ -58,6 +64,13 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     private CheckboxGroup<DayOfWeek> daySelectionGroup;
     private Grid<ProductWithDateDTO> productSearchGrid;
     private Span productSearchCountLabel;
+
+    private ComboBox<ProductRanking> topProductsRanking;
+    private DatePicker topProductsFromDatePicker;
+    private DatePicker topProductsToDatePicker;
+    private IntegerField topProductsLimitField;
+    private Grid<TopProductDTO> topProductsGrid;
+    private Span topProductsCountLabel;
 
     private final TabSheet tabSheet = new TabSheet();
 
@@ -96,6 +109,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         tabSheet.add("All Entries", createAllEntriesTab());
         tabSheet.add("Search by Date", createDateSearchTab());
         tabSheet.add("Search Products", createProductSearchTab());
+        tabSheet.add("Top Products", createTopProductsTab());
 
         add(tabSheet);
         setFlexGrow(1, tabSheet);
@@ -159,6 +173,63 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         });
 
         layout.add(topRow, hint, allEntriesGrid);
+        return layout;
+    }
+
+    private VerticalLayout createTopProductsTab() {
+        VerticalLayout layout = createTabLayout();
+
+        topProductsRanking = new ComboBox<>("Rank By");
+        topProductsRanking.setItems(ProductRanking.values());
+        topProductsRanking.setValue(ProductRanking.FREQUENCY);
+        topProductsRanking.setItemLabelGenerator(ranking -> switch (ranking) {
+            case FREQUENCY -> "How often eaten";
+            case CALORIES -> "Calories contributed";
+            case FAT -> "Fat contributed";
+            case CARBS -> "Carbs contributed";
+            case PROTEIN -> "Protein contributed";
+        });
+
+        topProductsFromDatePicker = createOptionalDatePicker("From Date");
+        topProductsToDatePicker = createOptionalDatePicker("To Date");
+
+        topProductsLimitField = new IntegerField("Limit");
+        topProductsLimitField.setValue(DEFAULT_TOP_PRODUCTS_LIMIT);
+        topProductsLimitField.setMin(1);
+        topProductsLimitField.setMax(MAX_TOP_PRODUCTS_LIMIT);
+        topProductsLimitField.setStepButtonsVisible(true);
+
+        Button loadButton = new Button("Load");
+        loadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        loadButton.addClickListener(e -> loadTopProducts());
+
+        topProductsCountLabel = createCountLabel();
+
+        HorizontalLayout topRow = new HorizontalLayout(topProductsRanking, topProductsFromDatePicker,
+                topProductsToDatePicker, topProductsLimitField, loadButton, topProductsCountLabel);
+        topRow.setWidthFull();
+        topRow.setAlignItems(Alignment.END);
+        topRow.getStyle().set("flex-wrap", "wrap");
+
+        topProductsGrid = createGrid(TopProductDTO.class);
+        topProductsGrid.addColumn(TopProductDTO::getName).setHeader("Product Name").setSortable(true).setFlexGrow(3);
+        topProductsGrid.addColumn(TopProductDTO::getTimesEaten).setHeader("Times Eaten").setSortable(true).setAutoWidth(true);
+        topProductsGrid.addColumn(dto -> formatNumber(dto.getTotalCalories())).setHeader("Total Calories").setSortable(true).setAutoWidth(true);
+        topProductsGrid.addColumn(dto -> formatNumber(dto.getAverageCalories())).setHeader("Ø Calories").setSortable(true).setAutoWidth(true);
+        topProductsGrid.addColumn(dto -> formatNumber(dto.getTotalFat())).setHeader("Total Fat (g)").setSortable(true).setAutoWidth(true);
+        topProductsGrid.addColumn(dto -> formatNumber(dto.getTotalCarbs())).setHeader("Total Carbs (g)").setSortable(true).setAutoWidth(true);
+        topProductsGrid.addColumn(dto -> formatNumber(dto.getTotalProtein())).setHeader("Total Protein (g)").setSortable(true).setAutoWidth(true);
+
+        topProductsGrid.addItemClickListener(event -> {
+            TopProductDTO selected = event.getItem();
+            if (selected != null && selected.getName() != null) {
+                tabSheet.setSelectedIndex(2);
+                productSearchField.setValue(selected.getName());
+                searchProducts();
+            }
+        });
+
+        layout.add(topRow, topProductsGrid);
         return layout;
     }
 
@@ -493,6 +564,40 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         } catch (ApiException e) {
             showError(e.getMessage());
             clearGrid(productSearchGrid, productSearchCountLabel);
+        }
+    }
+
+    private void loadTopProducts() {
+        LocalDate from = topProductsFromDatePicker.getValue();
+        LocalDate to = topProductsToDatePicker.getValue();
+
+        if (from != null && to != null && from.isAfter(to)) {
+            showError("From date must be before or equal to to date");
+            return;
+        }
+
+        Integer limit = topProductsLimitField.getValue();
+        if (limit == null || limit < 1 || limit > MAX_TOP_PRODUCTS_LIMIT) {
+            showError("Limit must be between 1 and " + MAX_TOP_PRODUCTS_LIMIT);
+            return;
+        }
+
+        try {
+            List<TopProductDTO> products = fddbDataClient.getTopProducts(
+                    topProductsRanking.getValue(),
+                    from != null ? from.format(DATE_FORMAT) : null,
+                    to != null ? to.format(DATE_FORMAT) : null,
+                    limit);
+            int count = populateGrid(topProductsGrid, topProductsCountLabel, products, size(products) + " products");
+
+            if (count > 0) {
+                showSuccess("Loaded " + count + " products");
+            } else {
+                showError("No products found");
+            }
+        } catch (ApiException e) {
+            showError(e.getMessage());
+            clearGrid(topProductsGrid, topProductsCountLabel);
         }
     }
 
