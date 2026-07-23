@@ -31,6 +31,7 @@ import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
+import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -48,6 +49,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     private static final int MAX_TOP_PRODUCTS_LIMIT = 500;
 
     private final FddbDataClient fddbDataClient;
+    private final StatsClient statsClient;
     private final String fddbLinkPrefix;
 
     private DatePicker entriesFromDatePicker;
@@ -72,10 +74,16 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
     private Grid<TopProductDTO> topProductsGrid;
     private Span topProductsCountLabel;
 
+    private DatePicker missingFromDatePicker;
+    private DatePicker missingToDatePicker;
+    private Grid<LocalDate> missingDaysGrid;
+    private Span missingDaysCountLabel;
+
     private final TabSheet tabSheet = new TabSheet();
 
-    public DataQueryView(FddbDataClient fddbDataClient, FddbExporterProperties properties) {
+    public DataQueryView(FddbDataClient fddbDataClient, StatsClient statsClient, FddbExporterProperties properties) {
         this.fddbDataClient = fddbDataClient;
+        this.statsClient = statsClient;
         this.fddbLinkPrefix = properties.getUi() != null && properties.getUi().getFddbLinkPrefix() != null
                 ? properties.getUi().getFddbLinkPrefix()
                 : "https://fddb.info";
@@ -110,6 +118,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         tabSheet.add("Search by Date", createDateSearchTab());
         tabSheet.add("Search Products", createProductSearchTab());
         tabSheet.add("Top Products", createTopProductsTab());
+        tabSheet.add("Missing Days", createMissingDaysTab());
 
         add(tabSheet);
         setFlexGrow(1, tabSheet);
@@ -231,6 +240,44 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
 
         layout.add(topRow, topProductsGrid);
         return layout;
+    }
+
+    private VerticalLayout createMissingDaysTab() {
+        VerticalLayout layout = createTabLayout();
+
+        missingFromDatePicker = new DatePicker("From Date");
+        missingFromDatePicker.setValue(LocalDate.now().minusMonths(1));
+        missingFromDatePicker.setI18n(createDatePickerI18n());
+
+        missingToDatePicker = new DatePicker("To Date");
+        missingToDatePicker.setValue(LocalDate.now().minusDays(1));
+        missingToDatePicker.setI18n(createDatePickerI18n());
+
+        Button loadButton = new Button("Find Gaps");
+        loadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        loadButton.addClickListener(e -> loadMissingDays());
+
+        missingDaysCountLabel = createCountLabel();
+
+        HorizontalLayout topRow = new HorizontalLayout(missingFromDatePicker, missingToDatePicker,
+                loadButton, missingDaysCountLabel);
+        topRow.setWidthFull();
+        topRow.setAlignItems(Alignment.END);
+        topRow.getStyle().set("flex-wrap", "wrap");
+
+        Paragraph hint = new Paragraph("Days without an entry, or with an entry that has no calories at all.");
+        hint.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+
+        missingDaysGrid = createGrid();
+        missingDaysGrid.addColumn(date -> date).setHeader("Date").setSortable(true).setAutoWidth(true);
+        missingDaysGrid.addColumn(date -> capitalize(date.getDayOfWeek().name())).setHeader("Day").setSortable(true).setAutoWidth(true);
+
+        layout.add(topRow, hint, missingDaysGrid);
+        return layout;
+    }
+
+    private String capitalize(String name) {
+        return name.charAt(0) + name.substring(1).toLowerCase();
     }
 
     private VerticalLayout createDateSearchTab() {
@@ -598,6 +645,34 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         } catch (ApiException e) {
             showError(e.getMessage());
             clearGrid(topProductsGrid, topProductsCountLabel);
+        }
+    }
+
+    private void loadMissingDays() {
+        LocalDate from = missingFromDatePicker.getValue();
+        LocalDate to = missingToDatePicker.getValue();
+
+        if (from == null || to == null) {
+            showError("Please select both from and to dates");
+            return;
+        }
+        if (from.isAfter(to)) {
+            showError("From date must be before or equal to to date");
+            return;
+        }
+
+        try {
+            List<LocalDate> missingDays = statsClient.getMissingDays(from.format(DATE_FORMAT), to.format(DATE_FORMAT));
+            int count = populateGrid(missingDaysGrid, missingDaysCountLabel, missingDays, size(missingDays) + " missing days");
+
+            if (count > 0) {
+                showSuccess("Found " + count + " missing days");
+            } else {
+                showSuccess("No gaps - every day in the range is logged");
+            }
+        } catch (ApiException e) {
+            showError(e.getMessage());
+            clearGrid(missingDaysGrid, missingDaysCountLabel);
         }
     }
 

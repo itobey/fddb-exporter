@@ -134,6 +134,28 @@ public class FddbDataService {
         return persistenceService.findDistinctProductNames(search, limit);
     }
 
+    public List<StatsDTO.DayStats> getExtremeDays(NutrientMetric metric, ExtremeDirection direction, int limit,
+                                                  LocalDate fromDate, LocalDate toDate) {
+        return statsService.getExtremeDays(metric, direction, limit, fromDate, toDate);
+    }
+
+    public List<TrendPointDTO> getTrend(NutrientMetric metric, LocalDate fromDate, LocalDate toDate,
+                                        TrendGranularity granularity) {
+        return statsService.getTrend(metric, fromDate, toDate, granularity);
+    }
+
+    public List<WeekdayStatsDTO> getWeekdayBreakdown(LocalDate fromDate, LocalDate toDate) {
+        return statsService.getWeekdayBreakdown(fromDate, toDate);
+    }
+
+    public MacroSplitDTO getMacroSplit(LocalDate fromDate, LocalDate toDate) {
+        return statsService.getMacroSplit(fromDate, toDate);
+    }
+
+    public List<LocalDate> getMissingDays(LocalDate fromDate, LocalDate toDate) {
+        return statsService.getMissingDays(fromDate, toDate);
+    }
+
     private void validateRange(LocalDate fromDate, LocalDate toDate) {
         if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
             throw new DateTimeException("The 'from' date cannot be after the 'to' date");

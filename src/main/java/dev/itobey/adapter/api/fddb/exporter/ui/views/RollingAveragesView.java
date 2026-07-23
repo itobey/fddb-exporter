@@ -5,6 +5,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -16,8 +18,10 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.RollingAveragePreset;
+import dev.itobey.adapter.api.fddb.exporter.dto.MacroSplitDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.RollingAveragesDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.WeekdayStatsDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.UserSettingsService;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
@@ -202,7 +206,9 @@ public class RollingAveragesView extends VerticalLayout {
             String toDate = toDatePicker.getValue().format(DATE_FORMAT);
 
             RollingAveragesDTO result = statsClient.getRollingAverages(fromDate, toDate);
-            displayResult(result);
+            MacroSplitDTO macroSplit = statsClient.getMacroSplit(fromDate, toDate);
+            List<WeekdayStatsDTO> weekdayBreakdown = statsClient.getWeekdayBreakdown(fromDate, toDate);
+            displayResult(result, macroSplit, weekdayBreakdown);
             resultDiv.getElement().executeJs("this.scrollIntoView({behavior: 'smooth', block: 'start'})");
             showSuccess("Averages calculated successfully");
         } catch (ApiException apiException) {
@@ -210,7 +216,8 @@ public class RollingAveragesView extends VerticalLayout {
         }
     }
 
-    private void displayResult(RollingAveragesDTO result) {
+    private void displayResult(RollingAveragesDTO result, MacroSplitDTO macroSplit,
+                               List<WeekdayStatsDTO> weekdayBreakdown) {
         resultDiv.removeAll();
         resultDiv.setVisible(true);
 
@@ -236,13 +243,41 @@ public class RollingAveragesView extends VerticalLayout {
 
             content.add(averagesGrid);
             content.add(new H3("Macro Distribution"));
-            content.add(createMacroDistributionBars(avg));
+            content.add(new Paragraph("Share of energy per macro, kcal-weighted (fat 9 kcal/g, carbs and protein 4 kcal/g)."));
+            content.add(createMacroDistributionBars(macroSplit));
+        }
+
+        if (weekdayBreakdown != null && !weekdayBreakdown.isEmpty()) {
+            content.add(new H3("By Day of the Week"));
+            content.add(createWeekdayGrid(weekdayBreakdown));
         }
 
         resultDiv.add(content);
     }
 
-    private Component createMacroDistributionBars(StatsDTO.Averages avg) {
+    private Component createWeekdayGrid(List<WeekdayStatsDTO> weekdayBreakdown) {
+        Grid<WeekdayStatsDTO> grid = new Grid<>(WeekdayStatsDTO.class, false);
+        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+        grid.setAllRowsVisible(true);
+
+        grid.addColumn(stats -> capitalize(stats.getDayOfWeek().name())).setHeader("Day").setAutoWidth(true);
+        grid.addColumn(WeekdayStatsDTO::getDayCount).setHeader("Entries").setAutoWidth(true);
+        grid.addColumn(stats -> formatNumber(stats.getAverages().getAvgTotalCalories())).setHeader("Calories").setAutoWidth(true);
+        grid.addColumn(stats -> formatNumber(stats.getAverages().getAvgTotalFat())).setHeader("Fat (g)").setAutoWidth(true);
+        grid.addColumn(stats -> formatNumber(stats.getAverages().getAvgTotalCarbs())).setHeader("Carbs (g)").setAutoWidth(true);
+        grid.addColumn(stats -> formatNumber(stats.getAverages().getAvgTotalSugar())).setHeader("Sugar (g)").setAutoWidth(true);
+        grid.addColumn(stats -> formatNumber(stats.getAverages().getAvgTotalProtein())).setHeader("Protein (g)").setAutoWidth(true);
+        grid.addColumn(stats -> formatNumber(stats.getAverages().getAvgTotalFibre())).setHeader("Fibre (g)").setAutoWidth(true);
+
+        grid.setItems(weekdayBreakdown);
+        return grid;
+    }
+
+    private String capitalize(String name) {
+        return name.charAt(0) + name.substring(1).toLowerCase();
+    }
+
+    private Component createMacroDistributionBars(MacroSplitDTO macroSplit) {
         VerticalLayout container = new VerticalLayout();
         container.addClassNames(LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
         container.setSpacing(true);
@@ -250,119 +285,58 @@ public class RollingAveragesView extends VerticalLayout {
         container.setPadding(true);
         container.getStyle().set("padding", "1rem").set("box-sizing", "border-box");
 
-        double totalFat = avg.getAvgTotalFat();
-        double totalCarbs = avg.getAvgTotalCarbs();
-        double totalProtein = avg.getAvgTotalProtein();
-        double totalMacros = totalFat + totalCarbs + totalProtein;
-
-        if (totalMacros > 0) {
-            double fatPercentage = (totalFat / totalMacros) * 100;
-            double carbsPercentage = (totalCarbs / totalMacros) * 100;
-            double proteinPercentage = (totalProtein / totalMacros) * 100;
-
-            Div stackedBar = new Div();
-            stackedBar.setWidthFull();
-            stackedBar.setHeight("60px");  // Increased height for two-line labels
-            stackedBar.addClassNames(LumoUtility.BorderRadius.MEDIUM);
-            stackedBar.getStyle().set("display", "flex");
-            stackedBar.getStyle().set("flex-direction", "row");
-            stackedBar.getStyle().set("flex-wrap", "nowrap");
-            stackedBar.getStyle().set("overflow", "hidden");
-
-            Div fatSection = new Div();
-            fatSection.setWidth(fatPercentage + "%");
-            fatSection.setHeight("100%");
-            fatSection.getStyle().set("flex", "0 0 " + fatPercentage + "%");
-            fatSection.getStyle().set("min-width", "0 !important");
-            fatSection.getStyle().set("box-sizing", "border-box");
-            fatSection.getStyle().set("background-color", "#FFE66D");
-            fatSection.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
-            fatSection.getStyle().set("flex-direction", "column");
-            fatSection.getStyle().set("padding", "0.25rem");
-            Span fatNameLabel = new Span("Fat");
-            fatNameLabel.getStyle()
-                    .set("width", "100%")
-                    .set("text-align", "center")
-                    .set("color", "var(--accent-active)")
-                    .set("font-weight", "600")
-                    .set("font-size", "0.85rem")
-                    .set("line-height", "1.2");
-            Span fatPctLabel = new Span(formatNumber(fatPercentage) + "%");
-            fatPctLabel.getStyle()
-                    .set("width", "100%")
-                    .set("text-align", "center")
-                    .set("color", "var(--accent-active)")
-                    .set("font-weight", "600")
-                    .set("font-size", "0.85rem")
-                    .set("line-height", "1.2");
-            fatSection.add(fatNameLabel, fatPctLabel);
-
-            Div carbsSection = new Div();
-            carbsSection.setWidth(carbsPercentage + "%");
-            carbsSection.setHeight("100%");
-            carbsSection.getStyle().set("flex", "0 0 " + carbsPercentage + "%");
-            carbsSection.getStyle().set("min-width", "0 !important");
-            carbsSection.getStyle().set("box-sizing", "border-box");
-            carbsSection.getStyle().set("background-color", "#4ECDC4");
-            carbsSection.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
-            carbsSection.getStyle().set("flex-direction", "column");
-            carbsSection.getStyle().set("padding", "0.25rem");
-            Span carbsNameLabel = new Span("Carbs");
-            carbsNameLabel.getStyle()
-                    .set("width", "100%")
-                    .set("text-align", "center")
-                    .set("color", "var(--accent-active)")
-                    .set("font-weight", "600")
-                    .set("font-size", "0.85rem")
-                    .set("line-height", "1.2");
-            Span carbsPctLabel = new Span(formatNumber(carbsPercentage) + "%");
-            carbsPctLabel.getStyle()
-                    .set("width", "100%")
-                    .set("text-align", "center")
-                    .set("color", "var(--accent-active)")
-                    .set("font-weight", "600")
-                    .set("font-size", "0.85rem")
-                    .set("line-height", "1.2");
-            carbsSection.add(carbsNameLabel, carbsPctLabel);
-
-            Div proteinSection = new Div();
-            proteinSection.setWidth(proteinPercentage + "%");
-            proteinSection.setHeight("100%");
-            proteinSection.getStyle().set("flex", "0 0 " + proteinPercentage + "%");
-            proteinSection.getStyle().set("min-width", "0 !important");
-            proteinSection.getStyle().set("box-sizing", "border-box");
-            proteinSection.getStyle().set("background-color", "#e5769f");
-            proteinSection.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
-            proteinSection.getStyle().set("flex-direction", "column");
-            proteinSection.getStyle().set("padding", "0.25rem");
-            Span proteinNameLabel = new Span("Protein");
-            proteinNameLabel.getStyle()
-                    .set("width", "100%")
-                    .set("text-align", "center")
-                    .set("color", "var(--accent-active)")
-                    .set("font-weight", "600")
-                    .set("font-size", "0.85rem")
-                    .set("line-height", "1.2");
-            Span proteinPctLabel = new Span(formatNumber(proteinPercentage) + "%");
-            proteinPctLabel.getStyle()
-                    .set("width", "100%")
-                    .set("text-align", "center")
-                    .set("color", "var(--accent-active)")
-                    .set("font-weight", "600")
-                    .set("font-size", "0.85rem")
-                    .set("line-height", "1.2");
-            proteinSection.add(proteinNameLabel, proteinPctLabel);
-
-            stackedBar.add(fatSection, carbsSection, proteinSection);
-
-            container.add(stackedBar);
-        } else {
+        if (macroSplit == null || macroSplit.getMacroCalories() <= 0) {
             Paragraph noData = new Paragraph("No macro data available");
             noData.addClassNames(LumoUtility.TextColor.SECONDARY);
             container.add(noData);
+            return container;
         }
 
+        Div stackedBar = new Div();
+        stackedBar.setWidthFull();
+        stackedBar.setHeight("60px");  // Increased height for two-line labels
+        stackedBar.addClassNames(LumoUtility.BorderRadius.MEDIUM);
+        stackedBar.getStyle().set("display", "flex");
+        stackedBar.getStyle().set("flex-direction", "row");
+        stackedBar.getStyle().set("flex-wrap", "nowrap");
+        stackedBar.getStyle().set("overflow", "hidden");
+
+        stackedBar.add(
+                createMacroSection("Fat", macroSplit.getFatPercentage(), "#FFE66D"),
+                createMacroSection("Carbs", macroSplit.getCarbsPercentage(), "#4ECDC4"),
+                createMacroSection("Protein", macroSplit.getProteinPercentage(), "#e5769f")
+        );
+
+        container.add(stackedBar);
         return container;
+    }
+
+    private Div createMacroSection(String name, double percentage, String backgroundColor) {
+        Div section = new Div();
+        section.setWidth(percentage + "%");
+        section.setHeight("100%");
+        section.getStyle().set("flex", "0 0 " + percentage + "%");
+        section.getStyle().set("min-width", "0 !important");
+        section.getStyle().set("box-sizing", "border-box");
+        section.getStyle().set("background-color", backgroundColor);
+        section.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
+        section.getStyle().set("flex-direction", "column");
+        section.getStyle().set("padding", "0.25rem");
+
+        section.add(createMacroLabel(name), createMacroLabel(formatNumber(percentage) + "%"));
+        return section;
+    }
+
+    private Span createMacroLabel(String text) {
+        Span label = new Span(text);
+        label.getStyle()
+                .set("width", "100%")
+                .set("text-align", "center")
+                .set("color", "var(--accent-active)")
+                .set("font-weight", "600")
+                .set("font-size", "0.85rem")
+                .set("line-height", "1.2");
+        return label;
     }
 
 
