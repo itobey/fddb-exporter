@@ -29,6 +29,7 @@ import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
@@ -228,6 +229,14 @@ public class RollingAveragesView extends VerticalLayout {
         if (result.getAverages() != null) {
             H3 heading = new H3(result.getFromDate() + " ⮕ " + result.getToDate());
             content.add(heading);
+
+            long dayCount = ChronoUnit.DAYS.between(
+                    LocalDate.parse(result.getFromDate(), DATE_FORMAT),
+                    LocalDate.parse(result.getToDate(), DATE_FORMAT)) + 1;
+            Paragraph dayCountLabel = new Paragraph(dayCount + (dayCount == 1 ? " day" : " days"));
+            dayCountLabel.addClassNames(LumoUtility.TextColor.SECONDARY);
+            dayCountLabel.getStyle().set("margin-top", "0").set("margin-bottom", "0.25rem");
+            content.add(dayCountLabel);
 
             Div averagesGrid = createCardsGrid("120px");
             StatsDTO.Averages avg = result.getAverages();

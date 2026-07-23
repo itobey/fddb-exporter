@@ -20,13 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
@@ -164,17 +158,43 @@ public class MongoDBService {
     public ProductSummaryDTO getProductSummary(String name, LocalDate fromDate, LocalDate toDate) {
         List<ProductWithDate> occurrences = findProductOccurrences(name, fromDate, toDate);
 
-        ProductSummaryDTO.ProductSummaryDTOBuilder summary = ProductSummaryDTO.builder()
-                .searchTerm(name)
-                .timesEaten(occurrences.size());
-
         if (occurrences.isEmpty()) {
-            return summary
+            return ProductSummaryDTO.builder()
+                    .searchTerm(name)
+                    .timesEaten(0)
                     .matchedProductNames(List.of())
                     .weekdayDistribution(new EnumMap<>(DayOfWeek.class))
                     .build();
         }
 
+        ProductOccurrenceAggregate aggregate = aggregateOccurrences(occurrences);
+
+        return ProductSummaryDTO.builder()
+                .searchTerm(name)
+                .timesEaten(occurrences.size())
+                .matchedProductNames(aggregate.sortedNames())
+                .firstDate(aggregate.firstDate())
+                .lastDate(aggregate.lastDate())
+                .totalCalories(round(aggregate.totalCalories()))
+                .totalFat(round(aggregate.totalFat()))
+                .totalCarbs(round(aggregate.totalCarbs()))
+                .totalProtein(round(aggregate.totalProtein()))
+                .averageCalories(round(aggregate.totalCalories() / occurrences.size()))
+                .weekdayDistribution(aggregate.weekdayDistribution())
+                .build();
+    }
+
+    /**
+     * Intermediate result of a single pass over product occurrences, before it's shaped into
+     * a {@link ProductSummaryDTO}.
+     */
+    private record ProductOccurrenceAggregate(List<String> sortedNames, Map<DayOfWeek, Long> weekdayDistribution,
+                                              LocalDate firstDate, LocalDate lastDate,
+                                              double totalCalories, double totalFat,
+                                              double totalCarbs, double totalProtein) {
+    }
+
+    private ProductOccurrenceAggregate aggregateOccurrences(List<ProductWithDate> occurrences) {
         LinkedHashSet<String> matchedNames = new LinkedHashSet<>();
         Map<DayOfWeek, Long> weekdayDistribution = new EnumMap<>(DayOfWeek.class);
         LocalDate firstDate = null;
@@ -203,17 +223,8 @@ public class MongoDBService {
         List<String> sortedNames = new ArrayList<>(matchedNames);
         sortedNames.sort(Comparator.naturalOrder());
 
-        return summary
-                .matchedProductNames(sortedNames)
-                .firstDate(firstDate)
-                .lastDate(lastDate)
-                .totalCalories(round(totalCalories))
-                .totalFat(round(totalFat))
-                .totalCarbs(round(totalCarbs))
-                .totalProtein(round(totalProtein))
-                .averageCalories(round(totalCalories / occurrences.size()))
-                .weekdayDistribution(weekdayDistribution)
-                .build();
+        return new ProductOccurrenceAggregate(sortedNames, weekdayDistribution, firstDate, lastDate,
+                totalCalories, totalFat, totalCarbs, totalProtein);
     }
 
     /**

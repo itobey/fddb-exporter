@@ -9,13 +9,12 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.*;
-import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
@@ -23,11 +22,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
-import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductRanking;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
@@ -154,9 +149,10 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         allEntriesCountLabel = createCountLabel();
 
         HorizontalLayout topRow = new HorizontalLayout(entriesFromDatePicker, entriesToDatePicker, loadButton, allEntriesCountLabel);
+        topRow.addClassName("query-filter-row");
         topRow.setWidthFull();
         topRow.setAlignItems(Alignment.END);
-        topRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        topRow.getStyle().set("flex-wrap", "wrap");
 
         Paragraph hint = new Paragraph("Set both dates to load a single range from the database instead of the whole history.");
         hint.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
@@ -216,6 +212,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
 
         HorizontalLayout topRow = new HorizontalLayout(topProductsRanking, topProductsFromDatePicker,
                 topProductsToDatePicker, topProductsLimitField, loadButton, topProductsCountLabel);
+        topRow.addClassName("query-filter-row");
         topRow.setWidthFull();
         topRow.setAlignItems(Alignment.END);
         topRow.getStyle().set("flex-wrap", "wrap");
@@ -261,6 +258,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
 
         HorizontalLayout topRow = new HorizontalLayout(missingFromDatePicker, missingToDatePicker,
                 loadButton, missingDaysCountLabel);
+        topRow.addClassName("query-filter-row");
         topRow.setWidthFull();
         topRow.setAlignItems(Alignment.END);
         topRow.getStyle().set("flex-wrap", "wrap");
@@ -296,6 +294,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         dateProductsCountLabel = createCountLabel();
 
         HorizontalLayout topRow = new HorizontalLayout(searchDatePicker, searchButton, dateProductsCountLabel);
+        topRow.addClassName("query-filter-row");
         topRow.setWidthFull();
         topRow.setAlignItems(Alignment.END);
         topRow.setFlexGrow(1, searchDatePicker);
@@ -356,6 +355,7 @@ public class DataQueryView extends VerticalLayout implements BeforeEnterObserver
         productSearchCountLabel = createCountLabel();
 
         HorizontalLayout topRow = new HorizontalLayout(productSearchField, searchButton, productSearchCountLabel);
+        topRow.addClassName("query-filter-row");
         topRow.setWidthFull();
         topRow.setAlignItems(Alignment.END);
         topRow.setFlexGrow(1, productSearchField);

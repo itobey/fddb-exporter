@@ -611,7 +611,8 @@ input[type="checkbox"] {
 /* Date picker overlay (portal) - make background use app accent and style buttons/cells */
 vaadin-date-picker-overlay::part(content),
 vaadin-date-picker-overlay::part(overlay),
-vaadin-overlay[theme~="date-picker-overlay"]::part(content) {
+vaadin-overlay[theme~="date-picker-overlay"]::part(content),
+vaadin-overlay[theme~="date-picker-overlay"]::part(overlay) {
     background: var(--accent-active);
     color: var(--accent-contrast);
     border-radius: var(--lumo-border-radius-m);
@@ -1002,6 +1003,19 @@ vaadin-tab-sheet::part(tabs) {
     vaadin-horizontal-layout.keyword-input-row vaadin-button {
         width: 20% !important;
         flex-shrink: 0 !important;
+    }
+
+    /* Data Query filter rows stack on mobile - stretch every field to the row width
+       instead of letting align-items: END shrink them to their content width */
+    vaadin-horizontal-layout.query-filter-row {
+        align-items: stretch !important;
+        flex-wrap: nowrap !important;
+    }
+
+    vaadin-horizontal-layout.query-filter-row > * {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
     }
 
     /* Keep preset buttons in 2-column layout even on mobile */
