@@ -23,6 +23,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -190,11 +191,11 @@ class DataDownloadServiceTest {
 
     @Test
     @SneakyThrows
-    void downloadData_whenDateRangeProvided_shouldFilterByDateRange() {
+    void downloadData_whenDateRangeProvided_shouldQueryOnlyThatRange() {
         // given
         LocalDate fromDate = LocalDate.of(2024, 1, 2);
         LocalDate toDate = LocalDate.of(2024, 1, 2);
-        when(persistenceService.findAllEntries()).thenReturn(testFddbData);
+        when(persistenceService.findByDateBetween(fromDate, toDate)).thenReturn(testFddbData);
         when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(testFddbDataDTO);
 
         List<FddbDataDTO> totalsOnly = TestDataLoader.loadListFromJson(
@@ -204,7 +205,9 @@ class DataDownloadServiceTest {
         // when
         byte[] result = dataDownloadService.downloadData(fromDate, toDate, DownloadFormat.CSV, false, ".");
 
-        // then
+        verify(persistenceService).findByDateBetween(fromDate, toDate);
+        verify(persistenceService, never()).findAllEntries();
+
         String csv = new String(result, StandardCharsets.UTF_8);
         assertThat(csv).doesNotContain("2024-01-01");
         assertThat(csv).contains("2024-01-02");

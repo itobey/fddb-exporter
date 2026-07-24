@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Trends View**: A new **Trends** view (and `/api/v2/stats/trend` endpoint) charts a single metric — calories, fat,
+  carbs, sugar, protein or fibre — over a date range, bucketed by day, ISO week or month. Where Rolling Averages tells
+  you your average over a range, Trends shows you whether that average is moving: a column chart with an overall-average
+  line, summary cards (highest/lowest bucket, first-to-last change, days logged) and a per-bucket table. Quick-select
+  buttons preset a sensible range and granularity (e.g. Last 30 Days daily, Last Year weekly). Days with no entry are
+  skipped so they never drag an average down.
+- **Products View**: A new **Products** view brings everything product-centric into one place:
+  - **Explorer** — search any product to see how often you ate it, when you first and last logged it, the average
+    calories per serving and the totals it contributed. Search **autocompletes** with the exact, brand-prefixed names
+    FDDB stores, so you no longer have to remember the precise wording. A weekday bar chart shows how your logging of a
+    product distributes across the week, and you can click a day to filter the occurrences to just that weekday.
+    Clicking any occurrence jumps to that day in the Entries view.
+  - **Top Products** — rank the products you log most, either by how often you ate them or by the calories, fat, carbs
+    or protein they contributed, over an optional date range. Click a product to drill into its full Explorer profile.
+- **Date-range and full-history browsing in Entries**: The former **Data Query** view is now the **Entries** view. In
+  addition to looking up a single day, you can now query a whole date range and browse all stored entries.
+- **Missing Days**: The Entries view can list every day in a range with no entry (or an entry with no calories), making
+  gaps in your logging easy to spot (also available via the `/api/v2/stats/missing-days` endpoint).
+- **Weekday breakdown**: The Rolling Averages view now includes a by-day-of-week table alongside the averages, so you
+  can see at a glance whether weekends differ from weekdays (`/api/v2/stats/weekdays` endpoint).
+- **Logging streaks in the stats API**: The stats endpoint now also reports your **current** and **longest** logging
+  streaks, the date of your most recent entry, and the number of missing days since you started tracking.
+
+### Changed
+
+- The **Macro distribution** breakdown on the Rolling Averages view is now kcal-weighted (fat 9 kcal/g, carbs and
+  protein 4 kcal/g) for a more accurate picture of where your energy comes from.
+- Navigation menu updated to reflect the new **Entries**, **Products** and **Trends** views.
+
 ## 2.2.0
 
 ### Technical Updates

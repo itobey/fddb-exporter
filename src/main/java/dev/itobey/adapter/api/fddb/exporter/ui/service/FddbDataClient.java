@@ -1,9 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.service;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -14,6 +11,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.time.DayOfWeek;
 import java.util.List;
 
@@ -27,11 +25,24 @@ public class FddbDataClient {
     private static final String FDDBDATA_URL = "/api/v2/fddbdata";
     private static final String EXPORT_URL = "/api/v2/fddbdata/export?days={days}&includeToday={includeToday}";
     private static final String DATE_URL = "/api/v2/fddbdata/{date}";
+    private static final String RANGE_URL = "/api/v2/fddbdata/range";
+    private static final String PRODUCTS_URL = "/api/v2/fddbdata/products";
+    private static final String TOP_PRODUCTS_URL = "/api/v2/fddbdata/products/top";
+    private static final String PRODUCT_SUMMARY_URL = "/api/v2/fddbdata/products/summary";
+    private static final String DISTINCT_PRODUCTS_URL = "/api/v2/fddbdata/products/distinct";
 
     private final RestTemplate restTemplate;
 
     public FddbDataClient() {
         this.restTemplate = new RestTemplate();
+    }
+
+    /**
+     * Test-only constructor allowing a pre-configured {@link RestTemplate} (e.g. one bound to a
+     * {@code MockRestServiceServer}) to be injected.
+     */
+    FddbDataClient(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
     /**
@@ -111,6 +122,122 @@ public class FddbDataClient {
     }
 
     /**
+     * Get FDDB data entries for a date range.
+     *
+     * @param fromDate        start date in YYYY-MM-DD format
+     * @param toDate          end date in YYYY-MM-DD format
+     * @param includeProducts whether the product lists should be part of the response
+     * @return List of FddbDataDTO, oldest first
+     * @throws ApiException if the API call fails
+     */
+    public List<FddbDataDTO> getByDateRange(String fromDate, String toDate, boolean includeProducts) throws ApiException {
+        try {
+            URI uri = UriComponentsBuilder.fromUriString(getBaseUrl() + RANGE_URL)
+                    .queryParam("fromDate", fromDate)
+                    .queryParam("toDate", toDate)
+                    .queryParam("includeProducts", includeProducts)
+                    .build().encode().toUri();
+
+            ResponseEntity<List<FddbDataDTO>> response = restTemplate.exchange(
+                    uri, HttpMethod.GET, null, new ParameterizedTypeReference<>() {
+                    });
+            return response.getBody();
+        } catch (HttpClientErrorException.BadRequest e) {
+            log.error("Invalid date range {} to {}", fromDate, toDate, e);
+            throw new ApiException("Invalid date range: " + e.getResponseBodyAsString(), e);
+        } catch (RestClientException e) {
+            log.error("Failed to get entries for range {} to {}", fromDate, toDate, e);
+            throw new ApiException("Failed to retrieve entries for the date range: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get the top products ranked by frequency or by a nutrient total.
+     *
+     * @param ranking  the ranking criterion (e.g. FREQUENCY, CALORIES)
+     * @param fromDate optional start date in YYYY-MM-DD format
+     * @param toDate   optional end date in YYYY-MM-DD format
+     * @param limit    the maximum number of products to return
+     * @return List of TopProductDTO, highest first
+     * @throws ApiException if the API call fails
+     */
+    public List<TopProductDTO> getTopProducts(ProductRanking ranking, String fromDate, String toDate, int limit)
+            throws ApiException {
+        try {
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(getBaseUrl() + TOP_PRODUCTS_URL)
+                    .queryParam("by", ranking)
+                    .queryParam("limit", limit);
+            if (fromDate != null) {
+                uriBuilder.queryParam("fromDate", fromDate);
+            }
+            if (toDate != null) {
+                uriBuilder.queryParam("toDate", toDate);
+            }
+
+            ResponseEntity<List<TopProductDTO>> response = restTemplate.exchange(
+                    uriBuilder.build().encode().toUri(), HttpMethod.GET, null, new ParameterizedTypeReference<>() {
+                    });
+            return response.getBody();
+        } catch (RestClientException e) {
+            log.error("Failed to get top products", e);
+            throw new ApiException("Failed to retrieve top products: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get the aggregated summary of all products matching a search term.
+     *
+     * @param name     the product name to search
+     * @param fromDate optional start date in YYYY-MM-DD format
+     * @param toDate   optional end date in YYYY-MM-DD format
+     * @return the ProductSummaryDTO
+     * @throws ApiException if the API call fails
+     */
+    public ProductSummaryDTO getProductSummary(String name, String fromDate, String toDate) throws ApiException {
+        try {
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(getBaseUrl() + PRODUCT_SUMMARY_URL)
+                    .queryParam("name", name);
+            if (fromDate != null) {
+                uriBuilder.queryParam("fromDate", fromDate);
+            }
+            if (toDate != null) {
+                uriBuilder.queryParam("toDate", toDate);
+            }
+
+            return restTemplate.getForObject(uriBuilder.build().encode().toUri(), ProductSummaryDTO.class);
+        } catch (RestClientException e) {
+            log.error("Failed to summarize product: {}", name, e);
+            throw new ApiException("Failed to summarize product: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get the distinct product names, optionally narrowed down by a substring.
+     *
+     * @param search optional case-insensitive substring the name has to contain
+     * @param limit  the maximum number of names to return
+     * @return List of product names in alphabetical order
+     * @throws ApiException if the API call fails
+     */
+    public List<String> getDistinctProductNames(String search, int limit) throws ApiException {
+        try {
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(getBaseUrl() + DISTINCT_PRODUCTS_URL)
+                    .queryParam("limit", limit);
+            if (search != null && !search.isBlank()) {
+                uriBuilder.queryParam("search", search);
+            }
+
+            ResponseEntity<List<String>> response = restTemplate.exchange(
+                    uriBuilder.build().encode().toUri(), HttpMethod.GET, null, new ParameterizedTypeReference<>() {
+                    });
+            return response.getBody();
+        } catch (RestClientException e) {
+            log.error("Failed to get distinct product names", e);
+            throw new ApiException("Failed to retrieve product names: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Search products by name.
      *
      * @param name the product name to search
@@ -130,13 +257,39 @@ public class FddbDataClient {
      * @throws ApiException if the API call fails
      */
     public List<ProductWithDateDTO> searchProducts(String name, List<DayOfWeek> days) throws ApiException {
+        return searchProducts(name, days, null, null, null);
+    }
+
+    /**
+     * Search products by name, optionally filtered by days of the week, a date range and a maximum
+     * number of results.
+     *
+     * @param name     the product name to search
+     * @param days     optional list of days of the week to filter results
+     * @param fromDate optional start date in YYYY-MM-DD format
+     * @param toDate   optional end date in YYYY-MM-DD format
+     * @param limit    optional maximum number of results
+     * @return List of ProductWithDateDTO
+     * @throws ApiException if the API call fails
+     */
+    public List<ProductWithDateDTO> searchProducts(String name, List<DayOfWeek> days, String fromDate, String toDate,
+                                                   Integer limit) throws ApiException {
         try {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder
-                    .fromUriString(getBaseUrl() + "/api/v2/fddbdata/products")
+                    .fromUriString(getBaseUrl() + PRODUCTS_URL)
                     .queryParam("name", name);
 
             if (days != null && !days.isEmpty()) {
                 uriBuilder.queryParam("days", days.toArray());
+            }
+            if (fromDate != null) {
+                uriBuilder.queryParam("fromDate", fromDate);
+            }
+            if (toDate != null) {
+                uriBuilder.queryParam("toDate", toDate);
+            }
+            if (limit != null) {
+                uriBuilder.queryParam("limit", limit);
             }
 
             ResponseEntity<List<ProductWithDateDTO>> response = restTemplate.exchange(

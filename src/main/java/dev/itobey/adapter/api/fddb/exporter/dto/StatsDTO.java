@@ -20,6 +20,9 @@ public class StatsDTO {
     @Schema(description = "Date of the first entry", example = "2024-01-01")
     LocalDate firstEntryDate;
 
+    @Schema(description = "Date of the most recent entry", example = "2024-12-22")
+    LocalDate lastEntryDate;
+
     @Schema(description = "Percentage of days with entries", example = "95.5")
     double entryPercentage;
 
@@ -52,6 +55,15 @@ public class StatsDTO {
 
     @Schema(description = "Most recent day with no entry (excluding today). Returns date or 'only available with MongoDB' when MongoDB is not configured", example = "2024-12-20")
     Object mostRecentMissingDay;
+
+    @Schema(description = "Number of days between the first entry and yesterday that have no entry. Null when MongoDB is not configured", example = "18")
+    Long missingDaysCount;
+
+    @Schema(description = "Days logged in a row up to now. Today is only counted once it has an entry, so a day still in progress does not break the streak. Null when MongoDB is not configured", example = "12")
+    Integer currentStreak;
+
+    @Schema(description = "Longest run of consecutive logged days since the first entry. Null when MongoDB is not configured", example = "94")
+    Integer longestStreak;
 
     @Data
     @Builder

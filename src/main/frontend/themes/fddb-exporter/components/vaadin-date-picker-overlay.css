@@ -7,4 +7,14 @@
     --lumo-shade: transparent !important;
     --lumo-contrast-10pct: transparent !important;
     --lumo-contrast-20pct: transparent !important;
+
+    /* ...but the overlay panel itself must stay opaque - the variables above would
+       otherwise also blank out whatever paints the calendar background. */
+    --vaadin-overlay-background: var(--accent-active, #3f4e7d);
+}
+
+/* Same background as the desktop overlay (see styles.css "Date picker overlay") */
+:host([fullscreen]) [part='overlay'] {
+    background: var(--accent-active, #3f4e7d) !important;
+    color: var(--accent-contrast, #ffffff);
 }

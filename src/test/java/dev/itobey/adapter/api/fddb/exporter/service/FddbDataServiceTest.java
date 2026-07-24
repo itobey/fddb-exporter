@@ -208,4 +208,134 @@ class FddbDataServiceTest {
         assertThrows(DateTimeException.class, () -> fddbDataService.exportForDaysBack(366, true));
         verifyNoInteractions(persistenceService);
     }
+
+    @Test
+    void findByDateRange_whenProductsNotRequested_shouldStripThem() {
+        // given
+        LocalDate fromDate = LocalDate.of(2024, 1, 1);
+        LocalDate toDate = LocalDate.of(2024, 1, 31);
+        List<FddbData> fddbDataList = List.of(mockFddbData);
+        List<FddbDataDTO> withProducts = List.of(mockFddbDataDTO);
+        List<FddbDataDTO> withoutProducts = List.of(mock(FddbDataDTO.class));
+
+        when(persistenceService.findByDateBetween(fromDate, toDate)).thenReturn(fddbDataList);
+        when(fddbDataMapper.toFddbDataDTO(fddbDataList)).thenReturn(withProducts);
+        when(fddbDataMapper.toFddbDataDTOWithoutProducts(withProducts)).thenReturn(withoutProducts);
+
+        // when
+        List<FddbDataDTO> result = fddbDataService.findByDateRange(fromDate, toDate, false);
+
+        // then
+        assertEquals(withoutProducts, result);
+    }
+
+    @Test
+    void findByDateRange_whenProductsRequested_shouldKeepThem() {
+        // given
+        LocalDate fromDate = LocalDate.of(2024, 1, 1);
+        LocalDate toDate = LocalDate.of(2024, 1, 31);
+        List<FddbData> fddbDataList = List.of(mockFddbData);
+        List<FddbDataDTO> withProducts = List.of(mockFddbDataDTO);
+
+        when(persistenceService.findByDateBetween(fromDate, toDate)).thenReturn(fddbDataList);
+        when(fddbDataMapper.toFddbDataDTO(fddbDataList)).thenReturn(withProducts);
+
+        // when
+        List<FddbDataDTO> result = fddbDataService.findByDateRange(fromDate, toDate, true);
+
+        // then
+        assertEquals(withProducts, result);
+        verify(fddbDataMapper, never()).toFddbDataDTOWithoutProducts(anyList());
+    }
+
+    @Test
+    void findByDateRange_whenFromIsAfterTo_shouldThrowException() {
+        DateTimeException exception = assertThrows(DateTimeException.class,
+                () -> fddbDataService.findByDateRange(LocalDate.of(2024, 2, 1), LocalDate.of(2024, 1, 1), false));
+        assertEquals("The 'from' date cannot be after the 'to' date", exception.getMessage());
+        verifyNoInteractions(persistenceService);
+    }
+
+    @Test
+    void findByDateRange_whenRangeTooLarge_shouldThrowException() {
+        // given - one day more than the cap
+        LocalDate fromDate = LocalDate.of(2024, 1, 1);
+        LocalDate toDate = fromDate.plusDays(FddbDataService.MAX_RANGE_DAYS);
+
+        // when & then
+        DateTimeException exception = assertThrows(DateTimeException.class,
+                () -> fddbDataService.findByDateRange(fromDate, toDate, false));
+        assertTrue(exception.getMessage().contains(String.valueOf(FddbDataService.MAX_RANGE_DAYS)));
+        verifyNoInteractions(persistenceService);
+    }
+
+    @Test
+    void findByDateRange_whenRangeExactlyAtTheCap_shouldBeAccepted() {
+        // given
+        LocalDate fromDate = LocalDate.of(2024, 1, 1);
+        LocalDate toDate = fromDate.plusDays(FddbDataService.MAX_RANGE_DAYS - 1L);
+        when(persistenceService.findByDateBetween(fromDate, toDate)).thenReturn(List.of(mockFddbData));
+        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(List.of(mockFddbDataDTO));
+
+        // when
+        List<FddbDataDTO> result = fddbDataService.findByDateRange(fromDate, toDate, true);
+
+        // then
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void findByProduct_whenRangeInverted_shouldThrowException() {
+        assertThrows(DateTimeException.class, () -> fddbDataService.findByProduct(
+                "Banana", null, LocalDate.of(2024, 2, 1), LocalDate.of(2024, 1, 1), null));
+        verifyNoInteractions(persistenceService);
+    }
+
+    @Test
+    void getTopProducts_shouldDelegateToPersistence() {
+        // given
+        List<TopProductDTO> topProducts = List.of(TopProductDTO.builder().name("Banana").timesEaten(3).build());
+        when(persistenceService.getTopProducts(ProductRanking.CALORIES, null, null, 20)).thenReturn(topProducts);
+
+        // when
+        List<TopProductDTO> result = fddbDataService.getTopProducts(ProductRanking.CALORIES, null, null, 20);
+
+        // then
+        assertEquals(topProducts, result);
+    }
+
+    @Test
+    void getProductSummary_shouldDelegateToPersistence() {
+        // given
+        ProductSummaryDTO summary = ProductSummaryDTO.builder().searchTerm("hafer").timesEaten(5).build();
+        LocalDate from = LocalDate.of(2024, 1, 1);
+        LocalDate to = LocalDate.of(2024, 1, 31);
+        when(persistenceService.getProductSummary("hafer", from, to)).thenReturn(summary);
+
+        // when
+        ProductSummaryDTO result = fddbDataService.getProductSummary("hafer", from, to);
+
+        // then
+        assertEquals(summary, result);
+    }
+
+    @Test
+    void getProductSummary_whenRangeInverted_shouldThrowException() {
+        assertThrows(DateTimeException.class, () -> fddbDataService.getProductSummary(
+                "hafer", LocalDate.of(2024, 2, 1), LocalDate.of(2024, 1, 1)));
+        verifyNoInteractions(persistenceService);
+    }
+
+    @Test
+    void findDistinctProductNames_shouldDelegateToPersistence() {
+        // given
+        List<String> names = List.of("Haferflocken kernig", "Haferflocken zart");
+        when(persistenceService.findDistinctProductNames("hafer", 50)).thenReturn(names);
+
+        // when
+        List<String> result = fddbDataService.findDistinctProductNames("hafer", 50);
+
+        // then
+        assertEquals(names, result);
+    }
 }

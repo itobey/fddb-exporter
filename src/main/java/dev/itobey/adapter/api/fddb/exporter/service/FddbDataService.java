@@ -33,6 +33,12 @@ public class FddbDataService {
     private final StatsService statsService;
     private final FddbExporterProperties properties;
 
+    /**
+     * Upper bound for range queries. Without it a caller could pull years of entries — including
+     * their product lists — in a single response.
+     */
+    public static final int MAX_RANGE_DAYS = 366;
+
     public List<FddbDataDTO> findAllEntries() {
         List<FddbData> allEntries = persistenceService.findAllEntries();
         return fddbDataMapper.toFddbDataDTO(allEntries);
@@ -48,10 +54,81 @@ public class FddbDataService {
         return fddbDataMapper.toProductWithDateDto(productsWithDate);
     }
 
+    /**
+     * Searches for a product, optionally narrowed down by days of the week, a date range and a
+     * maximum number of results.
+     */
+    public List<ProductWithDateDTO> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek,
+                                                  LocalDate fromDate, LocalDate toDate, Integer limit) {
+        validateRange(fromDate, toDate);
+        List<ProductWithDate> productsWithDate =
+                persistenceService.findByProduct(name, daysOfWeek, fromDate, toDate, limit);
+        return fddbDataMapper.toProductWithDateDto(productsWithDate);
+    }
+
     public Optional<FddbDataDTO> findByDate(String dateString) {
         LocalDate date = LocalDate.parse(dateString);
         Optional<FddbData> fddbDataOptional = persistenceService.findByDate(date);
         return fddbDataOptional.map(fddbDataMapper::toFddbDataDTO);
+    }
+
+    /**
+     * Retrieves all entries in a date range, both bounds inclusive.
+     *
+     * @param fromDate        the first date to include
+     * @param toDate          the last date to include
+     * @param includeProducts whether the product lists should be part of the response
+     * @return the matching entries ordered by date ascending
+     * @throws DateTimeException if the range is inverted or longer than {@link #MAX_RANGE_DAYS}
+     */
+    public List<FddbDataDTO> findByDateRange(LocalDate fromDate, LocalDate toDate, boolean includeProducts) {
+        validateRange(fromDate, toDate);
+
+        long amountDays = DAYS.between(fromDate, toDate) + 1;
+        if (amountDays > MAX_RANGE_DAYS) {
+            throw new DateTimeException("The date range must not exceed " + MAX_RANGE_DAYS
+                    + " days, but " + amountDays + " were requested - please narrow the range");
+        }
+
+        List<FddbDataDTO> entries = fddbDataMapper.toFddbDataDTO(persistenceService.findByDateBetween(fromDate, toDate));
+        return includeProducts ? entries : fddbDataMapper.toFddbDataDTOWithoutProducts(entries);
+    }
+
+    public ProductSummaryDTO getProductSummary(String name, LocalDate fromDate, LocalDate toDate) {
+        validateRange(fromDate, toDate);
+        return persistenceService.getProductSummary(name, fromDate, toDate);
+    }
+
+    public List<TopProductDTO> getTopProducts(ProductRanking ranking, LocalDate fromDate, LocalDate toDate, int limit) {
+        validateRange(fromDate, toDate);
+        return persistenceService.getTopProducts(ranking, fromDate, toDate, limit);
+    }
+
+    public List<String> findDistinctProductNames(String search, int limit) {
+        return persistenceService.findDistinctProductNames(search, limit);
+    }
+
+    public List<TrendPointDTO> getTrend(NutrientMetric metric, LocalDate fromDate, LocalDate toDate,
+                                        TrendGranularity granularity) {
+        return statsService.getTrend(metric, fromDate, toDate, granularity);
+    }
+
+    public List<WeekdayStatsDTO> getWeekdayBreakdown(LocalDate fromDate, LocalDate toDate) {
+        return statsService.getWeekdayBreakdown(fromDate, toDate);
+    }
+
+    public MacroSplitDTO getMacroSplit(LocalDate fromDate, LocalDate toDate) {
+        return statsService.getMacroSplit(fromDate, toDate);
+    }
+
+    public List<LocalDate> getMissingDays(LocalDate fromDate, LocalDate toDate) {
+        return statsService.getMissingDays(fromDate, toDate);
+    }
+
+    private void validateRange(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
+        }
     }
 
     public ExportResultDTO exportForTimerange(DateRangeDTO dateRangeDTO) {

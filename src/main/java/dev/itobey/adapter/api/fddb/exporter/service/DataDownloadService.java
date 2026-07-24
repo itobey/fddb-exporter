@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.opencsv.CSVWriter;
+import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.DownloadFormat;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductDTO;
@@ -20,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Service for downloading FDDB data in various formats (CSV, JSON).
@@ -96,30 +96,14 @@ public class DataDownloadService {
     }
 
     private List<FddbDataDTO> fetchData(LocalDate fromDate, LocalDate toDate) {
-        List<FddbDataDTO> allData = fddbDataMapper.toFddbDataDTO(persistenceService.findAllEntries());
-        allData.sort(Comparator.comparing(FddbDataDTO::getDate));
+        List<FddbData> entries = fromDate == null && toDate == null
+                ? persistenceService.findAllEntries()
+                : persistenceService.findByDateBetween(fromDate, toDate);
 
-        if (fromDate == null && toDate == null) {
-            log.debug("Fetched {} entries for download", allData.size());
-            return allData;
-        }
-
-        List<FddbDataDTO> filteredData = filterByDateRange(allData, fromDate, toDate);
-        log.debug("Fetched {} entries for download", filteredData.size());
-        return filteredData;
-    }
-
-    private List<FddbDataDTO> filterByDateRange(List<FddbDataDTO> data, LocalDate fromDate, LocalDate toDate) {
-        LocalDate effectiveFromDate = Optional.ofNullable(fromDate).orElse(LocalDate.MIN);
-        LocalDate effectiveToDate = Optional.ofNullable(toDate).orElse(LocalDate.MAX);
-
-        return data.stream()
-                .filter(d -> isWithinDateRange(d.getDate(), effectiveFromDate, effectiveToDate))
-                .toList();
-    }
-
-    private boolean isWithinDateRange(LocalDate date, LocalDate from, LocalDate to) {
-        return !date.isBefore(from) && !date.isAfter(to);
+        List<FddbDataDTO> data = fddbDataMapper.toFddbDataDTO(entries);
+        data.sort(Comparator.comparing(FddbDataDTO::getDate));
+        log.debug("Fetched {} entries for download", data.size());
+        return data;
     }
 
     private byte[] convertTotalsToCsv(List<FddbDataDTO> totals, String decimalSeparator) {
