@@ -1,12 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.service;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductRanking;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductSummaryDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -32,7 +26,6 @@ public class FddbDataClient {
     private static final String EXPORT_URL = "/api/v2/fddbdata/export?days={days}&includeToday={includeToday}";
     private static final String DATE_URL = "/api/v2/fddbdata/{date}";
     private static final String RANGE_URL = "/api/v2/fddbdata/range";
-    private static final String LATEST_URL = "/api/v2/fddbdata/latest";
     private static final String PRODUCTS_URL = "/api/v2/fddbdata/products";
     private static final String TOP_PRODUCTS_URL = "/api/v2/fddbdata/products/top";
     private static final String PRODUCT_SUMMARY_URL = "/api/v2/fddbdata/products/summary";
@@ -147,23 +140,6 @@ public class FddbDataClient {
         } catch (RestClientException e) {
             log.error("Failed to get entries for range {} to {}", fromDate, toDate, e);
             throw new ApiException("Failed to retrieve entries for the date range: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Get the most recent FDDB data entry.
-     *
-     * @return the newest FddbDataDTO, or null if there is no data at all
-     * @throws ApiException if the API call fails
-     */
-    public FddbDataDTO getLatestEntry() throws ApiException {
-        try {
-            return restTemplate.getForObject(getBaseUrl() + LATEST_URL, FddbDataDTO.class);
-        } catch (HttpClientErrorException.NotFound e) {
-            return null;
-        } catch (RestClientException e) {
-            log.error("Failed to get the most recent entry", e);
-            throw new ApiException("Failed to retrieve the most recent entry: " + e.getMessage(), e);
         }
     }
 

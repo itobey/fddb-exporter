@@ -1,10 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductRanking;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductSummaryDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -133,37 +129,6 @@ class FddbDataQueryResourceV2Test {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockData, response.getBody());
-    }
-
-    @Test
-    void testFindRecentDays() {
-        List<FddbDataDTO> mockData = List.of(new FddbDataDTO());
-        when(fddbDataService.findRecentDays(7, true)).thenReturn(mockData);
-
-        ResponseEntity<List<FddbDataDTO>> response = fddbDataQueryResourceV2.findRecentDays(7, true);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(mockData, response.getBody());
-    }
-
-    @Test
-    void testFindLatestEntry() {
-        FddbDataDTO mockData = new FddbDataDTO();
-        when(fddbDataService.findLatestEntry()).thenReturn(Optional.of(mockData));
-
-        ResponseEntity<FddbDataDTO> response = fddbDataQueryResourceV2.findLatestEntry();
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(mockData, response.getBody());
-    }
-
-    @Test
-    void testFindLatestEntry_NoData() {
-        when(fddbDataService.findLatestEntry()).thenReturn(Optional.empty());
-
-        ResponseEntity<FddbDataDTO> response = fddbDataQueryResourceV2.findLatestEntry();
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
     @Test

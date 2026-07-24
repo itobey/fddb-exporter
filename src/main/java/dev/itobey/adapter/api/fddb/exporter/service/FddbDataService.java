@@ -94,32 +94,6 @@ public class FddbDataService {
         return includeProducts ? entries : fddbDataMapper.toFddbDataDTOWithoutProducts(entries);
     }
 
-    /**
-     * Retrieves the entries of the last N days, today included.
-     *
-     * @param days            how many days to look back
-     * @param includeProducts whether the product lists should be part of the response
-     * @return the matching entries ordered by date ascending
-     * @throws DateTimeException if days is outside 1..{@link #MAX_RANGE_DAYS}
-     */
-    public List<FddbDataDTO> findRecentDays(int days, boolean includeProducts) {
-        if (days < 1 || days > MAX_RANGE_DAYS) {
-            throw new DateTimeException("Days must be between 1 and " + MAX_RANGE_DAYS);
-        }
-        LocalDate toDate = LocalDate.now();
-        return findByDateRange(toDate.minusDays(days - 1L), toDate, includeProducts);
-    }
-
-    /**
-     * Retrieves the most recent entry, which is the cheapest way for a caller to find out how far
-     * the exported data reaches.
-     *
-     * @return an Optional of the newest entry
-     */
-    public Optional<FddbDataDTO> findLatestEntry() {
-        return persistenceService.findLatestEntry().map(fddbDataMapper::toFddbDataDTO);
-    }
-
     public ProductSummaryDTO getProductSummary(String name, LocalDate fromDate, LocalDate toDate) {
         validateRange(fromDate, toDate);
         return persistenceService.getProductSummary(name, fromDate, toDate);

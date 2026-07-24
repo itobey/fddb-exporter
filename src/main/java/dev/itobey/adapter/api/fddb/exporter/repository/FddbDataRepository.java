@@ -29,11 +29,4 @@ public interface FddbDataRepository extends MongoRepository<FddbData, String> {
     @Query(value = "{ 'date': { $gte: ?0, $lte: ?1 } }", sort = "{ 'date': 1 }")
     List<FddbData> findInDateRange(LocalDate fromDate, LocalDate toDate);
 
-    /**
-     * Retrieves the most recent entry, regardless of whether it has any products.
-     *
-     * @return an Optional of the newest {@link FddbData}
-     */
-    Optional<FddbData> findFirstByOrderByDateDesc();
-
 }

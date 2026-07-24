@@ -285,48 +285,6 @@ class FddbDataServiceTest {
     }
 
     @Test
-    void findRecentDays_shouldQueryTheLastNDaysIncludingToday() {
-        // given
-        LocalDate today = LocalDate.now();
-        when(persistenceService.findByDateBetween(today.minusDays(6), today)).thenReturn(List.of(mockFddbData));
-        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(List.of(mockFddbDataDTO));
-
-        // when
-        fddbDataService.findRecentDays(7, true);
-
-        // then
-        verify(persistenceService).findByDateBetween(today.minusDays(6), today);
-    }
-
-    @Test
-    void findRecentDays_whenDaysOutOfRange_shouldThrowException() {
-        assertThrows(DateTimeException.class, () -> fddbDataService.findRecentDays(0, false));
-        assertThrows(DateTimeException.class,
-                () -> fddbDataService.findRecentDays(FddbDataService.MAX_RANGE_DAYS + 1, false));
-        verifyNoInteractions(persistenceService);
-    }
-
-    @Test
-    void findLatestEntry_shouldMapTheNewestEntry() {
-        // given
-        when(persistenceService.findLatestEntry()).thenReturn(Optional.of(mockFddbData));
-        when(fddbDataMapper.toFddbDataDTO(mockFddbData)).thenReturn(mockFddbDataDTO);
-
-        // when
-        Optional<FddbDataDTO> result = fddbDataService.findLatestEntry();
-
-        // then
-        assertTrue(result.isPresent());
-        assertEquals(mockFddbDataDTO, result.get());
-    }
-
-    @Test
-    void findLatestEntry_whenDatabaseEmpty_shouldReturnEmpty() {
-        when(persistenceService.findLatestEntry()).thenReturn(Optional.empty());
-        assertTrue(fddbDataService.findLatestEntry().isEmpty());
-    }
-
-    @Test
     void findByProduct_whenRangeInverted_shouldThrowException() {
         assertThrows(DateTimeException.class, () -> fddbDataService.findByProduct(
                 "Banana", null, LocalDate.of(2024, 2, 1), LocalDate.of(2024, 1, 1), null));

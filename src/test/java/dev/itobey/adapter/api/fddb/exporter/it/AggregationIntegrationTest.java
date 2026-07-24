@@ -26,7 +26,6 @@ import org.testcontainers.utility.DockerImageName;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
@@ -97,14 +96,6 @@ class AggregationIntegrationTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getProducts()).hasSize(2);
-    }
-
-    @Test
-    void findLatestEntry_shouldReturnTheNewestDay() {
-        Optional<FddbDataDTO> result = fddbDataService.findLatestEntry();
-
-        assertThat(result).isPresent();
-        assertThat(result.get().getDate()).isEqualTo(LocalDate.of(2024, 1, 8));
     }
 
     @Test

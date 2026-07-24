@@ -86,15 +86,6 @@ public class MongoDBService {
     }
 
     /**
-     * Retrieves the most recent entry in the database.
-     *
-     * @return an Optional of the newest {@link FddbData}
-     */
-    public Optional<FddbData> findLatestEntry() {
-        return fddbDataRepository.findFirstByOrderByDateDesc();
-    }
-
-    /**
      * Searches for a product name and returns the date with the product details.
      * Unfortunately an aggregation annotation query did not work, maybe because I'm stuck with Mongo 4.4.
      *
