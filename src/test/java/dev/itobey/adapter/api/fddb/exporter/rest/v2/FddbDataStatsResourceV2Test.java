@@ -1,8 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.RollingAveragesDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -12,6 +10,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
@@ -69,6 +71,59 @@ class FddbDataStatsResourceV2Test {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(errorMessage, response.getBody());
+    }
+
+    @Test
+    void testGetTrend() {
+        LocalDate fromDate = LocalDate.of(2024, 1, 1);
+        LocalDate toDate = LocalDate.of(2024, 1, 31);
+        List<TrendPointDTO> mockTrend = List.of(TrendPointDTO.builder().bucket("2024-W01").build());
+        when(fddbDataService.getTrend(NutrientMetric.PROTEIN, fromDate, toDate, TrendGranularity.WEEK))
+                .thenReturn(mockTrend);
+
+        ResponseEntity<?> response = fddbDataStatsResourceV2.getTrend(
+                NutrientMetric.PROTEIN, fromDate, toDate, TrendGranularity.WEEK);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockTrend, response.getBody());
+    }
+
+    @Test
+    void testGetWeekdayBreakdown() {
+        List<WeekdayStatsDTO> mockBreakdown = List.of(
+                WeekdayStatsDTO.builder().dayOfWeek(DayOfWeek.MONDAY).dayCount(4).build());
+        when(fddbDataService.getWeekdayBreakdown(null, null)).thenReturn(mockBreakdown);
+
+        ResponseEntity<?> response = fddbDataStatsResourceV2.getWeekdayBreakdown(null, null);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockBreakdown, response.getBody());
+    }
+
+    @Test
+    void testGetMacroSplit() {
+        LocalDate fromDate = LocalDate.of(2024, 1, 1);
+        LocalDate toDate = LocalDate.of(2024, 1, 31);
+        MacroSplitDTO mockSplit = MacroSplitDTO.builder().fatPercentage(34.5).build();
+        when(fddbDataService.getMacroSplit(fromDate, toDate)).thenReturn(mockSplit);
+
+        ResponseEntity<?> response = fddbDataStatsResourceV2.getMacroSplit(fromDate, toDate);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockSplit, response.getBody());
+    }
+
+    @Test
+    void testGetMissingDays() {
+        LocalDate fromDate = LocalDate.of(2024, 1, 1);
+        LocalDate toDate = LocalDate.of(2024, 1, 31);
+        List<LocalDate> mockMissing = List.of(LocalDate.of(2024, 1, 5));
+        when(fddbDataService.getMissingDays(fromDate, toDate)).thenReturn(mockMissing);
+
+        ResponseEntity<?> response = fddbDataStatsResourceV2.getMissingDays(fromDate, toDate);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockMissing, response.getBody());
     }
 }
 

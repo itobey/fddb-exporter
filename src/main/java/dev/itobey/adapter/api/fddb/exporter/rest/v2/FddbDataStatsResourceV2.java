@@ -1,11 +1,10 @@
 package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
 import dev.itobey.adapter.api.fddb.exporter.annotation.RequiresMongoDb;
-import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.RollingAveragesDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,11 +13,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
 
 /**
  * V2 REST API for FDDB data statistics.
@@ -82,6 +85,136 @@ public class FddbDataStatsResourceV2 {
         try {
             RollingAveragesDTO result = fddbDataService.getRollingAverages(dateRangeDTO);
             return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
+        }
+    }
+
+    /**
+     * Get a time series of one metric, bucketed by day, ISO week or month.
+     *
+     * @param metric      the metric to trend
+     * @param fromDate    the first date to include
+     * @param toDate      the last date to include
+     * @param granularity the bucket size
+     * @return the buckets in chronological order
+     */
+    @Operation(summary = "Get a trend time series",
+            description = "Builds a time series of one metric over a date range, bucketed by day, ISO week or month. "
+                    + "Buckets without a single entry are omitted, so unlogged days never drag an average down.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Trend time series",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = TrendPointDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+    })
+    @GetMapping("/trend")
+    @RequiresMongoDb
+    public ResponseEntity<?> getTrend(
+            @Parameter(description = "Metric to trend", example = "CALORIES")
+            @RequestParam(defaultValue = "CALORIES") NutrientMetric metric,
+            @Parameter(description = "Start date (inclusive), format: YYYY-MM-DD", example = "2024-01-01", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @Parameter(description = "End date (inclusive), format: YYYY-MM-DD", example = "2024-12-31", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @Parameter(description = "Bucket size", example = "WEEK")
+            @RequestParam(defaultValue = "DAY") TrendGranularity granularity) {
+        log.debug("V2: Retrieving {} trend for {} from {} to {}", granularity, metric, fromDate, toDate);
+        try {
+            return ResponseEntity.ok(fddbDataService.getTrend(metric, fromDate, toDate, granularity));
+        } catch (IllegalArgumentException illegalArgumentException) {
+            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
+        }
+    }
+
+    /**
+     * Get averages grouped by day of the week.
+     *
+     * @param fromDate optional start date (inclusive)
+     * @param toDate   optional end date (inclusive)
+     * @return the averages per day of the week, Monday first
+     */
+    @Operation(summary = "Get a weekday breakdown",
+            description = "Averages the daily totals grouped by day of the week - \"do my weekends wreck the average?\". "
+                    + "Days of the week without a single entry are omitted.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Averages per day of the week",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = WeekdayStatsDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+    })
+    @GetMapping("/weekdays")
+    @RequiresMongoDb
+    public ResponseEntity<?> getWeekdayBreakdown(
+            @Parameter(description = "Optional start date (inclusive), format: YYYY-MM-DD", example = "2024-01-01")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @Parameter(description = "Optional end date (inclusive), format: YYYY-MM-DD", example = "2024-12-31")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        log.debug("V2: Retrieving weekday breakdown for range {} to {}", fromDate, toDate);
+        try {
+            return ResponseEntity.ok(fddbDataService.getWeekdayBreakdown(fromDate, toDate));
+        } catch (IllegalArgumentException illegalArgumentException) {
+            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
+        }
+    }
+
+    /**
+     * Get the kcal-weighted share of energy from fat, carbs and protein.
+     *
+     * @param fromDate the first date to include
+     * @param toDate   the last date to include
+     * @return the macro split for the range
+     */
+    @Operation(summary = "Get the macro split",
+            description = "Share of energy from fat, carbs and protein over a date range. The split is kcal-weighted "
+                    + "(fat 9 kcal/g, carbs and protein 4 kcal/g), not gram-weighted.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Macro split",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = MacroSplitDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+    })
+    @GetMapping("/macro-split")
+    @RequiresMongoDb
+    public ResponseEntity<?> getMacroSplit(
+            @Parameter(description = "Start date (inclusive), format: YYYY-MM-DD", example = "2024-01-01", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @Parameter(description = "End date (inclusive), format: YYYY-MM-DD", example = "2024-12-31", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        log.debug("V2: Retrieving macro split for range {} to {}", fromDate, toDate);
+        try {
+            return ResponseEntity.ok(fddbDataService.getMacroSplit(fromDate, toDate));
+        } catch (IllegalArgumentException illegalArgumentException) {
+            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
+        }
+    }
+
+    /**
+     * List the days in a range that have no entry or an entry without a single calorie.
+     *
+     * @param fromDate the first date to check
+     * @param toDate   the last date to check
+     * @return the missing days in chronological order
+     */
+    @Operation(summary = "List missing days",
+            description = "Lists every day in the range that has no entry at all or an entry without a single calorie "
+                    + "- \"when did I forget to log?\"")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Missing days",
+                    content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+    })
+    @GetMapping("/missing-days")
+    @RequiresMongoDb
+    public ResponseEntity<?> getMissingDays(
+            @Parameter(description = "Start date (inclusive), format: YYYY-MM-DD", example = "2024-01-01", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @Parameter(description = "End date (inclusive), format: YYYY-MM-DD", example = "2024-12-31", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        log.debug("V2: Retrieving missing days for range {} to {}", fromDate, toDate);
+        try {
+            return ResponseEntity.ok(fddbDataService.getMissingDays(fromDate, toDate));
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
         }

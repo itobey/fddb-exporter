@@ -16,10 +16,15 @@ The web interface provides access to all core features:
 
 - **Dashboard**: View your nutritional statistics at a glance
 - **Export Data**: Manually trigger data exports for specific date ranges or recent days
-- **Daily Search**: Look up nutritional data for any specific date
-- **Product Search**: Find products by name with optional day-of-week filtering
-- **Statistics**: View comprehensive statistics including averages, highest values, and entry coverage
-- **Rolling Averages**: Calculate averages for custom date ranges
+- **Entries**: Look up nutritional data for any specific date or a whole date range, browse all stored entries, and
+  list **Missing Days** — every day in a range with no entry — so gaps in your logging are easy to spot
+- **Products**: Explore a single product across your history and rank the products you log most (see
+  [Products](#products) below)
+- **Statistics**: View comprehensive statistics including averages, highest values, entry coverage, and current/longest
+  logging streaks
+- **Rolling Averages**: Calculate averages for custom date ranges, including a macro split and a by-day-of-week
+  breakdown
+- **Trends**: Chart a single metric over time, bucketed by day, ISO week or month
 - **Correlation Analysis**: Analyze correlations between products and specific dates to identify potential food
   sensitivities
 - **Download Data**: Export your data in CSV or JSON format with customizable options
@@ -90,6 +95,37 @@ adaptations for optimal display on different screen sizes.
 
 ## Feature Details
 
+### Products
+
+The **Products** view collects everything product-centric into one place, split across two tabs.
+
+#### Explorer
+
+The **Explorer** tab answers "tell me everything about this product" from a single search box:
+
+1. Start typing a term (e.g. `hafer`). The box **autocompletes** with the exact, brand-prefixed names FDDB actually
+   stores (`Haferflocken kernig`, `Haferflocken zart`, …), so you don't have to remember the precise wording.
+2. Pick a suggested name for an exact match, or just type any term to aggregate **every** product whose name contains
+   it.
+3. Optionally set a **From**/**To** date range — it narrows both the summary and the occurrences below.
+
+The result is shown at two levels of zoom:
+
+- **Summary cards** — how often the product was eaten, the first and last date it was logged, the average calories per
+  occurrence, and the totals it contributed (calories, fat, carbs, protein)
+- **By day of the week** — a small bar chart showing how the occurrences distribute across weekdays, so you can spot,
+  say, a weekend treat at a glance. **Click a day's bar to filter the occurrences below to that weekday** (click again
+  to clear, or click several days to combine them). This answers "I ate sushi on a Thursday — which Thursdays?" without
+  a separate search.
+- **Occurrences table** — every individual logging of the matching products with its date (including the weekday) and
+  nutritional values; clicking a row jumps to that day in the **Entries** view
+
+#### Top Products
+
+The **Top Products** tab ranks products by how often they were logged or by the calories, fat, carbs or protein they
+contributed, over an optional date range and up to a configurable limit. Clicking a ranked product drills straight into
+the **Explorer** tab for its full profile.
+
 ### Rolling Averages
 
 The **Rolling Averages** view allows you to calculate average nutritional values over any custom date range. This is
@@ -133,8 +169,31 @@ ongoing periods like the current quarter or year.
 After selecting a date range and clicking **Calculate Averages**, the view displays:
 
 - **Individual nutrient cards** — Average values for calories, fat, carbs, sugar, protein, and fiber
-- **Macro distribution bar** — Visual representation showing the percentage breakdown of macronutrients (fat, carbs,
-  protein) in your average daily intake
+- **Macro distribution bar** — Visual representation showing the kcal-weighted percentage breakdown of macronutrients
+  (fat, carbs, protein) in your average daily intake
+- **By Day of the Week** — A table breaking the same date range down by day of the week, so you can see at a glance
+  whether weekends differ from weekdays
+
+### Trends
+
+The **Trends** view charts one metric — calories, fat, carbs, sugar, protein or fibre — over a date range, bucketed by
+day, ISO week or month. Where Rolling Averages answers "what was my average over this range?", Trends answers "is that
+average moving?".
+
+Pick a **Metric**, a **Granularity** and a date range, then click **Show Trend**. The quick-select buttons preset both
+the range and a granularity that suits it (Last 30 Days daily, Last 90 Days and Last Year weekly, Current Year
+monthly).
+
+The results consist of:
+
+- **Summary cards** — number of buckets, days logged, the daily average across the whole range, the highest and lowest
+  bucket, and the change from the first to the last bucket
+- **Column chart** — one column per bucket, scaled to the highest bucket, with a dashed line marking the overall daily
+  average; hovering a column shows its exact value and how many days it covers
+- **Bucket table** — every bucket with its date range, day count, average and total
+
+Buckets without a single entry are omitted, so unlogged days never drag an average down. Use the **Missing Days** tab
+of the Entries view to find those gaps.
 
 ## Mobile Support
 

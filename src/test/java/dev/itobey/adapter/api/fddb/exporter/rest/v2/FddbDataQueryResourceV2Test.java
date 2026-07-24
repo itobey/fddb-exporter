@@ -1,7 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -13,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -80,9 +80,10 @@ class FddbDataQueryResourceV2Test {
     void testFindByProduct() {
         String productName = "TestProduct";
         List<ProductWithDateDTO> mockData = Arrays.asList(new ProductWithDateDTO(), new ProductWithDateDTO());
-        when(fddbDataService.findByProduct(productName, null)).thenReturn(mockData);
+        when(fddbDataService.findByProduct(productName, null, null, null, null)).thenReturn(mockData);
 
-        ResponseEntity<List<ProductWithDateDTO>> response = fddbDataQueryResourceV2.findByProduct(productName, null);
+        ResponseEntity<List<ProductWithDateDTO>> response =
+                fddbDataQueryResourceV2.findByProduct(productName, null, null, null, null);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockData, response.getBody());
@@ -93,9 +94,73 @@ class FddbDataQueryResourceV2Test {
         String productName = "TestProduct";
         List<DayOfWeek> days = Arrays.asList(DayOfWeek.MONDAY, DayOfWeek.FRIDAY);
         List<ProductWithDateDTO> mockData = Arrays.asList(new ProductWithDateDTO(), new ProductWithDateDTO());
-        when(fddbDataService.findByProduct(productName, days)).thenReturn(mockData);
+        when(fddbDataService.findByProduct(productName, days, null, null, null)).thenReturn(mockData);
 
-        ResponseEntity<List<ProductWithDateDTO>> response = fddbDataQueryResourceV2.findByProduct(productName, days);
+        ResponseEntity<List<ProductWithDateDTO>> response =
+                fddbDataQueryResourceV2.findByProduct(productName, days, null, null, null);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockData, response.getBody());
+    }
+
+    @Test
+    void testFindByProductWithDateRangeAndLimit() {
+        String productName = "TestProduct";
+        LocalDate fromDate = LocalDate.of(2024, 1, 1);
+        LocalDate toDate = LocalDate.of(2024, 1, 31);
+        List<ProductWithDateDTO> mockData = List.of(new ProductWithDateDTO());
+        when(fddbDataService.findByProduct(productName, null, fromDate, toDate, 5)).thenReturn(mockData);
+
+        ResponseEntity<List<ProductWithDateDTO>> response =
+                fddbDataQueryResourceV2.findByProduct(productName, null, fromDate, toDate, 5);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockData, response.getBody());
+    }
+
+    @Test
+    void testFindByDateRange() {
+        LocalDate fromDate = LocalDate.of(2024, 12, 1);
+        LocalDate toDate = LocalDate.of(2024, 12, 31);
+        List<FddbDataDTO> mockData = Arrays.asList(new FddbDataDTO(), new FddbDataDTO());
+        when(fddbDataService.findByDateRange(fromDate, toDate, false)).thenReturn(mockData);
+
+        ResponseEntity<List<FddbDataDTO>> response = fddbDataQueryResourceV2.findByDateRange(fromDate, toDate, false);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockData, response.getBody());
+    }
+
+    @Test
+    void testGetTopProducts() {
+        List<TopProductDTO> mockData = List.of(TopProductDTO.builder().name("Banana").timesEaten(12).build());
+        when(fddbDataService.getTopProducts(ProductRanking.FREQUENCY, null, null, 20)).thenReturn(mockData);
+
+        ResponseEntity<List<TopProductDTO>> response =
+                fddbDataQueryResourceV2.getTopProducts(ProductRanking.FREQUENCY, null, null, 20);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockData, response.getBody());
+    }
+
+    @Test
+    void testGetProductSummary() {
+        ProductSummaryDTO mockData = ProductSummaryDTO.builder().searchTerm("Banana").timesEaten(3).build();
+        when(fddbDataService.getProductSummary("Banana", null, null)).thenReturn(mockData);
+
+        ResponseEntity<ProductSummaryDTO> response =
+                fddbDataQueryResourceV2.getProductSummary("Banana", null, null);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockData, response.getBody());
+    }
+
+    @Test
+    void testFindDistinctProductNames() {
+        List<String> mockData = List.of("Haferflocken kernig", "Haferflocken zart");
+        when(fddbDataService.findDistinctProductNames("hafer", 100)).thenReturn(mockData);
+
+        ResponseEntity<List<String>> response = fddbDataQueryResourceV2.findDistinctProductNames("hafer", 100);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockData, response.getBody());
