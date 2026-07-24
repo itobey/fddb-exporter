@@ -1,14 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExtremeDirection;
-import dev.itobey.adapter.api.fddb.exporter.dto.MacroSplitDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
-import dev.itobey.adapter.api.fddb.exporter.dto.RollingAveragesDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.WeekdayStatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -76,35 +68,6 @@ class FddbDataStatsResourceV2Test {
                 .thenThrow(new IllegalArgumentException(errorMessage));
 
         ResponseEntity<?> response = fddbDataStatsResourceV2.getRollingAverages(dateRangeDTO);
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals(errorMessage, response.getBody());
-    }
-
-    @Test
-    void testGetExtremeDays() {
-        List<StatsDTO.DayStats> mockDays = List.of(
-                StatsDTO.DayStats.builder().date(LocalDate.of(2024, 3, 1)).total(3200).build());
-        when(fddbDataService.getExtremeDays(NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 10, null, null))
-                .thenReturn(mockDays);
-
-        ResponseEntity<?> response = fddbDataStatsResourceV2.getExtremeDays(
-                NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 10, null, null);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(mockDays, response.getBody());
-    }
-
-    @Test
-    void testGetExtremeDays_InvalidDateRange() {
-        String errorMessage = "The 'from' date cannot be after the 'to' date";
-        LocalDate fromDate = LocalDate.of(2024, 2, 1);
-        LocalDate toDate = LocalDate.of(2024, 1, 1);
-        when(fddbDataService.getExtremeDays(NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 10, fromDate, toDate))
-                .thenThrow(new IllegalArgumentException(errorMessage));
-
-        ResponseEntity<?> response = fddbDataStatsResourceV2.getExtremeDays(
-                NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 10, fromDate, toDate);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(errorMessage, response.getBody());

@@ -1,13 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.service;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.ExtremeDirection;
-import dev.itobey.adapter.api.fddb.exporter.dto.MacroSplitDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
-import dev.itobey.adapter.api.fddb.exporter.dto.RollingAveragesDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.WeekdayStatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -30,7 +23,6 @@ public class StatsClient {
 
     private static final String STATS_URL = "/api/v2/stats";
     private static final String AVERAGES_URL = "/api/v2/stats/averages?fromDate={fromDate}&toDate={toDate}";
-    private static final String EXTREMES_URL = "/api/v2/stats/extremes";
     private static final String TREND_URL = "/api/v2/stats/trend";
     private static final String WEEKDAYS_URL = "/api/v2/stats/weekdays";
     private static final String MACRO_SPLIT_URL = "/api/v2/stats/macro-split?fromDate={fromDate}&toDate={toDate}";
@@ -72,36 +64,6 @@ public class StatsClient {
         } catch (RestClientException e) {
             log.error("Failed to get rolling averages", e);
             throw new ApiException("Failed to retrieve rolling averages: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Get the top or bottom N days for a metric, optionally scoped to a date range.
-     *
-     * @param metric    the metric to rank days by
-     * @param direction whether the highest or the lowest days are wanted
-     * @param limit     the maximum number of days to return
-     * @param fromDate  optional start date in YYYY-MM-DD format
-     * @param toDate    optional end date in YYYY-MM-DD format
-     * @return List of DayStats, most extreme first
-     * @throws ApiException if the API call fails
-     */
-    public List<StatsDTO.DayStats> getExtremeDays(NutrientMetric metric, ExtremeDirection direction, int limit,
-                                                  String fromDate, String toDate) throws ApiException {
-        try {
-            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(getBaseUrl() + EXTREMES_URL)
-                    .queryParam("metric", metric)
-                    .queryParam("direction", direction)
-                    .queryParam("limit", limit);
-            addOptionalRange(uriBuilder, fromDate, toDate);
-
-            ResponseEntity<List<StatsDTO.DayStats>> response = restTemplate.exchange(
-                    uriBuilder.build().encode().toUri(), HttpMethod.GET, null, new ParameterizedTypeReference<>() {
-                    });
-            return response.getBody();
-        } catch (RestClientException e) {
-            log.error("Failed to get extreme days", e);
-            throw new ApiException("Failed to retrieve extreme days: " + e.getMessage(), e);
         }
     }
 

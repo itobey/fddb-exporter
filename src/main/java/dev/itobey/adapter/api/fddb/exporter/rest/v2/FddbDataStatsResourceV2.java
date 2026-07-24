@@ -1,15 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
 import dev.itobey.adapter.api.fddb.exporter.annotation.RequiresMongoDb;
-import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ExtremeDirection;
-import dev.itobey.adapter.api.fddb.exporter.dto.MacroSplitDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
-import dev.itobey.adapter.api.fddb.exporter.dto.RollingAveragesDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
-import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.WeekdayStatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,8 +11,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -95,46 +85,6 @@ public class FddbDataStatsResourceV2 {
         try {
             RollingAveragesDTO result = fddbDataService.getRollingAverages(dateRangeDTO);
             return ResponseEntity.ok(result);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
-        }
-    }
-
-    /**
-     * Get the top or bottom N days for a metric, optionally scoped to a date range.
-     *
-     * @param metric    the metric to rank days by
-     * @param direction whether the highest or the lowest days are wanted
-     * @param limit     the maximum number of days to return
-     * @param fromDate  optional start date (inclusive)
-     * @param toDate    optional end date (inclusive)
-     * @return the matching days with their value for the metric, most extreme first
-     */
-    @Operation(summary = "Get extreme days",
-            description = "Returns the top or bottom N days for a metric. Unlike the all-time single-day extremes in "
-                    + "the overall statistics, this can be scoped to a date range and return more than one day.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Extreme days",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = StatsDTO.DayStats.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
-            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
-    })
-    @GetMapping("/extremes")
-    @RequiresMongoDb
-    public ResponseEntity<?> getExtremeDays(
-            @Parameter(description = "Metric to rank days by", example = "CALORIES")
-            @RequestParam(defaultValue = "CALORIES") NutrientMetric metric,
-            @Parameter(description = "Whether the highest or the lowest days are wanted", example = "HIGHEST")
-            @RequestParam(defaultValue = "HIGHEST") ExtremeDirection direction,
-            @Parameter(description = "Maximum number of days to return", example = "10")
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit,
-            @Parameter(description = "Optional start date (inclusive), format: YYYY-MM-DD", example = "2024-01-01")
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @Parameter(description = "Optional end date (inclusive), format: YYYY-MM-DD", example = "2024-12-31")
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
-        log.debug("V2: Retrieving {} {} days for {} in range {} to {}", limit, direction, metric, fromDate, toDate);
-        try {
-            return ResponseEntity.ok(fddbDataService.getExtremeDays(metric, direction, limit, fromDate, toDate));
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
         }

@@ -6,6 +6,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.Product;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
+import dev.itobey.adapter.api.fddb.exporter.service.StatsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +51,8 @@ class AggregationIntegrationTest {
 
     @Autowired
     private FddbDataService fddbDataService;
+    @Autowired
+    private StatsService statsService;
     @Autowired
     private FddbDataRepository fddbDataRepository;
     @Autowired
@@ -170,17 +173,17 @@ class AggregationIntegrationTest {
 
     @Test
     void getExtremeDays_shouldRankWithinTheRange() {
-        List<StatsDTO.DayStats> highest = fddbDataService.getExtremeDays(
+        List<StatsDTO.DayStats> highest = statsService.getExtremeDays(
                 NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 2, null, null);
         assertThat(highest).extracting(StatsDTO.DayStats::getDate)
                 .containsExactly(LocalDate.of(2024, 1, 6), LocalDate.of(2024, 1, 2));
         assertThat(highest.getFirst().getTotal()).isEqualTo(3500.0);
 
-        List<StatsDTO.DayStats> lowest = fddbDataService.getExtremeDays(
+        List<StatsDTO.DayStats> lowest = statsService.getExtremeDays(
                 NutrientMetric.CALORIES, ExtremeDirection.LOWEST, 1, null, null);
         assertThat(lowest.getFirst().getDate()).isEqualTo(LocalDate.of(2024, 1, 8));
 
-        List<StatsDTO.DayStats> ranged = fddbDataService.getExtremeDays(
+        List<StatsDTO.DayStats> ranged = statsService.getExtremeDays(
                 NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 5,
                 LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 2));
         assertThat(ranged).extracting(StatsDTO.DayStats::getDate)

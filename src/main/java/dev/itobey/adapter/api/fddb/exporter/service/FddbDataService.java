@@ -134,11 +134,6 @@ public class FddbDataService {
         return persistenceService.findDistinctProductNames(search, limit);
     }
 
-    public List<StatsDTO.DayStats> getExtremeDays(NutrientMetric metric, ExtremeDirection direction, int limit,
-                                                  LocalDate fromDate, LocalDate toDate) {
-        return statsService.getExtremeDays(metric, direction, limit, fromDate, toDate);
-    }
-
     public List<TrendPointDTO> getTrend(NutrientMetric metric, LocalDate fromDate, LocalDate toDate,
                                         TrendGranularity granularity) {
         return statsService.getTrend(metric, fromDate, toDate, granularity);
