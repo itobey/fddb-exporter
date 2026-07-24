@@ -8,8 +8,6 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.*;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -346,18 +344,5 @@ public class RollingAveragesView extends VerticalLayout {
                 .set("font-size", "0.85rem")
                 .set("line-height", "1.2");
         return label;
-    }
-
-
-    private void showSuccess(String message) {
-        Notification notification = Notification.show(message);
-        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-        notification.setDuration(1000);
-    }
-
-    private void showError(String message) {
-        Notification notification = Notification.show(message);
-        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-        notification.setDuration(5000);
     }
 }

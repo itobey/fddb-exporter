@@ -6,8 +6,6 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
@@ -250,11 +248,5 @@ public class DashboardView extends VerticalLayout {
 
         card.add(layout);
         return card;
-    }
-
-    private void showError(String message) {
-        Notification notification = Notification.show(message);
-        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-        notification.setDuration(5000);
     }
 }

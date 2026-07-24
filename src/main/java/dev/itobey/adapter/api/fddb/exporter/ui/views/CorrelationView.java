@@ -10,8 +10,6 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -589,18 +587,6 @@ public class CorrelationView extends VerticalLayout {
             // Silently fail if settings can't be loaded - use defaults
             System.err.println("Failed to load settings: " + exception.getMessage());
         }
-    }
-
-    private void showSuccess(String message) {
-        Notification notification = Notification.show(message);
-        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-        notification.setDuration(3000);
-    }
-
-    private void showError(String message) {
-        Notification notification = Notification.show(message);
-        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-        notification.setDuration(5000);
     }
 }
 
