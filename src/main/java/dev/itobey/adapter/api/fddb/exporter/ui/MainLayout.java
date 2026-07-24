@@ -104,7 +104,8 @@ public class MainLayout extends AppLayout {
 
         nav.addItem(new SideNavItem("Dashboard", DashboardView.class, new Icon(VaadinIcon.DASHBOARD)));
         nav.addItem(new SideNavItem("Data Export", DataExportView.class, new Icon(VaadinIcon.DOWNLOAD)));
-        nav.addItem(new SideNavItem("Data Query", DataQueryView.class, new Icon(VaadinIcon.SEARCH)));
+        nav.addItem(new SideNavItem("Entries", EntriesView.class, new Icon(VaadinIcon.SEARCH)));
+        nav.addItem(new SideNavItem("Products", ProductsView.class, new Icon(VaadinIcon.CUBES)));
         nav.addItem(new SideNavItem("Rolling Averages", RollingAveragesView.class, new Icon(VaadinIcon.TRENDING_UP)));
         nav.addItem(new SideNavItem("Trends", TrendView.class, new Icon(VaadinIcon.LINE_CHART)));
         nav.addItem(new SideNavItem("Correlation Analysis", CorrelationView.class, new Icon(VaadinIcon.CHART)));

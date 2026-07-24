@@ -220,7 +220,7 @@ public class DashboardView extends VerticalLayout {
 
         card.addClickListener(event -> {
             if (dayStats.getDate() != null) {
-                UI.getCurrent().navigate("query", QueryParameters.simple(Map.of("date", dayStats.getDate().toString())));
+                UI.getCurrent().navigate("entries", QueryParameters.simple(Map.of("date", dayStats.getDate().toString())));
             }
         });
 

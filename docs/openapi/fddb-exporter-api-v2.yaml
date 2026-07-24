@@ -184,12 +184,70 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v2/fddbdata/range:
+    get:
+      tags:
+        - FDDB Data Query
+      summary: Get FDDB data for a date range
+      description: |
+        Retrieves all entries between two dates (both inclusive), oldest first. Product lists are omitted unless
+        explicitly requested, since a long range with products is a very large response. The range is limited to
+        366 days. Requires MongoDB to be available.
+      operationId: findByDateRange
+      parameters:
+        - name: fromDate
+          in: query
+          description: Start date (inclusive), format YYYY-MM-DD
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-12-01"
+        - name: toDate
+          in: query
+          description: End date (inclusive), format YYYY-MM-DD
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: includeProducts
+          in: query
+          description: Whether to include the product list of each day
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Entries for the specified range
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FddbDataDTO'
+        '400':
+          description: Invalid or too large date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v2/fddbdata/products:
     get:
       tags:
         - FDDB Data Query
       summary: Search products by name
-      description: Search for FDDB products by name across all dates, optionally filtered by specific days of the week. Requires MongoDB to be available.
+      description: |
+        Search for FDDB products by name across all dates, optionally filtered by specific days of the week, a date
+        range and a maximum number of results. Requires MongoDB to be available.
       operationId: findByProduct
       parameters:
         - name: name
@@ -218,6 +276,29 @@ paths:
           style: form
           explode: false
           example: "MONDAY,FRIDAY"
+        - name: fromDate
+          in: query
+          description: Optional start date (inclusive), format YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: toDate
+          in: query
+          description: Optional end date (inclusive), format YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: limit
+          in: query
+          description: Optional maximum number of results
+          required: false
+          schema:
+            type: integer
+            example: 100
       responses:
         '200':
           description: Search results
@@ -227,6 +308,180 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ProductWithDateDTO'
+        '400':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/fddbdata/products/distinct:
+    get:
+      tags:
+        - FDDB Data Query
+      summary: List distinct product names
+      description: |
+        Lists the distinct product names in the database, so a fuzzy term ("oats") can be resolved to the exact,
+        brand-prefixed name FDDB stores ("Haferflocken kernig"). Requires MongoDB to be available.
+      operationId: findDistinctProductNames
+      parameters:
+        - name: search
+          in: query
+          description: Optional case-insensitive substring the name has to contain
+          required: false
+          schema:
+            type: string
+            example: "hafer"
+        - name: limit
+          in: query
+          description: Maximum number of names to return
+          required: false
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+            example: 100
+      responses:
+        '200':
+          description: Distinct product names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/fddbdata/products/summary:
+    get:
+      tags:
+        - FDDB Data Query
+      summary: Summarize a product
+      description: |
+        Aggregates every occurrence of the products matching a search term: how often they were logged, first and
+        last date, the totals they contributed and the weekday distribution. Requires MongoDB to be available.
+      operationId: getProductSummary
+      parameters:
+        - name: name
+          in: query
+          description: Product name to search for
+          required: true
+          schema:
+            type: string
+            example: "Haferflocken"
+        - name: fromDate
+          in: query
+          description: Optional start date (inclusive), format YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: toDate
+          in: query
+          description: Optional end date (inclusive), format YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+      responses:
+        '200':
+          description: Product summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductSummaryDTO'
+        '400':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/fddbdata/products/top:
+    get:
+      tags:
+        - FDDB Data Query
+      summary: List top products
+      description: |
+        Ranks products by how often they were logged (FREQUENCY) or by the nutrient totals they contributed -
+        "what do I actually eat the most, and where do my calories come from?" Requires MongoDB to be available.
+      operationId: getTopProducts
+      parameters:
+        - name: by
+          in: query
+          description: Ranking criterion
+          required: false
+          schema:
+            type: string
+            enum:
+              - FREQUENCY
+              - CALORIES
+              - FAT
+              - CARBS
+              - PROTEIN
+            default: FREQUENCY
+            example: FREQUENCY
+        - name: fromDate
+          in: query
+          description: Optional start date (inclusive), format YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: toDate
+          in: query
+          description: Optional end date (inclusive), format YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: limit
+          in: query
+          description: Maximum number of products to return
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 500
+            example: 20
+      responses:
+        '200':
+          description: Ranked products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TopProductDTO'
+        '400':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '503':
           description: MongoDB not available
           content:
@@ -381,6 +636,224 @@ paths:
               schema:
                 type: string
                 example: "Invalid date range"
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/stats/trend:
+    get:
+      tags:
+        - FDDB Data Statistics
+      summary: Get a trend time series
+      description: |
+        Builds a time series of one metric over a date range, bucketed by day, ISO week or month. Buckets without a
+        single entry are omitted, so unlogged days never drag an average down. Requires MongoDB to be available.
+      operationId: getTrend
+      parameters:
+        - name: metric
+          in: query
+          description: Metric to trend
+          required: false
+          schema:
+            type: string
+            enum:
+              - CALORIES
+              - FAT
+              - CARBS
+              - SUGAR
+              - PROTEIN
+              - FIBRE
+            default: CALORIES
+            example: CALORIES
+        - name: fromDate
+          in: query
+          description: Start date (inclusive), format YYYY-MM-DD
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: toDate
+          in: query
+          description: End date (inclusive), format YYYY-MM-DD
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: granularity
+          in: query
+          description: Bucket size
+          required: false
+          schema:
+            type: string
+            enum:
+              - DAY
+              - WEEK
+              - MONTH
+            default: DAY
+            example: WEEK
+      responses:
+        '200':
+          description: Trend time series
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrendPointDTO'
+        '400':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/stats/weekdays:
+    get:
+      tags:
+        - FDDB Data Statistics
+      summary: Get a weekday breakdown
+      description: |
+        Averages the daily totals grouped by day of the week - "do my weekends wreck the average?". Days of the week
+        without a single entry are omitted. Requires MongoDB to be available.
+      operationId: getWeekdayBreakdown
+      parameters:
+        - name: fromDate
+          in: query
+          description: Optional start date (inclusive), format YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: toDate
+          in: query
+          description: Optional end date (inclusive), format YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+      responses:
+        '200':
+          description: Averages per day of the week
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeekdayStatsDTO'
+        '400':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/stats/macro-split:
+    get:
+      tags:
+        - FDDB Data Statistics
+      summary: Get the macro split
+      description: |
+        Share of energy from fat, carbs and protein over a date range. The split is kcal-weighted (fat 9 kcal/g,
+        carbs and protein 4 kcal/g), not gram-weighted. Requires MongoDB to be available.
+      operationId: getMacroSplit
+      parameters:
+        - name: fromDate
+          in: query
+          description: Start date (inclusive), format YYYY-MM-DD
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: toDate
+          in: query
+          description: End date (inclusive), format YYYY-MM-DD
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+      responses:
+        '200':
+          description: Macro split
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MacroSplitDTO'
+        '400':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: MongoDB not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/stats/missing-days:
+    get:
+      tags:
+        - FDDB Data Statistics
+      summary: List missing days
+      description: |
+        Lists every day in the range that has no entry at all or an entry without a single calorie - "when did I
+        forget to log?" Requires MongoDB to be available.
+      operationId: getMissingDays
+      parameters:
+        - name: fromDate
+          in: query
+          description: Start date (inclusive), format YYYY-MM-DD
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: toDate
+          in: query
+          description: End date (inclusive), format YYYY-MM-DD
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+      responses:
+        '200':
+          description: Missing days
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: date
+        '400':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '503':
           description: MongoDB not available
           content:
@@ -603,6 +1076,11 @@ components:
           format: date
           description: Date of the first entry
           example: "2024-01-01"
+        lastEntryDate:
+          type: string
+          format: date
+          description: Date of the most recent entry
+          example: "2024-12-22"
         entryPercentage:
           type: number
           format: double
@@ -639,6 +1117,22 @@ components:
               format: date
             - type: string
           example: "2024-12-20"
+        missingDaysCount:
+          type: integer
+          format: int64
+          nullable: true
+          description: Number of days between the first entry and yesterday that have no entry. Null when MongoDB is not configured
+          example: 18
+        currentStreak:
+          type: integer
+          nullable: true
+          description: Days logged in a row up to now. Today is only counted once it has an entry, so a day still in progress does not break the streak. Null when MongoDB is not configured
+          example: 12
+        longestStreak:
+          type: integer
+          nullable: true
+          description: Longest run of consecutive logged days since the first entry. Null when MongoDB is not configured
+          example: 94
 
     Averages:
       type: object
@@ -704,6 +1198,224 @@ components:
           example: "2024-12-31"
         averages:
           $ref: '#/components/schemas/Averages'
+
+    TopProductDTO:
+      type: object
+      description: A product with its aggregated contribution across all logged occurrences
+      properties:
+        name:
+          type: string
+          description: Product name as logged in FDDB
+          example: "Haferflocken kernig"
+        timesEaten:
+          type: integer
+          format: int64
+          description: How often the product was logged
+          example: 42
+        totalCalories:
+          type: number
+          format: double
+          description: Sum of calories contributed by this product
+          example: 12600.5
+        totalFat:
+          type: number
+          format: double
+          description: Sum of fat in grams contributed by this product
+          example: 310.2
+        totalCarbs:
+          type: number
+          format: double
+          description: Sum of carbs in grams contributed by this product
+          example: 1850.7
+        totalProtein:
+          type: number
+          format: double
+          description: Sum of protein in grams contributed by this product
+          example: 540.3
+        averageCalories:
+          type: number
+          format: double
+          description: Average calories per logged occurrence
+          example: 300.0
+
+    ProductSummaryDTO:
+      type: object
+      description: Aggregated summary for all products matching a search term
+      properties:
+        searchTerm:
+          type: string
+          description: The search term this summary was built for
+          example: "haferflocken"
+        matchedProductNames:
+          type: array
+          description: Distinct product names that matched the search term
+          items:
+            type: string
+        timesEaten:
+          type: integer
+          format: int64
+          description: How often a matching product was logged
+          example: 42
+        firstDate:
+          type: string
+          format: date
+          description: First date a matching product was logged
+          example: "2024-01-03"
+        lastDate:
+          type: string
+          format: date
+          description: Most recent date a matching product was logged
+          example: "2024-12-19"
+        totalCalories:
+          type: number
+          format: double
+          description: Sum of calories contributed by matching products
+          example: 12600.5
+        totalFat:
+          type: number
+          format: double
+          description: Sum of fat in grams contributed by matching products
+          example: 310.2
+        totalCarbs:
+          type: number
+          format: double
+          description: Sum of carbs in grams contributed by matching products
+          example: 1850.7
+        totalProtein:
+          type: number
+          format: double
+          description: Sum of protein in grams contributed by matching products
+          example: 540.3
+        averageCalories:
+          type: number
+          format: double
+          description: Average calories per logged occurrence
+          example: 300.0
+        weekdayDistribution:
+          type: object
+          description: How the occurrences distribute over the days of the week
+          additionalProperties:
+            type: integer
+            format: int64
+          example:
+            MONDAY: 8
+            TUESDAY: 5
+            WEDNESDAY: 6
+            THURSDAY: 7
+            FRIDAY: 6
+            SATURDAY: 5
+            SUNDAY: 5
+
+    TrendPointDTO:
+      type: object
+      description: One bucket of a nutritional trend time series
+      properties:
+        bucket:
+          type: string
+          description: Label of the bucket - the date for DAY, ISO week for WEEK, year-month for MONTH
+          example: "2024-W03"
+        fromDate:
+          type: string
+          format: date
+          description: First day of the bucket that lies within the queried range
+          example: "2024-01-15"
+        toDate:
+          type: string
+          format: date
+          description: Last day of the bucket that lies within the queried range
+          example: "2024-01-21"
+        dayCount:
+          type: integer
+          format: int64
+          description: Number of days with an entry inside this bucket
+          example: 7
+        average:
+          type: number
+          format: double
+          description: Average value of the metric across the days with an entry
+          example: 2143.7
+        total:
+          type: number
+          format: double
+          description: Summed value of the metric across the days with an entry
+          example: 15005.9
+
+    WeekdayStatsDTO:
+      type: object
+      description: Average nutritional values grouped by day of the week
+      properties:
+        dayOfWeek:
+          type: string
+          enum:
+            - MONDAY
+            - TUESDAY
+            - WEDNESDAY
+            - THURSDAY
+            - FRIDAY
+            - SATURDAY
+            - SUNDAY
+          description: Day of the week
+          example: SATURDAY
+        dayCount:
+          type: integer
+          format: int64
+          description: Number of entries that fell on this day of the week
+          example: 52
+        averages:
+          $ref: '#/components/schemas/Averages'
+
+    MacroSplitDTO:
+      type: object
+      description: kcal-weighted share of energy from fat, carbs and protein
+      properties:
+        fromDate:
+          type: string
+          description: Start date of the range
+          example: "2024-01-01"
+        toDate:
+          type: string
+          description: End date of the range
+          example: "2024-01-31"
+        fatPercentage:
+          type: number
+          format: double
+          description: Percentage of energy from fat
+          example: 34.5
+        carbsPercentage:
+          type: number
+          format: double
+          description: Percentage of energy from carbs
+          example: 45.2
+        proteinPercentage:
+          type: number
+          format: double
+          description: Percentage of energy from protein
+          example: 20.3
+        fatCalories:
+          type: number
+          format: double
+          description: Average daily kcal from fat
+          example: 690.3
+        carbsCalories:
+          type: number
+          format: double
+          description: Average daily kcal from carbs
+          example: 904.8
+        proteinCalories:
+          type: number
+          format: double
+          description: Average daily kcal from protein
+          example: 406.4
+        macroCalories:
+          type: number
+          format: double
+          description: Average daily kcal derived from the macros (fat*9 + carbs*4 + protein*4)
+          example: 2001.5
+        averageCalories:
+          type: number
+          format: double
+          description: Average daily kcal as reported by FDDB
+          example: 2000.5
 
     CorrelationInputDto:
       type: object

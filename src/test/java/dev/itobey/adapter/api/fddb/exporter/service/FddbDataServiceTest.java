@@ -303,4 +303,39 @@ class FddbDataServiceTest {
         // then
         assertEquals(topProducts, result);
     }
+
+    @Test
+    void getProductSummary_shouldDelegateToPersistence() {
+        // given
+        ProductSummaryDTO summary = ProductSummaryDTO.builder().searchTerm("hafer").timesEaten(5).build();
+        LocalDate from = LocalDate.of(2024, 1, 1);
+        LocalDate to = LocalDate.of(2024, 1, 31);
+        when(persistenceService.getProductSummary("hafer", from, to)).thenReturn(summary);
+
+        // when
+        ProductSummaryDTO result = fddbDataService.getProductSummary("hafer", from, to);
+
+        // then
+        assertEquals(summary, result);
+    }
+
+    @Test
+    void getProductSummary_whenRangeInverted_shouldThrowException() {
+        assertThrows(DateTimeException.class, () -> fddbDataService.getProductSummary(
+                "hafer", LocalDate.of(2024, 2, 1), LocalDate.of(2024, 1, 1)));
+        verifyNoInteractions(persistenceService);
+    }
+
+    @Test
+    void findDistinctProductNames_shouldDelegateToPersistence() {
+        // given
+        List<String> names = List.of("Haferflocken kernig", "Haferflocken zart");
+        when(persistenceService.findDistinctProductNames("hafer", 50)).thenReturn(names);
+
+        // when
+        List<String> result = fddbDataService.findDistinctProductNames("hafer", 50);
+
+        // then
+        assertEquals(names, result);
+    }
 }

@@ -38,6 +38,14 @@ public class FddbDataClient {
     }
 
     /**
+     * Test-only constructor allowing a pre-configured {@link RestTemplate} (e.g. one bound to a
+     * {@code MockRestServiceServer}) to be injected.
+     */
+    FddbDataClient(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    /**
      * Export data for a date range.
      *
      * @param dateRange the date range to export
@@ -249,6 +257,23 @@ public class FddbDataClient {
      * @throws ApiException if the API call fails
      */
     public List<ProductWithDateDTO> searchProducts(String name, List<DayOfWeek> days) throws ApiException {
+        return searchProducts(name, days, null, null, null);
+    }
+
+    /**
+     * Search products by name, optionally filtered by days of the week, a date range and a maximum
+     * number of results.
+     *
+     * @param name     the product name to search
+     * @param days     optional list of days of the week to filter results
+     * @param fromDate optional start date in YYYY-MM-DD format
+     * @param toDate   optional end date in YYYY-MM-DD format
+     * @param limit    optional maximum number of results
+     * @return List of ProductWithDateDTO
+     * @throws ApiException if the API call fails
+     */
+    public List<ProductWithDateDTO> searchProducts(String name, List<DayOfWeek> days, String fromDate, String toDate,
+                                                   Integer limit) throws ApiException {
         try {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder
                     .fromUriString(getBaseUrl() + PRODUCTS_URL)
@@ -256,6 +281,15 @@ public class FddbDataClient {
 
             if (days != null && !days.isEmpty()) {
                 uriBuilder.queryParam("days", days.toArray());
+            }
+            if (fromDate != null) {
+                uriBuilder.queryParam("fromDate", fromDate);
+            }
+            if (toDate != null) {
+                uriBuilder.queryParam("toDate", toDate);
+            }
+            if (limit != null) {
+                uriBuilder.queryParam("limit", limit);
             }
 
             ResponseEntity<List<ProductWithDateDTO>> response = restTemplate.exchange(
