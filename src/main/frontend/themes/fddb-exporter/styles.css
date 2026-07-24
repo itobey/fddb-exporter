@@ -977,6 +977,7 @@ vaadin-tab-sheet::part(tabs) {
     .dashboard-view,
     .data-query-view,
     .rolling-averages-view,
+    .trend-view,
     .data-export-view,
     .correlation-view,
     .migration-view,
