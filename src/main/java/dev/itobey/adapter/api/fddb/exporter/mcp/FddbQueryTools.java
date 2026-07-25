@@ -1,10 +1,13 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ProductRanking;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.mcp.DayRangeResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.mcp.DayResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.mcp.ProductSearchResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.mcp.TopProductsResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +27,8 @@ import java.util.Optional;
 import static java.time.temporal.ChronoUnit.DAYS;
 
 /**
- * MCP tools for reading the exported diary: single days, date ranges and product occurrences.
+ * MCP tools for reading the exported diary: single days, date ranges, product occurrences and the
+ * ranking of the products across them.
  * <p>
  * Unlike the Vaadin UI, which goes through the REST API over HTTP, the tools call
  * {@link FddbDataService} directly - there is no benefit to an in-process HTTP hop, and it keeps
@@ -49,6 +53,14 @@ public class FddbQueryTools {
     private static final int DEFAULT_PRODUCT_SEARCH_LIMIT = 100;
 
     private static final int MAX_PRODUCT_SEARCH_LIMIT = 500;
+
+    /**
+     * Default cap for the product ranking. A ranking is read from the top down, so a long tail adds
+     * payload without adding insight.
+     */
+    private static final int DEFAULT_TOP_PRODUCTS_LIMIT = 20;
+
+    private static final int MAX_TOP_PRODUCTS_LIMIT = 100;
 
     private final FddbDataService fddbDataService;
 
@@ -166,6 +178,57 @@ public class FddbQueryTools {
 
         return ProductSearchResultDTO.builder()
                 .searchTerm(name)
+                .fromDate(from)
+                .toDate(to)
+                .resultCount(results.size())
+                .limit(effectiveLimit)
+                .truncated(truncated)
+                .results(results)
+                .build();
+    }
+
+    @McpTool(
+            name = "list_top_products",
+            description = """
+                    Ranks the products in the diary either by how often they were logged (FREQUENCY) \
+                    or by the total amount of a nutrient they contributed, optionally restricted to a \
+                    date range. This is the tool for "what do I actually eat the most" and "where do \
+                    my calories come from". The totals are sums across every logged occurrence, so a \
+                    product eaten daily in small portions can outrank a rare large one. Check the \
+                    'truncated' flag before calling anything "the top" of the list.""",
+            annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
+                    idempotentHint = true, openWorldHint = false))
+    public TopProductsResultDTO listTopProducts(
+            @McpToolParam(description = "What to rank by: FREQUENCY, CALORIES, FAT, CARBS or PROTEIN. "
+                    + "Defaults to FREQUENCY", required = false)
+            ProductRanking by,
+
+            @McpToolParam(description = "Optional first day to include (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            String fromDate,
+
+            @McpToolParam(description = "Optional last day to include (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            String toDate,
+
+            @McpToolParam(description = "How many products to return, at most 100. Defaults to 20",
+                    required = false)
+            Integer limit) {
+        LocalDate from = McpDateParser.parseOptional(fromDate);
+        LocalDate to = McpDateParser.parseOptional(toDate);
+        ProductRanking ranking = by == null ? ProductRanking.FREQUENCY : by;
+        int effectiveLimit = limit == null || limit <= 0
+                ? DEFAULT_TOP_PRODUCTS_LIMIT
+                : Math.min(limit, MAX_TOP_PRODUCTS_LIMIT);
+        log.debug("MCP: ranking products by {} in {} to {} (limit={})", ranking, from, to, effectiveLimit);
+
+        // one more than asked for, so an overflow can be reported instead of silently truncating
+        List<TopProductDTO> ranked = fddbDataService.getTopProducts(ranking, from, to, effectiveLimit + 1);
+        boolean truncated = ranked.size() > effectiveLimit;
+        List<TopProductDTO> results = truncated ? ranked.subList(0, effectiveLimit) : ranked;
+
+        return TopProductsResultDTO.builder()
+                .rankedBy(ranking)
                 .fromDate(from)
                 .toDate(to)
                 .resultCount(results.size())

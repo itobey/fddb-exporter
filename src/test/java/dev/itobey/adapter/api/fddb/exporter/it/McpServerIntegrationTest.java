@@ -87,8 +87,9 @@ class McpServerIntegrationTest {
         McpSchema.ListToolsResult tools = mcpClient.listTools();
 
         assertThat(tools.tools()).extracting(McpSchema.Tool::name)
-                .containsExactlyInAnyOrder("get_day", "get_days", "search_products", "get_stats",
-                        "get_averages", "get_data_schema");
+                .containsExactlyInAnyOrder("get_day", "get_days", "search_products", "list_top_products",
+                        "get_stats", "get_averages", "get_extreme_days", "get_trend", "get_weekday_breakdown",
+                        "list_missing_days", "compare_periods", "check_goals", "get_data_schema");
         assertThat(tools.tools()).allSatisfy(tool -> {
             assertThat(tool.description()).isNotBlank();
             assertThat(tool.annotations().readOnlyHint()).isTrue();
@@ -156,6 +157,73 @@ class McpServerIntegrationTest {
 
         assertThat(result).contains("\"amountEntries\":3", "\"firstEntryDate\":\"2024-01-01\"",
                 "\"lastEntryDate\":\"2024-01-06\"");
+    }
+
+    @Test
+    void listTopProducts_shouldRankByFrequencyByDefault() {
+        String result = callTool("list_top_products", Map.of());
+
+        assertThat(result).contains("\"rankedBy\":\"FREQUENCY\"", "\"truncated\":false");
+        // eaten on two days, so it has to come out ahead of the single pizza
+        assertThat(result.indexOf("Haferflocken kernig")).isLessThan(result.indexOf("Pizza Salami"));
+    }
+
+    @Test
+    void getExtremeDays_shouldNameTheUnitOfTheBareValueItReturns() {
+        String result = callTool("get_extreme_days", Map.of("metric", "CALORIES", "limit", 1));
+
+        assertThat(result).contains("\"unit\":\"kcal\"", "\"direction\":\"HIGHEST\"",
+                "\"date\":\"2024-01-06\"", "\"total\":3500");
+    }
+
+    @Test
+    void getTrend_shouldBucketTheDaysAndReportHowManyEachBucketRestsOn() {
+        String result = callTool("get_trend", Map.of("metric", "CALORIES",
+                "fromDate", "2024-01-01", "toDate", "2024-01-07", "granularity", "WEEK"));
+
+        assertThat(result).contains("\"bucket\":\"2024-W01\"", "\"dayCount\":3", "\"loggedDays\":3",
+                "\"average\":2666.7");
+    }
+
+    @Test
+    void getWeekdayBreakdown_shouldOmitWeekdaysWithoutASingleEntry() {
+        String result = callTool("get_weekday_breakdown", Map.of());
+
+        assertThat(result).contains("MONDAY", "TUESDAY", "SATURDAY", "\"loggedDays\":3");
+        assertThat(result).doesNotContain("WEDNESDAY", "SUNDAY");
+    }
+
+    @Test
+    void listMissingDays_shouldCountBothTheGapsAndTheLoggedDays() {
+        String result = callTool("list_missing_days",
+                Map.of("fromDate", "2024-01-01", "toDate", "2024-01-06"));
+
+        assertThat(result).contains("\"daysChecked\":6", "\"missingCount\":3", "\"loggedCount\":3",
+                "2024-01-03", "2024-01-04", "2024-01-05");
+    }
+
+    @Test
+    void comparePeriods_shouldReturnBothAveragesAndTheChangeBetweenThem() {
+        String result = callTool("compare_periods", Map.of(
+                "periodAFrom", "2024-01-06", "periodATo", "2024-01-06",
+                "periodBFrom", "2024-01-01", "periodBTo", "2024-01-02"));
+
+        assertThat(result).contains("\"loggedDays\":1", "\"loggedDays\":2",
+                "\"metric\":\"CALORIES\"", "\"periodA\":3500", "\"periodB\":2250",
+                "\"absoluteChange\":1250", "\"percentageChange\":55.6");
+    }
+
+    @Test
+    void checkGoals_shouldEvaluateTheTargetsItWasGivenAsNestedObjects() {
+        String result = callTool("check_goals", Map.of(
+                "fromDate", "2024-01-01", "toDate", "2024-01-06",
+                "targets", List.of(Map.of("metric", "CALORIES", "comparator", "AT_MOST", "value", 2200)),
+                "includeDays", true));
+
+        // only 2024-01-01 stays under 2200 kcal, and the unlogged days are not counted against the goal
+        assertThat(result).contains("\"daysInRange\":6", "\"daysEvaluated\":3", "\"daysMet\":1",
+                "\"hitRate\":33.3", "\"longestStreak\":1", "\"currentStreak\":0",
+                "\"actual\":3500", "\"target\":2200");
     }
 
     @Test

@@ -20,12 +20,20 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class McpToolRegistrationTest {
 
-    private static final List<Class<?>> TOOL_CLASSES =
-            List.of(FddbQueryTools.class, FddbStatsTools.class, FddbSchemaTools.class);
+    private static final List<Class<?>> TOOL_CLASSES = List.of(FddbQueryTools.class, FddbStatsTools.class,
+            FddbAnalysisTools.class, FddbSchemaTools.class);
+
+    /**
+     * Every tool the server exposes. Asserted by name rather than by count so that adding a tool
+     * without describing it here fails loudly instead of silently shipping.
+     */
+    private static final List<String> EXPECTED_TOOL_NAMES = List.of("get_day", "get_days", "search_products",
+            "list_top_products", "get_stats", "get_averages", "get_extreme_days", "get_trend",
+            "get_weekday_breakdown", "list_missing_days", "compare_periods", "check_goals", "get_data_schema");
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withUserConfiguration(ToolTestConfiguration.class, FddbQueryTools.class, FddbStatsTools.class,
-                    FddbSchemaTools.class);
+                    FddbAnalysisTools.class, FddbSchemaTools.class);
 
     @Test
     void tools_shouldNotBeRegisteredByDefault() {
@@ -56,7 +64,8 @@ class McpToolRegistrationTest {
                 .filter(method -> method.isAnnotationPresent(McpTool.class))
                 .toList();
 
-        assertThat(tools).hasSize(6);
+        assertThat(tools).extracting(method -> method.getAnnotation(McpTool.class).name())
+                .containsExactlyInAnyOrderElementsOf(EXPECTED_TOOL_NAMES);
         tools.forEach(method -> {
             McpTool tool = method.getAnnotation(McpTool.class);
             assertThat(tool.name()).as("name of %s", method).isNotBlank();

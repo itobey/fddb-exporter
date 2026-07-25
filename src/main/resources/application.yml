@@ -24,7 +24,9 @@ spring:
           calories, fat, carbs, sugar, protein and fibre, plus the list of products logged that day.
           Dates are always ISO YYYY-MM-DD; calories are kcal and all other nutrients are grams.
           Call get_data_schema once before interpreting numbers, and prefer the aggregating tools
-          over pulling raw days when a question is about averages or trends.
+          over pulling raw days when a question is about averages or trends. Unlogged days are left
+          out of every aggregation rather than counted as zero, so check list_missing_days before
+          drawing conclusions from a long range.
 
 vaadin:
   launch-browser: false

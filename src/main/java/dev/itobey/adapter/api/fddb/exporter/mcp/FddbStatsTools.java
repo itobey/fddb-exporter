@@ -1,8 +1,10 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.RollingAveragesDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
+import dev.itobey.adapter.api.fddb.exporter.dto.mcp.ExtremeDaysResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.mcp.MissingDaysResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.mcp.TrendResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.mcp.WeekdayBreakdownResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +14,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.List;
+
+import static java.time.temporal.ChronoUnit.DAYS;
 
 /**
  * MCP tools for the aggregated view of the diary.
@@ -27,6 +32,14 @@ import java.time.LocalDate;
         name = {"fddb-exporter.mcp.enabled", "fddb-exporter.persistence.mongodb.enabled"},
         havingValue = "true")
 public class FddbStatsTools {
+
+    /**
+     * Default number of extreme days. Enough to see a pattern rather than a single outlier, small
+     * enough to stay a glanceable list.
+     */
+    private static final int DEFAULT_EXTREME_DAYS_LIMIT = 10;
+
+    private static final int MAX_EXTREME_DAYS_LIMIT = 100;
 
     private final FddbDataService fddbDataService;
 
@@ -71,5 +84,177 @@ public class FddbStatsTools {
                 .fromDate(from.toString())
                 .toDate(to.toString())
                 .build());
+    }
+
+    @McpTool(
+            name = "get_extreme_days",
+            description = """
+                    Returns the days with the highest or lowest value of one nutrient, most extreme \
+                    first, optionally restricted to a date range. Use this for "which were my \
+                    heaviest days" or "when did I eat the least protein" instead of pulling the range \
+                    and sorting it. Only the date and the value of that one nutrient come back - call \
+                    get_day for a day found here to see what was actually eaten on it.""",
+            annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
+                    idempotentHint = true, openWorldHint = false))
+    public ExtremeDaysResultDTO getExtremeDays(
+            @McpToolParam(description = "The nutrient to rank the days by: CALORIES, FAT, CARBS, "
+                    + "SUGAR, PROTEIN or FIBRE")
+            NutrientMetric metric,
+
+            @McpToolParam(description = "HIGHEST for the biggest days, LOWEST for the smallest. "
+                    + "Defaults to HIGHEST", required = false)
+            ExtremeDirection direction,
+
+            @McpToolParam(description = "How many days to return, at most 100. Defaults to 10",
+                    required = false)
+            Integer limit,
+
+            @McpToolParam(description = "Optional first day to consider (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'. Omit to search the whole "
+                    + "diary", required = false)
+            String fromDate,
+
+            @McpToolParam(description = "Optional last day to consider (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'. Omit to search the whole "
+                    + "diary", required = false)
+            String toDate) {
+        LocalDate from = McpDateParser.parseOptional(fromDate);
+        LocalDate to = McpDateParser.parseOptional(toDate);
+        ExtremeDirection effectiveDirection = direction == null ? ExtremeDirection.HIGHEST : direction;
+        int effectiveLimit = boundedLimit(limit, DEFAULT_EXTREME_DAYS_LIMIT, MAX_EXTREME_DAYS_LIMIT);
+        log.debug("MCP: retrieving the {} {} days for {} in {} to {}",
+                effectiveLimit, effectiveDirection, metric, from, to);
+
+        List<StatsDTO.DayStats> days =
+                fddbDataService.getExtremeDays(metric, effectiveDirection, effectiveLimit, from, to);
+
+        return ExtremeDaysResultDTO.builder()
+                .metric(metric)
+                .direction(effectiveDirection)
+                .unit(McpMetrics.unitOf(metric))
+                .fromDate(from)
+                .toDate(to)
+                .resultCount(days.size())
+                .days(days)
+                .build();
+    }
+
+    @McpTool(
+            name = "get_trend",
+            description = """
+                    Returns one nutrient over time as a series of buckets, each with the average and \
+                    the summed value of the days inside it. Use WEEK or MONTH granularity to answer \
+                    "am I trending up?" over a long range - DAY granularity on a long range is just \
+                    get_days with extra steps. Buckets without a single logged day are omitted rather \
+                    than reported as zero, so always read dayCount before comparing two buckets: a \
+                    week with two logged days is not comparable to a full one.""",
+            annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
+                    idempotentHint = true, openWorldHint = false))
+    public TrendResultDTO getTrend(
+            @McpToolParam(description = "The nutrient to trend: CALORIES, FAT, CARBS, SUGAR, PROTEIN "
+                    + "or FIBRE")
+            NutrientMetric metric,
+
+            @McpToolParam(description = "First day of the range (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = true)
+            String fromDate,
+
+            @McpToolParam(description = "Last day of the range (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = true)
+            String toDate,
+
+            @McpToolParam(description = "Bucket size: DAY, WEEK (ISO weeks, Monday to Sunday) or "
+                    + "MONTH. Defaults to WEEK", required = false)
+            TrendGranularity granularity) {
+        LocalDate from = McpDateParser.parse(fromDate);
+        LocalDate to = McpDateParser.parse(toDate);
+        TrendGranularity effectiveGranularity = granularity == null ? TrendGranularity.WEEK : granularity;
+        log.debug("MCP: retrieving the {} trend of {} for {} to {}", effectiveGranularity, metric, from, to);
+
+        List<TrendPointDTO> buckets = fddbDataService.getTrend(metric, from, to, effectiveGranularity);
+
+        return TrendResultDTO.builder()
+                .metric(metric)
+                .granularity(effectiveGranularity)
+                .unit(McpMetrics.unitOf(metric))
+                .fromDate(from)
+                .toDate(to)
+                .bucketCount(buckets.size())
+                .loggedDays(buckets.stream().mapToLong(TrendPointDTO::getDayCount).sum())
+                .buckets(buckets)
+                .build();
+    }
+
+    @McpTool(
+            name = "get_weekday_breakdown",
+            description = """
+                    Returns the average daily nutrition grouped by day of the week - "do my weekends \
+                    wreck the average?". Both bounds are optional; without them the whole diary is \
+                    covered. A day of the week with no logged day at all is omitted, and dayCount \
+                    says how many days each average rests on.""",
+            annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
+                    idempotentHint = true, openWorldHint = false))
+    public WeekdayBreakdownResultDTO getWeekdayBreakdown(
+            @McpToolParam(description = "Optional first day to include (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            String fromDate,
+
+            @McpToolParam(description = "Optional last day to include (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            String toDate) {
+        LocalDate from = McpDateParser.parseOptional(fromDate);
+        LocalDate to = McpDateParser.parseOptional(toDate);
+        log.debug("MCP: retrieving the weekday breakdown for {} to {}", from, to);
+
+        List<WeekdayStatsDTO> weekdays = fddbDataService.getWeekdayBreakdown(from, to);
+
+        return WeekdayBreakdownResultDTO.builder()
+                .fromDate(from)
+                .toDate(to)
+                .loggedDays(weekdays.stream().mapToLong(WeekdayStatsDTO::getDayCount).sum())
+                .weekdays(weekdays)
+                .build();
+    }
+
+    @McpTool(
+            name = "list_missing_days",
+            description = """
+                    Lists the days in a range that were never logged - "when did I forget to log?". A \
+                    day with an entry but no calories at all counts as missing too, since that is \
+                    what an aborted export looks like. Worth calling before drawing conclusions from \
+                    averages over a long range: 20 missing days out of 30 makes any average of that \
+                    month close to meaningless.""",
+            annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
+                    idempotentHint = true, openWorldHint = false))
+    public MissingDaysResultDTO listMissingDays(
+            @McpToolParam(description = "First day to check (inclusive): an ISO date (YYYY-MM-DD), "
+                    + "'today', 'yesterday' or 'N_days_ago'", required = true)
+            String fromDate,
+
+            @McpToolParam(description = "Last day to check (inclusive): an ISO date (YYYY-MM-DD), "
+                    + "'today', 'yesterday' or 'N_days_ago'", required = true)
+            String toDate) {
+        LocalDate from = McpDateParser.parse(fromDate);
+        LocalDate to = McpDateParser.parse(toDate);
+        log.debug("MCP: retrieving the missing days for {} to {}", from, to);
+
+        List<LocalDate> missingDays = fddbDataService.getMissingDays(from, to);
+        long daysChecked = DAYS.between(from, to) + 1;
+
+        return MissingDaysResultDTO.builder()
+                .fromDate(from)
+                .toDate(to)
+                .daysChecked(daysChecked)
+                .missingCount(missingDays.size())
+                .loggedCount(daysChecked - missingDays.size())
+                .missingDays(missingDays)
+                .build();
+    }
+
+    private int boundedLimit(Integer limit, int defaultLimit, int maxLimit) {
+        if (limit == null || limit <= 0) {
+            return defaultLimit;
+        }
+        return Math.min(limit, maxLimit);
     }
 }

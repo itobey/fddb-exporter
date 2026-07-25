@@ -1,11 +1,10 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.dto.mcp.DayRangeResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.mcp.DayResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.mcp.ProductSearchResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.mcp.TopProductsResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -196,6 +195,64 @@ class FddbQueryToolsTest {
         verifyNoInteractions(fddbDataService);
     }
 
+    @Test
+    void listTopProducts_shouldDefaultToTheFrequencyRankingAndReportNoTruncation() {
+        // given
+        when(fddbDataService.getTopProducts(ProductRanking.FREQUENCY, null, null, 21))
+                .thenReturn(topProducts(5));
+
+        // when
+        TopProductsResultDTO result = fddbQueryTools.listTopProducts(null, null, null, null);
+
+        // then
+        assertEquals(ProductRanking.FREQUENCY, result.getRankedBy());
+        assertEquals(20, result.getLimit());
+        assertEquals(5, result.getResultCount());
+        assertFalse(result.isTruncated());
+    }
+
+    @Test
+    void listTopProducts_shouldFlagTruncationInsteadOfSilentlyCuttingResultsOff() {
+        // given
+        when(fddbDataService.getTopProducts(ProductRanking.CALORIES, null, null, 4))
+                .thenReturn(topProducts(4));
+
+        // when
+        TopProductsResultDTO result =
+                fddbQueryTools.listTopProducts(ProductRanking.CALORIES, null, null, 3);
+
+        // then
+        assertTrue(result.isTruncated());
+        assertEquals(3, result.getResultCount());
+        assertEquals(3, result.getResults().size());
+    }
+
+    @Test
+    void listTopProducts_shouldCapTheLimitAndPassTheResolvedRange() {
+        // given
+        LocalDate from = LocalDate.of(2024, 1, 1);
+        LocalDate to = LocalDate.of(2024, 12, 31);
+        when(fddbDataService.getTopProducts(any(), any(), any(), anyInt())).thenReturn(List.of());
+
+        // when
+        TopProductsResultDTO result = fddbQueryTools.listTopProducts(
+                ProductRanking.PROTEIN, "2024-01-01", "2024-12-31", 9000);
+
+        // then
+        assertEquals(100, result.getLimit());
+        assertEquals(from, result.getFromDate());
+        assertEquals(to, result.getToDate());
+        verify(fddbDataService).getTopProducts(ProductRanking.PROTEIN, from, to, 101);
+    }
+
+    @Test
+    void listTopProducts_shouldRejectAnUnparseableDate() {
+        // when / then
+        assertThrows(DateTimeException.class,
+                () -> fddbQueryTools.listTopProducts(null, "beginning of the year", null, null));
+        verifyNoInteractions(fddbDataService);
+    }
+
     private FddbDataDTO entryFor(LocalDate date) {
         FddbDataDTO entry = new FddbDataDTO();
         entry.setId("id-" + date);
@@ -206,6 +263,12 @@ class FddbQueryToolsTest {
     private List<ProductWithDateDTO> occurrences(int amount) {
         return IntStream.range(0, amount)
                 .mapToObj(index -> new ProductWithDateDTO(LocalDate.of(2024, 12, 1).plusDays(index), new ProductDTO()))
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private List<TopProductDTO> topProducts(int amount) {
+        return IntStream.range(0, amount)
+                .mapToObj(index -> TopProductDTO.builder().name("product " + index).timesEaten(amount - index).build())
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 }
