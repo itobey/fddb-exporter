@@ -55,7 +55,8 @@ export default {
                     { text: "Exports and data", link: "/details/exports-and-data.html" },
                     { text: "Persistence", link: "/details/persistence.html" },
                     { text: "REST API", link: "/details/rest-api.html" },
-                    { text: "Correlation API", link: "/details/correlation-api.html" }
+                    {text: "Correlation API", link: "/details/correlation-api.html"},
+                    {text: "MCP Server", link: "/details/mcp-server.html"}
                 ]
             },
             {

@@ -72,6 +72,15 @@ For more information about persistence, see [Persistence details](/details/persi
 | `FDDB-EXPORTER_INFLUXDB_TOKEN`               | token                 | Token for authentication in InfluxDB |
 | `FDDB-EXPORTER_INFLUXDB_BUCKET`              | fddb-exporter         | InfluxDB bucket                      |
 
+### MCP Server Configuration
+
+The MCP server lets an AI assistant query your diary in natural language. It is **disabled by default** and requires
+MongoDB persistence. For what it exposes and how to connect a client, see [MCP Server](/details/mcp-server.md).
+
+| Variable                    | Default | Description                              |
+|-----------------------------|---------|------------------------------------------|
+| `FDDB-EXPORTER_MCP_ENABLED` | false   | Enable the MCP server endpoint at `/mcp` |
+
 ### Logging Configuration
 
 | Variable             | Default | Description           |

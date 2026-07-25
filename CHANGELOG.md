@@ -4,6 +4,16 @@
 
 ### Added
 
+- **MCP Server** (opt-in): the application can now expose your diary to an AI assistant (Claude Desktop, Claude Code or
+  any other MCP client), so you can ask questions like "how much protein did I average last month?" or "how often do I
+  eat oats, and on which weekdays?" in natural language. Six read-only tools are available — `get_day`, `get_days`,
+  `search_products`, `get_stats`, `get_averages` and `get_data_schema`. Date parameters also accept `today`,
+  `yesterday` and `N_days_ago`. The server is **disabled by default**: it serves personal health data over an
+  unauthenticated endpoint, exactly like the REST API. Enable it with `FDDB-EXPORTER_MCP_ENABLED=true`, which makes it
+  available at `/mcp` (streamable HTTP), and do not expose it to the internet without authentication in front of it. It
+  requires MongoDB persistence; with MongoDB disabled, no tools are registered.
+  See [the documentation](https://itobey.github.io/fddb-exporter/details/mcp-server)
+  for details. Nothing is written and no export is triggered by any of the tools.
 - **Trends View**: A new **Trends** view (and `/api/v2/stats/trend` endpoint) charts a single metric — calories, fat,
   carbs, sugar, protein or fibre — over a date range, bucketed by day, ISO week or month. Where Rolling Averages tells
   you your average over a range, Trends shows you whether that average is moving: a column chart with an overall-average

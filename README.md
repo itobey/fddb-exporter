@@ -40,6 +40,7 @@ See the [documentation](https://itobey.github.io/fddb-exporter/) for a deep dive
 - Provides a RESTful API for data retrieval and export operations
 - Interactive Swagger UI for easy API exploration and testing
 - A special API endpoint to find correlations to matching dates for checking food allergies
+- **MCP server** (opt-in) so an AI assistant can answer questions about your diary in natural language
 - **Automatic version checks** with notifications when updates are available
 
 # Prerequisites
@@ -96,6 +97,7 @@ I plan on implementing the following features in the future:
 - [x] InfluxDB as additional persistence layer
 - [x] embedded Vaadin Frontend UI
 - [x] automatic version check with notifications for new releases
+- [x] MCP server to query your data with an AI assistant
 
 If you have another feature in mind please open up an issue or contact me.
 
