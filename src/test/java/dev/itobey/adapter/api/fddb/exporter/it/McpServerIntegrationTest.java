@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Drives the MCP server the way a real client does: over HTTP, with the official MCP SDK client.
@@ -89,7 +90,8 @@ class McpServerIntegrationTest {
         assertThat(tools.tools()).extracting(McpSchema.Tool::name)
                 .containsExactlyInAnyOrder("get_day", "get_days", "search_products", "list_top_products",
                         "get_stats", "get_averages", "get_extreme_days", "get_trend", "get_weekday_breakdown",
-                        "list_missing_days", "compare_periods", "check_goals", "get_data_schema");
+                        "list_missing_days", "compare_periods", "check_goals", "correlate_products_with_dates",
+                        "get_data_schema");
         assertThat(tools.tools()).allSatisfy(tool -> {
             assertThat(tool.description()).isNotBlank();
             assertThat(tool.annotations().readOnlyHint()).isTrue();
@@ -224,6 +226,83 @@ class McpServerIntegrationTest {
         assertThat(result).contains("\"daysInRange\":6", "\"daysEvaluated\":3", "\"daysMet\":1",
                 "\"hitRate\":33.3", "\"longestStreak\":1", "\"currentStreak\":0",
                 "\"actual\":3500", "\"target\":2200");
+    }
+
+    @Test
+    void correlateProductsWithDates_shouldNameTheDenominatorOfEveryRatioItReports() {
+        // oats were eaten on 2024-01-01 and 2024-01-02; of the two events one falls on an oat day
+        // and the other has an oat day neither on it nor the day before it
+        String result = callTool("correlate_products_with_dates", Map.of(
+                "inclusionKeywords", List.of("hafer"),
+                "occurrenceDates", List.of("2024-01-02", "2024-01-07")));
+
+        assertThat(result).contains("\"eventDateCount\":2", "\"daysWithMatchingProduct\":2",
+                "Haferflocken kernig", "not causation");
+        assertThat(result).contains("\"sameDay\":{\"matchedDays\":1,\"percentageOfProductDays\":50.0,"
+                + "\"percentageOfEvents\":50.0,\"matchedDates\":[\"2024-01-02\"]}");
+        // the across windows collapse consecutive days, so they report no per-event share at all
+        assertThat(result).contains("\"across2Days\":{\"matchedDays\":1,\"percentageOfProductDays\":50.0,"
+                + "\"matchedDates\":[\"2024-01-01\",\"2024-01-02\"]}");
+    }
+
+    @Test
+    void correlateProductsWithDates_shouldReportAnUnmatchedKeywordInsteadOfFiveZeroes() {
+        String result = callTool("correlate_products_with_dates", Map.of(
+                "inclusionKeywords", List.of("quinoa"),
+                "occurrenceDates", List.of("2024-01-02")));
+
+        assertThat(result).contains("\"daysWithMatchingProduct\":0", "quinoa", "search_products");
+        assertThat(result).doesNotContain("sameDay", "percentageOfProductDays");
+    }
+
+    @Test
+    void listPrompts_shouldExposeEveryWorkflowWithDescribedArguments() {
+        McpSchema.ListPromptsResult prompts = mcpClient.listPrompts();
+
+        assertThat(prompts.prompts()).extracting(McpSchema.Prompt::name)
+                .containsExactlyInAnyOrder("weekly_nutrition_review", "find_trigger_foods",
+                        "protein_gap_analysis", "logging_hygiene_check");
+        assertThat(prompts.prompts()).allSatisfy(prompt -> {
+            assertThat(prompt.title()).isNotBlank();
+            assertThat(prompt.description()).isNotBlank();
+            assertThat(prompt.arguments()).isNotEmpty()
+                    .allSatisfy(argument -> assertThat(argument.description()).isNotBlank());
+        });
+
+        McpSchema.Prompt triggerFoods = prompts.prompts().stream()
+                .filter(prompt -> "find_trigger_foods".equals(prompt.name()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(triggerFoods.arguments()).extracting(McpSchema.PromptArgument::name)
+                .containsExactly("occurrenceDates", "symptom", "suspectedFoods");
+        assertThat(triggerFoods.arguments())
+                .filteredOn(argument -> "occurrenceDates".equals(argument.name()))
+                .allSatisfy(argument -> assertThat(argument.required()).isTrue());
+    }
+
+    @Test
+    void getPrompt_shouldReturnAUserMessageWithTheDatesAlreadyResolved() {
+        McpSchema.GetPromptResult result = mcpClient.getPrompt(McpSchema.GetPromptRequest
+                .builder("weekly_nutrition_review")
+                .arguments(Map.of("endDate", "2024-01-07"))
+                .build());
+
+        assertThat(result.description()).contains("2024-01-01 to 2024-01-07");
+        assertThat(result.messages()).singleElement()
+                .satisfies(message -> assertThat(message.role()).isEqualTo(McpSchema.Role.USER));
+        String text = ((McpSchema.TextContent) result.messages().getFirst().content()).text();
+        // the point of resolving them server-side: the client never has to guess what today is
+        assertThat(text).contains("2024-01-01 to 2024-01-07", "2023-12-25 to 2023-12-31",
+                "compare_periods", "list_missing_days");
+    }
+
+    @Test
+    void getPrompt_shouldReportAnUnparseableArgumentAsAnError() {
+        assertThatThrownBy(() -> mcpClient.getPrompt(McpSchema.GetPromptRequest
+                .builder("protein_gap_analysis")
+                .arguments(Map.of("target", "lots"))
+                .build()))
+                .hasMessageContaining("lots");
     }
 
     @Test

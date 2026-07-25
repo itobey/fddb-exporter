@@ -1,8 +1,11 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
+import dev.itobey.adapter.api.fddb.exporter.service.CorrelationService;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.ai.mcp.annotation.McpArg;
+import org.springframework.ai.mcp.annotation.McpPrompt;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -21,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class McpToolRegistrationTest {
 
     private static final List<Class<?>> TOOL_CLASSES = List.of(FddbQueryTools.class, FddbStatsTools.class,
-            FddbAnalysisTools.class, FddbSchemaTools.class);
+            FddbAnalysisTools.class, FddbCorrelationTools.class, FddbSchemaTools.class, FddbPrompts.class);
 
     /**
      * Every tool the server exposes. Asserted by name rather than by count so that adding a tool
@@ -29,11 +32,19 @@ class McpToolRegistrationTest {
      */
     private static final List<String> EXPECTED_TOOL_NAMES = List.of("get_day", "get_days", "search_products",
             "list_top_products", "get_stats", "get_averages", "get_extreme_days", "get_trend",
-            "get_weekday_breakdown", "list_missing_days", "compare_periods", "check_goals", "get_data_schema");
+            "get_weekday_breakdown", "list_missing_days", "compare_periods", "check_goals",
+            "correlate_products_with_dates", "get_data_schema");
+
+    /**
+     * Every prompt the server exposes, asserted by name for the same reason as the tools.
+     */
+    private static final List<String> EXPECTED_PROMPT_NAMES = List.of("weekly_nutrition_review",
+            "find_trigger_foods", "protein_gap_analysis", "logging_hygiene_check");
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withUserConfiguration(ToolTestConfiguration.class, FddbQueryTools.class, FddbStatsTools.class,
-                    FddbAnalysisTools.class, FddbSchemaTools.class);
+                    FddbAnalysisTools.class, FddbCorrelationTools.class, FddbSchemaTools.class,
+                    FddbPrompts.class);
 
     @Test
     void tools_shouldNotBeRegisteredByDefault() {
@@ -76,12 +87,41 @@ class McpToolRegistrationTest {
         });
     }
 
+    @Test
+    void prompts_shouldAllBeNamedTitledAndDescribed() {
+        List<Method> prompts = Arrays.stream(FddbPrompts.class.getDeclaredMethods())
+                .filter(method -> method.isAnnotationPresent(McpPrompt.class))
+                .toList();
+
+        assertThat(prompts).extracting(method -> method.getAnnotation(McpPrompt.class).name())
+                .containsExactlyInAnyOrderElementsOf(EXPECTED_PROMPT_NAMES);
+        prompts.forEach(method -> {
+            McpPrompt prompt = method.getAnnotation(McpPrompt.class);
+            assertThat(prompt.title()).as("title of %s", method).isNotBlank();
+            assertThat(prompt.description()).as("description of %s", method).isNotBlank();
+            // without @McpArg an argument is advertised as "Parameter of type String", which tells
+            // the user picking the prompt in their client nothing at all
+            assertThat(method.getParameters()).as("arguments of %s", method)
+                    .allSatisfy(parameter -> {
+                        McpArg arg = parameter.getAnnotation(McpArg.class);
+                        assertThat(arg).isNotNull();
+                        assertThat(arg.name()).isNotBlank();
+                        assertThat(arg.description()).isNotBlank();
+                    });
+        });
+    }
+
     @Configuration(proxyBeanMethods = false)
     static class ToolTestConfiguration {
 
         @Bean
         FddbDataService fddbDataService() {
             return Mockito.mock(FddbDataService.class);
+        }
+
+        @Bean
+        CorrelationService correlationService() {
+            return Mockito.mock(CorrelationService.class);
         }
     }
 }

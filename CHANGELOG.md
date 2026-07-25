@@ -6,13 +6,22 @@
 
 - **MCP Server** (opt-in): the application can now expose your diary to an AI assistant (Claude Desktop, Claude Code or
   any other MCP client), so you can ask questions like "how much protein did I average last month?" or "how often do I
-  eat oats, and on which weekdays?" in natural language. Thirteen read-only tools are available:
+  eat oats, and on which weekdays?" in natural language. Fourteen read-only tools are available:
   - **Diary** — `get_day`, `get_days`, `list_missing_days`
   - **Products** — `search_products`, `list_top_products`
   - **Statistics and analysis** — `get_stats`, `get_averages`, `get_extreme_days`, `get_trend`,
     `get_weekday_breakdown`, `compare_periods` (two ranges side by side, with the change per nutrient) and
     `check_goals` (your own calorie/macro targets, with hit rate and streaks)
+  - **Correlation** — `correlate_products_with_dates` counts how often a product was eaten on, one day before and two
+    days before the dates you report a migraine, bad sleep or a flare-up on. It reports both ratios that matter (the
+    share of your product days that line up with an event, and the share of events preceded by the product) and states
+    that this is co-occurrence, not causation
   - **Meta** — `get_data_schema`
+
+  It also ships four **prompts** — workflows your client offers by name, as slash commands in Claude Code and Claude
+  Desktop: `weekly_nutrition_review`, `find_trigger_foods`, `protein_gap_analysis` and `logging_hygiene_check`. Each
+  runs several tools in a deliberate order and resolves its dates on the server, so a "review of last week" cannot be
+  anchored on the assistant's stale idea of today.
 
   Date parameters also accept `today`, `yesterday` and `N_days_ago`. The server is **disabled by default**: it serves
   personal health data over an unauthenticated endpoint, exactly like the REST API. Enable it with
