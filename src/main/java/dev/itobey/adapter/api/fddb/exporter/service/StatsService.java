@@ -90,6 +90,32 @@ public class StatsService {
                 .build();
     }
 
+    /**
+     * Returns just the period the diary covers: the number of entries and the dates of the first
+     * and the last one.
+     * <p>
+     * The narrow alternative to {@link #getStats()} for a caller that wants nothing else. Stats
+     * computes per-nutrient extremes, unique-product counts and both streaks over the entire
+     * collection, which is a multi-second aggregation on a diary of several years; this is a count
+     * and two indexed lookups.
+     *
+     * @return the coverage window, with a zero count and null dates when the diary is empty
+     */
+    public CoverageWindowDTO getCoverageWindow() {
+        requireMongoTemplate();
+        long amountEntries = getAmountEntries();
+
+        if (amountEntries == 0) {
+            return CoverageWindowDTO.builder().entryCount(0).build();
+        }
+
+        return CoverageWindowDTO.builder()
+                .entryCount(amountEntries)
+                .firstEntryDate(getFirstEntryDate())
+                .lastEntryDate(getLastEntryDate())
+                .build();
+    }
+
     private long getAmountEntries() {
         return mongoTemplate.count(new Query(), COLLECTION_NAME);
     }

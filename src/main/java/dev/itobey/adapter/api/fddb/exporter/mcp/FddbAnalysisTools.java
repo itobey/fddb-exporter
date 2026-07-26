@@ -15,6 +15,7 @@ import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -177,23 +178,49 @@ public class FddbAnalysisTools {
     }
 
     /**
-     * Loads a period and averages it, keeping the number of days the averages rest on. The entries
-     * are fetched even though the averaging happens in the database: it is the only way to report
-     * {@code loggedDays}, and it turns an empty period into a plain answer rather than the
-     * "No data available for averaging" the averaging aggregation would raise.
+     * Counts a period and averages it, keeping the number of days the averages rest on.
+     * <p>
+     * The count is the whole reason for the first round-trip: it reports {@code loggedDays}, and a
+     * zero turns an empty period into a plain answer rather than the "No data available for
+     * averaging" the averaging aggregation would raise. Only the count is needed, so it stays a
+     * count - loading the days themselves would move up to 366 documents per period over the wire
+     * to have {@code size()} called on them.
      */
     private PeriodComparisonDTO.Period summarize(LocalDate from, LocalDate to) {
-        List<FddbDataDTO> entries = fddbDataService.findByDateRange(from, to, false);
+        long daysInRange = daysIn(from, to);
+        long loggedDays = fddbDataService.countByDateRange(from, to);
 
-        StatsDTO.Averages averages = entries.isEmpty() ? null : averagesFor(from, to);
+        StatsDTO.Averages averages = loggedDays == 0 ? null : averagesFor(from, to);
 
         return PeriodComparisonDTO.Period.builder()
                 .fromDate(from)
                 .toDate(to)
-                .daysInRange(DAYS.between(from, to) + 1)
-                .loggedDays(entries.size())
+                .daysInRange(daysInRange)
+                .loggedDays((int) loggedDays)
                 .averages(averages)
                 .build();
+    }
+
+    /**
+     * The number of days in a period, rejecting an inverted range and one longer than
+     * {@link FddbDataService#MAX_RANGE_DAYS} - the limit the tool description promises.
+     * <p>
+     * Enforced here rather than inherited: {@link #summarize} counts and averages a period instead of
+     * loading it, and neither {@link FddbDataService#countByDateRange} nor
+     * {@link FddbDataService#getRollingAverages} caps the range the way
+     * {@link FddbDataService#findByDateRange} does.
+     */
+    private long daysIn(LocalDate from, LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
+        }
+
+        long days = DAYS.between(from, to) + 1;
+        if (days > FddbDataService.MAX_RANGE_DAYS) {
+            throw new DateTimeException("A period must not exceed " + FddbDataService.MAX_RANGE_DAYS
+                    + " days, but " + days + " were requested - please narrow the range");
+        }
+        return days;
     }
 
     private StatsDTO.Averages averagesFor(LocalDate from, LocalDate to) {

@@ -133,7 +133,7 @@ client is concerned.
 | Tool                   | Parameters              | Does                                                                                  |
 |------------------------|-------------------------|-----------------------------------------------------------------------------------------|
 | `export_range`         | `fromDate`, `toDate`    | Scrapes and stores a date range, at most 14 days per call                               |
-| `export_days_back`     | `days`, `includeToday?` | Scrapes and stores the last N days (at most 14), ending yesterday unless you ask for today |
+| `export_days_back`     | `days`, `includeToday?` | Scrapes and stores the last N days (1 to 14), ending yesterday unless you ask for today |
 | `export_missing_days`  | `fromDate`, `toDate`    | Scrapes only the days in the range that have no entry yet — the repair for logging gaps  |
 
 Worth knowing before turning this on:
@@ -159,6 +159,10 @@ Worth knowing before turning this on:
   already running"* rather than queued — an assistant handles "try again later" well, and two runs scraping fddb.info
   under one account at once only double the load. The scheduled export skips that night's run if it collides with a
   manual one; the REST API answers `409 Conflict`.
+- **The assistant is told to leave them alone by default.** The server's always-in-context instructions say that
+  exporting fetches fresh data from fddb.info under your own account and costs about a second a day, and that it is for
+  when you explicitly ask for fresh data — never for answering a question about data that is already stored. The
+  sentence is there whether or not the tools are registered, so the posture is set before the tool list is even read.
 - Wrong FDDB credentials abort the whole call rather than being reported per day.
 
 ### Correlating food with events

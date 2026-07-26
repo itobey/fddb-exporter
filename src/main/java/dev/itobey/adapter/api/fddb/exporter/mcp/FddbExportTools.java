@@ -124,10 +124,10 @@ public class FddbExportTools {
                     way to catch up without working out dates. Without includeToday the range ends \
                     yesterday, which is usually what is wanted: a day still in progress is \
                     incomplete on FDDB too. Existing entries are updated rather than duplicated. \
-                    Each day is a separate request to fddb.info and takes roughly a second: at most \
-                    14 days per call. Anything larger belongs in the app's Web UI or its REST API \
-                    (GET /api/v2/fddbdata/export), which are not capped - say so instead of \
-                    splitting a backfill across many calls.""",
+                    Each day is a separate request to fddb.info and takes roughly a second: at least \
+                    1 and at most 14 days per call. Anything larger belongs in the app's Web UI or \
+                    its REST API (GET /api/v2/fddbdata/export), which are not capped - say so \
+                    instead of splitting a backfill across many calls.""",
             annotations = @McpTool.McpAnnotations(destructiveHint = false,
                     idempotentHint = true))
     public ExportSummaryDTO exportDaysBack(
@@ -139,6 +139,13 @@ public class FddbExportTools {
                     + "Defaults to false", required = false)
             Boolean includeToday) {
         boolean withToday = Boolean.TRUE.equals(includeToday);
+        // both bounds are checked here rather than left to the service, whose own message names the
+        // configured 1-365 window - a range this tool does not have and an agent cannot act on
+        if (days < 1) {
+            throw new DateTimeException("An export covers at least one day, but " + days
+                    + " were requested - pass how many days to count back from the end of the "
+                    + "range, e.g. 7 for the last week.");
+        }
         if (days > MAX_EXPORT_DAYS) {
             throw new DateTimeException(exportTooLargeMessage(days));
         }

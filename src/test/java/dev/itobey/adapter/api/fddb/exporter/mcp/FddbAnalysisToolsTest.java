@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -39,8 +38,8 @@ class FddbAnalysisToolsTest {
     @Test
     void comparePeriods_shouldReportBothAveragesAndTheChangeFromBToA() {
         // given
-        when(fddbDataService.findByDateRange(A_FROM, A_TO, false)).thenReturn(days(A_FROM, 20));
-        when(fddbDataService.findByDateRange(B_FROM, B_TO, false)).thenReturn(days(B_FROM, 31));
+        when(fddbDataService.countByDateRange(A_FROM, A_TO)).thenReturn(20L);
+        when(fddbDataService.countByDateRange(B_FROM, B_TO)).thenReturn(31L);
         stubAverages(A_FROM, A_TO, averages(2200, 100));
         stubAverages(B_FROM, B_TO, averages(2000, 80));
 
@@ -70,8 +69,8 @@ class FddbAnalysisToolsTest {
     @Test
     void comparePeriods_shouldReportANegativeChangeWhenPeriodAIsLower() {
         // given
-        when(fddbDataService.findByDateRange(A_FROM, A_TO, false)).thenReturn(days(A_FROM, 29));
-        when(fddbDataService.findByDateRange(B_FROM, B_TO, false)).thenReturn(days(B_FROM, 31));
+        when(fddbDataService.countByDateRange(A_FROM, A_TO)).thenReturn(29L);
+        when(fddbDataService.countByDateRange(B_FROM, B_TO)).thenReturn(31L);
         stubAverages(A_FROM, A_TO, averages(1800, 80));
         stubAverages(B_FROM, B_TO, averages(2000, 80));
 
@@ -88,8 +87,8 @@ class FddbAnalysisToolsTest {
     @Test
     void comparePeriods_shouldExplainAnEmptyPeriodInsteadOfFailingToAverageIt() {
         // given
-        when(fddbDataService.findByDateRange(A_FROM, A_TO, false)).thenReturn(List.of());
-        when(fddbDataService.findByDateRange(B_FROM, B_TO, false)).thenReturn(days(B_FROM, 31));
+        when(fddbDataService.countByDateRange(A_FROM, A_TO)).thenReturn(0L);
+        when(fddbDataService.countByDateRange(B_FROM, B_TO)).thenReturn(31L);
         stubAverages(B_FROM, B_TO, averages(2000, 80));
 
         // when
@@ -110,8 +109,8 @@ class FddbAnalysisToolsTest {
     @Test
     void comparePeriods_shouldOmitThePercentageWhenTheBaselineIsZero() {
         // given
-        when(fddbDataService.findByDateRange(A_FROM, A_TO, false)).thenReturn(days(A_FROM, 29));
-        when(fddbDataService.findByDateRange(B_FROM, B_TO, false)).thenReturn(days(B_FROM, 31));
+        when(fddbDataService.countByDateRange(A_FROM, A_TO)).thenReturn(29L);
+        when(fddbDataService.countByDateRange(B_FROM, B_TO)).thenReturn(31L);
         stubAverages(A_FROM, A_TO, averages(2000, 80));
         stubAverages(B_FROM, B_TO, averages(2000, 0));
 
@@ -123,6 +122,41 @@ class FddbAnalysisToolsTest {
         PeriodComparisonDTO.MetricDelta protein = deltaOf(result, NutrientMetric.PROTEIN);
         assertEquals(80, protein.getAbsoluteChange());
         assertNull(protein.getPercentageChange());
+    }
+
+    @Test
+    void comparePeriods_shouldCountThePeriodsRatherThanLoadThem() {
+        // given
+        when(fddbDataService.countByDateRange(A_FROM, A_TO)).thenReturn(20L);
+        when(fddbDataService.countByDateRange(B_FROM, B_TO)).thenReturn(31L);
+        stubAverages(A_FROM, A_TO, averages(2200, 100));
+        stubAverages(B_FROM, B_TO, averages(2000, 80));
+
+        // when
+        fddbAnalysisTools.comparePeriods("2024-02-01", "2024-02-29", "2024-01-01", "2024-01-31");
+
+        // then loggedDays is a count, and fetching up to 366 documents per period to call size() on
+        // them is not how it should be obtained - the averages come from their own aggregation
+        verify(fddbDataService, never()).findByDateRange(any(), any(), anyBoolean());
+    }
+
+    @Test
+    void comparePeriods_shouldRejectAPeriodLongerThanTheRangeCap() {
+        // when / then: 367 days, one over the cap the tool description states
+        DateTimeException exception = assertThrows(DateTimeException.class,
+                () -> fddbAnalysisTools.comparePeriods("2024-01-01", "2025-01-01",
+                        "2023-01-01", "2023-01-31"));
+        assertTrue(exception.getMessage().contains("366"), exception.getMessage());
+        verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
+    void comparePeriods_shouldRejectAnInvertedPeriod() {
+        // when / then
+        assertThrows(DateTimeException.class,
+                () -> fddbAnalysisTools.comparePeriods("2024-02-29", "2024-02-01",
+                        "2024-01-01", "2024-01-31"));
+        verifyNoInteractions(fddbDataService);
     }
 
     @Test
@@ -298,12 +332,6 @@ class FddbAnalysisToolsTest {
 
     private GoalTargetDTO atLeast(NutrientMetric metric, double value) {
         return GoalTargetDTO.builder().metric(metric).comparator(GoalComparator.AT_LEAST).value(value).build();
-    }
-
-    private List<FddbDataDTO> days(LocalDate from, int amount) {
-        return IntStream.range(0, amount)
-                .mapToObj(index -> day(from.plusDays(index), 2000, 100))
-                .toList();
     }
 
     private FddbDataDTO day(LocalDate date, double calories, double protein) {

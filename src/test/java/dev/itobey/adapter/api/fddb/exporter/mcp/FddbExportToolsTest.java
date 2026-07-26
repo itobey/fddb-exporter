@@ -154,6 +154,17 @@ class FddbExportToolsTest {
     }
 
     @Test
+    void exportDaysBack_shouldRefuseFewerThanOneDay() {
+        // when / then: the service would answer "Days back must be between 1 and 365", naming a
+        // window this tool does not have
+        DateTimeException exception = assertThrows(DateTimeException.class,
+                () -> fddbExportTools.exportDaysBack(0, false));
+        assertTrue(exception.getMessage().contains("at least one day"), exception.getMessage());
+        assertThrows(DateTimeException.class, () -> fddbExportTools.exportDaysBack(-3, true));
+        verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
     void exportMissingDays_shouldExportOnlyTheGaps() {
         // given
         passThroughExportLock();

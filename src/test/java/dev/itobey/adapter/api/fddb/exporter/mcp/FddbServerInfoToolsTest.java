@@ -1,7 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.CoverageWindowDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.mcp.ServerInfoDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import dev.itobey.adapter.api.fddb.exporter.service.VersionCheckService;
@@ -15,7 +15,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class FddbServerInfoToolsTest {
@@ -37,7 +37,7 @@ class FddbServerInfoToolsTest {
     @Test
     void getServerInfo_shouldReportTodayAsTheServerSeesIt() {
         // given
-        stubStats();
+        stubCoverage();
         when(versionCheckService.getCurrentVersion()).thenReturn("1.2.3");
 
         // when
@@ -52,7 +52,7 @@ class FddbServerInfoToolsTest {
     @Test
     void getServerInfo_shouldReportTheConfigurationAndTheCoverageWindow() {
         // given
-        stubStats();
+        stubCoverage();
         when(versionCheckService.getCurrentVersion()).thenReturn("dev");
 
         // when
@@ -74,7 +74,7 @@ class FddbServerInfoToolsTest {
         // given
         fddbServerInfoTools = new FddbServerInfoTools(fddbDataService, versionCheckService,
                 propertiesWith(true, true, false, "0 0 3 * * *", true));
-        stubStats();
+        stubCoverage();
         when(versionCheckService.getCurrentVersion()).thenReturn("dev");
 
         // when
@@ -87,9 +87,24 @@ class FddbServerInfoToolsTest {
         assertTrue(info.isWriteToolsEnabled());
     }
 
-    private void stubStats() {
-        when(fddbDataService.getStats()).thenReturn(StatsDTO.builder()
-                .amountEntries(357)
+    @Test
+    void getServerInfo_shouldNotComputeFullStatsJustToReportTheWindow() {
+        // given
+        stubCoverage();
+        when(versionCheckService.getCurrentVersion()).thenReturn("dev");
+
+        // when
+        fddbServerInfoTools.getServerInfo();
+
+        // then the description calls this the cheapest way to learn today's date, and every client
+        // is told to start with it - full stats would aggregate extremes, streaks and product
+        // counts over the whole collection to have three fields read
+        verify(fddbDataService, never()).getStats();
+    }
+
+    private void stubCoverage() {
+        when(fddbDataService.getCoverageWindow()).thenReturn(CoverageWindowDTO.builder()
+                .entryCount(357)
                 .firstEntryDate(LocalDate.of(2024, 1, 1))
                 .lastEntryDate(LocalDate.of(2024, 12, 22))
                 .build());

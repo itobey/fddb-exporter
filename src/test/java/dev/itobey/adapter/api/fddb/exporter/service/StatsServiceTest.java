@@ -20,9 +20,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class StatsServiceTest {
@@ -157,6 +156,44 @@ class StatsServiceTest {
         assertThat(result.getMissingDaysCount()).isZero();
         assertThat(result.getCurrentStreak()).isZero();
         assertThat(result.getLongestStreak()).isZero();
+    }
+
+    @Test
+    void getCoverageWindow_shouldReportTheEdgesWithoutAggregatingAnything() {
+        // given
+        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(357L);
+        FddbData first = new FddbData();
+        first.setDate(LocalDate.of(2024, 1, 1));
+        FddbData last = new FddbData();
+        last.setDate(LocalDate.of(2024, 12, 22));
+        when(mongoTemplate.findOne(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
+                .thenReturn(first)
+                .thenReturn(last);
+
+        // when
+        CoverageWindowDTO result = statsService.getCoverageWindow();
+
+        // then
+        assertThat(result.getEntryCount()).isEqualTo(357L);
+        assertThat(result.getFirstEntryDate()).isEqualTo(LocalDate.of(2024, 1, 1));
+        assertThat(result.getLastEntryDate()).isEqualTo(LocalDate.of(2024, 12, 22));
+        // this is what makes it the cheap alternative to getStats(): a count and two indexed reads
+        verify(mongoTemplate, never()).aggregate(any(Aggregation.class), anyString(), any());
+    }
+
+    @Test
+    void getCoverageWindow_shouldReportAnEmptyDiaryWithoutLookingForEdges() {
+        // given
+        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(0L);
+
+        // when
+        CoverageWindowDTO result = statsService.getCoverageWindow();
+
+        // then a fresh install answers rather than failing, as getStats() does
+        assertThat(result.getEntryCount()).isZero();
+        assertThat(result.getFirstEntryDate()).isNull();
+        assertThat(result.getLastEntryDate()).isNull();
+        verify(mongoTemplate, never()).findOne(any(Query.class), eq(FddbData.class), anyString());
     }
 
     @Test

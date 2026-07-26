@@ -1,7 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
-import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.CoverageWindowDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.mcp.ServerInfoDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import dev.itobey.adapter.api.fddb.exporter.service.VersionCheckService;
@@ -47,7 +47,7 @@ public class FddbServerInfoTools {
     public ServerInfoDTO getServerInfo() {
         log.debug("MCP: returning server info");
 
-        StatsDTO stats = fddbDataService.getStats();
+        CoverageWindowDTO coverage = fddbDataService.getCoverageWindow();
         FddbExporterProperties.Scheduler scheduler = properties.getScheduler();
         boolean schedulerEnabled = scheduler != null && scheduler.isEnabled();
 
@@ -60,9 +60,9 @@ public class FddbServerInfoTools {
                 .schedulerEnabled(schedulerEnabled)
                 .schedulerCron(schedulerEnabled ? scheduler.getCron() : null)
                 .writeToolsEnabled(properties.getMcp() != null && properties.getMcp().isWriteToolsEnabled())
-                .firstEntryDate(stats.getFirstEntryDate())
-                .lastEntryDate(stats.getLastEntryDate())
-                .entryCount(stats.getAmountEntries())
+                .firstEntryDate(coverage.getFirstEntryDate())
+                .lastEntryDate(coverage.getLastEntryDate())
+                .entryCount(coverage.getEntryCount())
                 .build();
     }
 }

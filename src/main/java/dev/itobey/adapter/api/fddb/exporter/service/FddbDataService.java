@@ -260,6 +260,15 @@ public class FddbDataService {
         return statsService.getStats();
     }
 
+    /**
+     * Returns only the period the diary covers, without computing the rest of {@link #getStats()}.
+     *
+     * @return the first and last logged day and how many days have an entry
+     */
+    public CoverageWindowDTO getCoverageWindow() {
+        return statsService.getCoverageWindow();
+    }
+
     public RollingAveragesDTO getRollingAverages(DateRangeDTO dateRangeDTO) {
         LocalDate fromDate = LocalDate.parse(dateRangeDTO.getFromDate());
         LocalDate toDate = LocalDate.parse(dateRangeDTO.getToDate());

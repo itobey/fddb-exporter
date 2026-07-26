@@ -27,7 +27,11 @@ spring:
           get_data_schema once before interpreting numbers. Prefer the aggregating tools over pulling
           raw days when a question is about averages or trends. Unlogged days are left out of every
           aggregation rather than counted as zero, so check list_missing_days before drawing
-          conclusions from a long range.
+          conclusions from a long range. Everything here reads stored data. If export tools are
+          present as well, they fetch fresh data from fddb.info, take about a second per day and put
+          load on a third-party site under the user's own account - use them only when the user
+          explicitly asks for fresh data, never to answer a question about data that is already
+          stored, and never several at once.
 
 vaadin:
   launch-browser: false
