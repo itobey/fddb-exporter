@@ -41,7 +41,8 @@ See the [documentation](https://itobey.github.io/fddb-exporter/) for a deep dive
 - Interactive Swagger UI for easy API exploration and testing
 - A special API endpoint to find correlations to matching dates for checking food allergies
 - **MCP server** (opt-in) so an AI assistant can answer questions about your diary in natural language, with ready-made
-  workflows for a weekly review, a trigger-food analysis, a protein gap check and a logging hygiene check
+  workflows for a weekly review, a trigger-food analysis, a protein gap check and a logging hygiene check — read-only
+  by default, with optional tools to export fresh data from FDDB on request
 - **Automatic version checks** with notifications when updates are available
 
 # Prerequisites

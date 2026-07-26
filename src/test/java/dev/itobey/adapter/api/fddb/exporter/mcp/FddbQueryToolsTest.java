@@ -1,10 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.DayRangeResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.DayResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.ProductSearchResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.TopProductsResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.mcp.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -251,6 +248,164 @@ class FddbQueryToolsTest {
         assertThrows(DateTimeException.class,
                 () -> fddbQueryTools.listTopProducts(null, "beginning of the year", null, null));
         verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
+    void getProductSummary_shouldPassTheResolvedRangeAndReturnTheSummary() {
+        // given
+        ProductSummaryDTO summary = ProductSummaryDTO.builder()
+                .searchTerm("hafer")
+                .timesEaten(42)
+                .matchedProductNames(List.of("Haferflocken kernig"))
+                .build();
+        when(fddbDataService.getProductSummary("hafer", LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31)))
+                .thenReturn(summary);
+
+        // when
+        ProductSummaryResultDTO result =
+                fddbQueryTools.getProductSummary("hafer", "2024-01-01", "2024-12-31");
+
+        // then
+        assertTrue(result.isFound());
+        assertSame(summary, result.getSummary());
+        assertEquals(LocalDate.of(2024, 1, 1), result.getFromDate());
+        assertEquals(LocalDate.of(2024, 12, 31), result.getToDate());
+        assertNull(result.getMessage());
+    }
+
+    @Test
+    void getProductSummary_shouldPointAtTheVocabularyLookupWhenNothingMatched() {
+        // given zeroed totals read like a real answer, so an unmatched term has to say so
+        when(fddbDataService.getProductSummary(eq("quinoa"), any(), any()))
+                .thenReturn(ProductSummaryDTO.builder().searchTerm("quinoa").timesEaten(0).build());
+
+        // when
+        ProductSummaryResultDTO result = fddbQueryTools.getProductSummary("quinoa", null, null);
+
+        // then
+        assertFalse(result.isFound());
+        assertNull(result.getSummary());
+        assertTrue(result.getMessage().contains("list_distinct_products"));
+    }
+
+    @Test
+    void listDistinctProducts_shouldReportThatItTruncatedTheResult() {
+        // given
+        when(fddbDataService.findDistinctProductNames("flocken", 3)).thenReturn(names(3));
+
+        // when
+        DistinctProductsResultDTO result = fddbQueryTools.listDistinctProducts("flocken", 2);
+
+        // then
+        assertTrue(result.isTruncated());
+        assertEquals(2, result.getResultCount());
+        assertEquals(2, result.getLimit());
+        assertEquals("flocken", result.getSearchTerm());
+    }
+
+    @Test
+    void listDistinctProducts_shouldCapTheLimit() {
+        // given
+        when(fddbDataService.findDistinctProductNames(null, 501)).thenReturn(names(1));
+
+        // when
+        DistinctProductsResultDTO result = fddbQueryTools.listDistinctProducts(null, 9000);
+
+        // then
+        assertEquals(500, result.getLimit());
+        assertFalse(result.isTruncated());
+        verify(fddbDataService).findDistinctProductNames(null, 501);
+    }
+
+    @Test
+    void findDaysWithProducts_shouldReturnTheDaysNewestFirstAndCountTheOccurrencesBehindThem() {
+        // given
+        LocalDate first = LocalDate.of(2024, 1, 1);
+        LocalDate second = LocalDate.of(2024, 1, 2);
+        when(fddbDataService.findDaysWithProducts(eq(List.of("hafer")), isNull(), isNull(), anyInt()))
+                .thenReturn(List.of(
+                        matchedDay(second, 1, "Haferdrink"),
+                        matchedDay(first, 2, "Haferflocken kernig")));
+
+        // when
+        DaysWithProductsResultDTO result =
+                fddbQueryTools.findDaysWithProducts(List.of("hafer"), null, null, null);
+
+        // then two portions on one day are one day, but still two occurrences
+        assertEquals(2, result.getDayCount());
+        assertEquals(2, result.getMatchedDayCount());
+        assertEquals(3, result.getOccurrenceCount());
+        assertFalse(result.isTruncated());
+        assertEquals(second, result.getDays().getFirst().getDate());
+        assertEquals(List.of("Haferdrink"), result.getDays().getFirst().getProducts());
+        assertEquals(List.of("Haferflocken kernig"), result.getDays().getLast().getProducts());
+        // nothing was cut, so the totals are already known and cost no second query
+        verify(fddbDataService, never()).countDaysWithProducts(any(), any(), any());
+    }
+
+    @Test
+    void findDaysWithProducts_shouldPassTheExclusionsAndTheResolvedStartDate() {
+        // given
+        when(fddbDataService.findDaysWithProducts(any(), any(), any(), anyInt())).thenReturn(List.of());
+
+        // when
+        DaysWithProductsResultDTO result = fddbQueryTools.findDaysWithProducts(
+                List.of("hafer"), List.of("keks"), "2024-01-01", null);
+
+        // then: the cap goes into the query, one over the limit so an overflow is visible
+        verify(fddbDataService).findDaysWithProducts(
+                List.of("hafer"), List.of("keks"), LocalDate.of(2024, 1, 1), 101);
+        assertEquals(LocalDate.of(2024, 1, 1), result.getStartDate());
+        assertEquals(List.of("keks"), result.getExcludeKeywords());
+    }
+
+    @Test
+    void findDaysWithProducts_shouldReportTheFullTotalsWhenItTruncates() {
+        // given: the store returns limit + 1, which is how truncation is detected
+        when(fddbDataService.findDaysWithProducts(any(), any(), any(), anyInt())).thenReturn(List.of(
+                matchedDay(LocalDate.of(2024, 1, 2), 1, "Haferflocken"),
+                matchedDay(LocalDate.of(2024, 1, 1), 1, "Haferflocken")));
+        when(fddbDataService.countDaysWithProducts(List.of("hafer"), null, null))
+                .thenReturn(ProductDayTotalsDTO.builder().dayCount(412).occurrenceCount(931).build());
+
+        // when
+        DaysWithProductsResultDTO result =
+                fddbQueryTools.findDaysWithProducts(List.of("hafer"), null, null, 1);
+
+        // then: "on how many days did I eat this?" is answerable from a truncated response
+        assertTrue(result.isTruncated());
+        assertEquals(1, result.getDayCount());
+        assertEquals(1, result.getDays().size());
+        assertEquals(412, result.getMatchedDayCount());
+        assertEquals(931, result.getOccurrenceCount());
+    }
+
+    @Test
+    void findDaysWithProducts_shouldRefuseToMatchEverything() {
+        // when / then without a keyword this would return the whole diary
+        assertThrows(IllegalArgumentException.class,
+                () -> fddbQueryTools.findDaysWithProducts(List.of(), null, null, null));
+        verifyNoInteractions(fddbDataService);
+    }
+
+    private ProductWithDateDTO occurrence(LocalDate date, String name) {
+        ProductDTO product = new ProductDTO();
+        product.setName(name);
+        return new ProductWithDateDTO(date, product);
+    }
+
+    private DayWithProductsDTO matchedDay(LocalDate date, long occurrences, String... products) {
+        return DayWithProductsDTO.builder()
+                .date(date)
+                .products(List.of(products))
+                .occurrences(occurrences)
+                .build();
+    }
+
+    private List<String> names(int amount) {
+        return IntStream.range(0, amount)
+                .mapToObj(index -> "product " + index)
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private FddbDataDTO entryFor(LocalDate date) {

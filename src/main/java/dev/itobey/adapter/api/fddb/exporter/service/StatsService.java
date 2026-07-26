@@ -125,6 +125,26 @@ public class StatsService {
     }
 
     /**
+     * Counts the entries in a date range, both bounds inclusive and either of them optional.
+     * <p>
+     * This is the denominator of {@link #getAveragesForDateRange}: how many days its numbers rest
+     * on, and — when it is zero — the cheap way to know beforehand that the averaging aggregation
+     * would have nothing to average.
+     *
+     * @param fromDate the first date to count, or null for no lower bound
+     * @param toDate   the last date to count, or null for no upper bound
+     * @return the number of days in the range that have an entry
+     */
+    public long countByDateRange(LocalDate fromDate, LocalDate toDate) {
+        requireMongoTemplate();
+        validateDateRange(fromDate, toDate);
+
+        Criteria criteria = buildDateCriteria(fromDate, toDate);
+        Query query = criteria == null ? new Query() : new Query(criteria);
+        return mongoTemplate.count(query, COLLECTION_NAME);
+    }
+
+    /**
      * Returns the top or bottom N days for a metric, optionally scoped to a date range.
      * This is the range-aware generalisation of the all-time, single-day extremes reported by
      * {@link #getStats()}.

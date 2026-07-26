@@ -4,53 +4,23 @@
 
 ### Added
 
-- **MCP Server** (opt-in): the application can now expose your diary to an AI assistant (Claude Desktop, Claude Code or
-  any other MCP client), so you can ask questions like "how much protein did I average last month?" or "how often do I
-  eat oats, and on which weekdays?" in natural language. Fourteen read-only tools are available:
-  - **Diary** — `get_day`, `get_days`, `list_missing_days`
-  - **Products** — `search_products`, `list_top_products`
-  - **Statistics and analysis** — `get_stats`, `get_averages`, `get_extreme_days`, `get_trend`,
-    `get_weekday_breakdown`, `compare_periods` (two ranges side by side, with the change per nutrient) and
-    `check_goals` (your own calorie/macro targets, with hit rate and streaks)
-  - **Correlation** — `correlate_products_with_dates` counts how often a product was eaten on, one day before and two
-    days before the dates you report a migraine, bad sleep or a flare-up on. It reports both ratios that matter (the
-    share of your product days that line up with an event, and the share of events preceded by the product) and states
-    that this is co-occurrence, not causation
-  - **Meta** — `get_data_schema`
-
-  It also ships four **prompts** — workflows your client offers by name, as slash commands in Claude Code and Claude
-  Desktop: `weekly_nutrition_review`, `find_trigger_foods`, `protein_gap_analysis` and `logging_hygiene_check`. Each
-  runs several tools in a deliberate order and resolves its dates on the server, so a "review of last week" cannot be
-  anchored on the assistant's stale idea of today.
-
-  Date parameters also accept `today`, `yesterday` and `N_days_ago`. The server is **disabled by default**: it serves
-  personal health data over an unauthenticated endpoint, exactly like the REST API. Enable it with
-  `FDDB-EXPORTER_MCP_ENABLED=true`, which makes it available at `/mcp` (streamable HTTP), and do not expose it to the
-  internet without authentication in front of it. It requires MongoDB persistence; with MongoDB disabled, no tools are
-  registered. See [the documentation](https://itobey.github.io/fddb-exporter/details/mcp-server)
-  for details. Nothing is written and no export is triggered by any of the tools.
-- **Trends View**: A new **Trends** view (and `/api/v2/stats/trend` endpoint) charts a single metric — calories, fat,
-  carbs, sugar, protein or fibre — over a date range, bucketed by day, ISO week or month. Where Rolling Averages tells
-  you your average over a range, Trends shows you whether that average is moving: a column chart with an overall-average
-  line, summary cards (highest/lowest bucket, first-to-last change, days logged) and a per-bucket table. Quick-select
-  buttons preset a sensible range and granularity (e.g. Last 30 Days daily, Last Year weekly). Days with no entry are
-  skipped so they never drag an average down.
-- **Products View**: A new **Products** view brings everything product-centric into one place:
-  - **Explorer** — search any product to see how often you ate it, when you first and last logged it, the average
-    calories per serving and the totals it contributed. Search **autocompletes** with the exact, brand-prefixed names
-    FDDB stores, so you no longer have to remember the precise wording. A weekday bar chart shows how your logging of a
-    product distributes across the week, and you can click a day to filter the occurrences to just that weekday.
-    Clicking any occurrence jumps to that day in the Entries view.
-  - **Top Products** — rank the products you log most, either by how often you ate them or by the calories, fat, carbs
-    or protein they contributed, over an optional date range. Click a product to drill into its full Explorer profile.
-- **Date-range and full-history browsing in Entries**: The former **Data Query** view is now the **Entries** view. In
-  addition to looking up a single day, you can now query a whole date range and browse all stored entries.
-- **Missing Days**: The Entries view can list every day in a range with no entry (or an entry with no calories), making
-  gaps in your logging easy to spot (also available via the `/api/v2/stats/missing-days` endpoint).
-- **Weekday breakdown**: The Rolling Averages view now includes a by-day-of-week table alongside the averages, so you
-  can see at a glance whether weekends differ from weekdays (`/api/v2/stats/weekdays` endpoint).
-- **Logging streaks in the stats API**: The stats endpoint now also reports your **current** and **longest** logging
-  streaks, the date of your most recent entry, and the number of missing days since you started tracking.
+- **MCP Server** (opt-in): expose your diary to an AI assistant (Claude Desktop, Claude Code or any other MCP client),
+  so you can ask things like "how much protein did I average last month?" or "how often do I eat oats, and on which
+  weekdays?" in natural language. Read-only by default, with tools covering diary lookups, product search and
+  ranking, statistics and trends, and correlating foods with events (e.g. migraines) — plus prompts, resources, and
+  optional export tools to trigger a scrape from the assistant itself. Disabled by default and requires MongoDB;
+  enable with `FDDB-EXPORTER_MCP_ENABLED=true`. See the [MCP server documentation](https://itobey.github.io/fddb-exporter/details/mcp-server)
+  for the full tool list and setup.
+- **Trends View**: A new **Trends** view charts a single metric (calories, fat, carbs, sugar, protein or fibre) over a
+  date range, bucketed by day, week or month, with quick-select ranges and a summary of highs/lows and change over
+  time (`/api/v2/stats/trend`).
+- **Products View**: A new **Products** view combines an **Explorer** (per-product history, weekday distribution,
+  autocomplete search) with **Top Products** (rank what you eat most by frequency or by calories/fat/carbs/protein).
+- **Entries view**: The former **Data Query** view is now **Entries**, and can browse a full date range, not just a
+  single day, including a **Missing Days** list for gaps in your logging (`/api/v2/stats/missing-days`).
+- **Weekday breakdown**: Rolling Averages now includes a by-day-of-week table (`/api/v2/stats/weekdays`).
+- **Logging streaks**: The stats endpoint now reports current/longest logging streaks, most recent entry date, and
+  missing days since you started tracking.
 
 ### Changed
 

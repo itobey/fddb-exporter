@@ -77,9 +77,10 @@ For more information about persistence, see [Persistence details](/details/persi
 The MCP server lets an AI assistant query your diary in natural language. It is **disabled by default** and requires
 MongoDB persistence. For what it exposes and how to connect a client, see [MCP Server](/details/mcp-server.md).
 
-| Variable                    | Default | Description                              |
-|-----------------------------|---------|------------------------------------------|
-| `FDDB-EXPORTER_MCP_ENABLED` | false   | Enable the MCP server endpoint at `/mcp` |
+| Variable                                | Default | Description                                                                       |
+|-----------------------------------------|---------|-----------------------------------------------------------------------------------|
+| `FDDB-EXPORTER_MCP_ENABLED`             | false   | Enable the MCP server endpoint at `/mcp`, with the read-only tools                 |
+| `FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED` | false   | Additionally expose the export tools, which scrape FDDB and write to the database  |
 
 ### Logging Configuration
 

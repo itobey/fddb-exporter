@@ -89,9 +89,10 @@ class McpServerIntegrationTest {
 
         assertThat(tools.tools()).extracting(McpSchema.Tool::name)
                 .containsExactlyInAnyOrder("get_day", "get_days", "search_products", "list_top_products",
+                        "get_product_summary", "list_distinct_products", "find_days_with_products",
                         "get_stats", "get_averages", "get_extreme_days", "get_trend", "get_weekday_breakdown",
-                        "list_missing_days", "compare_periods", "check_goals", "correlate_products_with_dates",
-                        "get_data_schema");
+                        "get_macro_split", "list_missing_days", "compare_periods", "check_goals",
+                        "correlate_products_with_dates", "get_data_schema", "get_server_info");
         assertThat(tools.tools()).allSatisfy(tool -> {
             assertThat(tool.description()).isNotBlank();
             assertThat(tool.annotations().readOnlyHint()).isTrue();
@@ -103,6 +104,14 @@ class McpServerIntegrationTest {
                 .orElseThrow();
         assertThat(getDay.inputSchema()).containsEntry("required", List.of("date"));
         assertThat(getDay.inputSchema().get("properties").toString()).contains("date");
+    }
+
+    @Test
+    void listTools_shouldNotExposeTheExportToolsWithoutTheirOwnFlag() {
+        // mcp.enabled alone is not enough: writing needs write-tools-enabled on top of it
+        assertThat(mcpClient.listTools().tools()).extracting(McpSchema.Tool::name)
+                .doesNotContain("export_range", "export_days_back", "export_missing_days");
+
     }
 
     @Test
@@ -148,9 +157,20 @@ class McpServerIntegrationTest {
 
     @Test
     void getAverages_shouldAcceptRelativeDatesAndAverageOnlyLoggedDays() {
-        String result = callTool("get_averages", Map.of("fromDate", "2024-01-01", "toDate", "2024-01-02"));
+        String result = callTool("get_averages", Map.of("fromDate", "2024-01-01", "toDate", "2024-01-06"));
 
-        assertThat(result).contains("\"avgTotalCalories\":2250");
+        // 2024-01-03 to 2024-01-05 are unlogged, so they neither drag the average down nor count
+        assertThat(result).contains("\"avgTotalCalories\":2666.7", "\"daysInRange\":6",
+                "\"loggedDays\":3", "\"found\":true");
+    }
+
+    @Test
+    void getAverages_shouldAnswerRatherThanFailWhenNothingWasLoggedInTheRange() {
+        String result = callTool("get_averages", Map.of("fromDate", "2023-01-01", "toDate", "2023-01-31"));
+
+        assertThat(result).contains("\"found\":false", "\"loggedDays\":0",
+                "No day between 2023-01-01 and 2023-01-31 has an entry");
+        assertThat(result).doesNotContain("No data available for averaging");
     }
 
     @Test
@@ -201,7 +221,9 @@ class McpServerIntegrationTest {
                 Map.of("fromDate", "2024-01-01", "toDate", "2024-01-06"));
 
         assertThat(result).contains("\"daysChecked\":6", "\"missingCount\":3", "\"loggedCount\":3",
-                "2024-01-03", "2024-01-04", "2024-01-05");
+                "\"truncated\":false", "2024-01-03", "2024-01-04", "2024-01-05");
+        // the cap only applies above 366 dates, so nothing announces a limit here
+        assertThat(result).doesNotContain("\"limit\"");
     }
 
     @Test
@@ -306,6 +328,112 @@ class McpServerIntegrationTest {
     }
 
     @Test
+    void getProductSummary_shouldFoldEveryMatchingNameIntoOneFigureSet() {
+        String result = callTool("get_product_summary", Map.of("name", "hafer"));
+
+        assertThat(result).contains("\"found\":true", "\"timesEaten\":2", "\"totalCalories\":650",
+                "Haferflocken kernig", "\"firstDate\":\"2024-01-01\"");
+    }
+
+    @Test
+    void listDistinctProducts_shouldResolveAFragmentToTheStoredName() {
+        String result = callTool("list_distinct_products", Map.of("search", "flocken"));
+
+        assertThat(result).contains("Haferflocken kernig", "\"truncated\":false");
+        assertThat(result).doesNotContain("Pizza Salami");
+    }
+
+    @Test
+    void findDaysWithProducts_shouldGroupTheMatchesByDay() {
+        String result = callTool("find_days_with_products", Map.of("includeKeywords", List.of("hafer")));
+
+        // grouped by the database, so the date has to survive the group stage as an ISO date
+        assertThat(result).contains("\"dayCount\":2", "\"matchedDayCount\":2", "\"occurrenceCount\":2",
+                "\"truncated\":false", "\"date\":\"2024-01-02\"", "\"date\":\"2024-01-01\"",
+                "Haferflocken kernig");
+        assertThat(result).doesNotContain("2024-01-06");
+    }
+
+    @Test
+    void findDaysWithProducts_shouldReportTheFullTotalsWhenItTruncates() {
+        String result = callTool("find_days_with_products",
+                Map.of("includeKeywords", List.of("hafer"), "limit", 1));
+
+        // one day returned, but both still counted - otherwise "on how many days?" is unanswerable
+        assertThat(result).contains("\"dayCount\":1", "\"matchedDayCount\":2", "\"occurrenceCount\":2",
+                "\"truncated\":true", "\"date\":\"2024-01-02\"");
+        assertThat(result).doesNotContain("\"date\":\"2024-01-01\"");
+    }
+
+    @Test
+    void findDaysWithProducts_shouldHonourTheExclusions() {
+        String result = callTool("find_days_with_products", Map.of(
+                "includeKeywords", List.of("hafer"),
+                "excludeKeywords", List.of("kernig")));
+
+        // both oat days are "Haferflocken kernig", so excluding "kernig" leaves nothing
+        assertThat(result).contains("\"matchedDayCount\":0", "\"dayCount\":0", "\"occurrenceCount\":0");
+    }
+
+    @Test
+    void getMacroSplit_shouldWeightTheSharesByCaloriesRatherThanGrams() {
+        String result = callTool("get_macro_split",
+                Map.of("fromDate", "2024-01-01", "toDate", "2024-01-06"));
+
+        // 100 g fat = 900 kcal, 200 g carbs = 800 kcal, 50 g protein = 200 kcal
+        assertThat(result).contains("\"macroCalories\":1900.0", "\"fatCalories\":900.0",
+                "\"fatPercentage\":47.4", "\"loggedDays\":3", "\"found\":true");
+    }
+
+    @Test
+    void getMacroSplit_shouldAnswerRatherThanFailWhenNothingWasLoggedInTheRange() {
+        String result = callTool("get_macro_split",
+                Map.of("fromDate", "2023-01-01", "toDate", "2023-01-31"));
+
+        assertThat(result).contains("\"found\":false", "\"loggedDays\":0",
+                "No day between 2023-01-01 and 2023-01-31 has an entry");
+    }
+
+    @Test
+    void getServerInfo_shouldTellTheClientWhatDayItIs() {
+        String result = callTool("get_server_info", Map.of());
+
+        assertThat(result).contains("\"serverDate\":\"" + LocalDate.now() + "\"",
+                "\"mongodbEnabled\":true", "\"influxdbEnabled\":false", "\"writeToolsEnabled\":false",
+                "\"firstEntryDate\":\"2024-01-01\"", "\"lastEntryDate\":\"2024-01-06\"");
+    }
+
+    @Test
+    void listResources_shouldExposeTheStatsAndSchemaResourcesAndTheDayTemplate() {
+        assertThat(mcpClient.listResources().resources()).extracting(McpSchema.Resource::uri)
+                .contains("fddb://stats", "fddb://schema");
+        assertThat(mcpClient.listResourceTemplates().resourceTemplates())
+                .extracting(McpSchema.ResourceTemplate::uriTemplate)
+                .contains("fddb://day/{date}");
+    }
+
+    @Test
+    void readResource_shouldReturnTheStatsAsJsonWithIsoDates() {
+        String contents = readResource("fddb://stats");
+
+        // the trap this guards: a LocalDate serialized as [2024,1,1] instead of "2024-01-01"
+        assertThat(contents).contains("\"firstEntryDate\":\"2024-01-01\"", "\"amountEntries\":3");
+    }
+
+    @Test
+    void readResource_shouldResolveTheDateInTheDayTemplate() {
+        assertThat(readResource("fddb://day/2024-01-01"))
+                .contains("\"found\":true", "\"totalCalories\":2000", "Haferflocken kernig");
+        assertThat(readResource("fddb://day/2024-01-03"))
+                .contains("\"found\":false", "No entry was logged for 2024-01-03");
+    }
+
+    @Test
+    void readResource_shouldReturnTheSameSchemaTextAsTheTool() {
+        assertThat(readResource("fddb://schema")).isEqualTo(callTool("get_data_schema", Map.of()));
+    }
+
+    @Test
     void getDataSchema_shouldReturnThePlainTextDataDictionary() {
         String result = callTool("get_data_schema", Map.of());
 
@@ -325,6 +453,15 @@ class McpServerIntegrationTest {
         McpSchema.CallToolResult result = mcpClient.callTool(new McpSchema.CallToolRequest(name, arguments));
         assertThat(result.isError()).as("tool %s returned an error: %s", name, textOf(result)).isNotEqualTo(true);
         return textOf(result);
+    }
+
+    private String readResource(String uri) {
+        McpSchema.ReadResourceResult result =
+                mcpClient.readResource(new McpSchema.ReadResourceRequest(uri));
+        return result.contents().stream()
+                .filter(McpSchema.TextResourceContents.class::isInstance)
+                .map(contents -> ((McpSchema.TextResourceContents) contents).text())
+                .reduce("", String::concat);
     }
 
     private String textOf(McpSchema.CallToolResult result) {

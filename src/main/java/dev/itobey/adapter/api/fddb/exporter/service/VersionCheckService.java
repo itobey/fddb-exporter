@@ -126,7 +126,13 @@ public class VersionCheckService {
         }
     }
 
-    private String getCurrentVersion() {
+    /**
+     * The version of the running application, or {@code "dev"} when it was not built by Maven and
+     * therefore has no build information.
+     *
+     * @return the current version
+     */
+    public String getCurrentVersion() {
         return buildProperties
                 .map(BuildProperties::getVersion)
                 .orElse("dev");

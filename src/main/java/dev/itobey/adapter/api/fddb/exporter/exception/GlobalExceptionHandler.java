@@ -31,6 +31,18 @@ public class GlobalExceptionHandler {
         return errors;
     }
 
+    /**
+     * 409 rather than 500: the request is fine and will work once the running export finishes, and
+     * a client can decide for itself whether to wait or to give up.
+     */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler({ExportInProgressException.class})
+    public Map<String, String> handleExportInProgress(ExportInProgressException ex) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put("exportError", ex.getMessage());
+        return errors;
+    }
+
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler({AuthenticationException.class})
     public Map<String, String> handleAuthenticationExceptions(Exception ex) {

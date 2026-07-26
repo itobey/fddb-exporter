@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.junit.jupiter.api.Test;
 
@@ -10,7 +11,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class FddbPromptsTest {
 
-    private final FddbPrompts fddbPrompts = new FddbPrompts();
+    private final FddbPrompts fddbPrompts = promptsWithWriteTools(false);
+
+    private final FddbPrompts writingPrompts = promptsWithWriteTools(true);
 
     @Test
     void weeklyNutritionReview_shouldResolveBothWeeksAroundTheGivenEndDate() {
@@ -115,6 +118,32 @@ class FddbPromptsTest {
         String text = textOf(result);
         assertTrue(text.contains(to.minusDays(89) + " and " + to), text);
         assertTrue(text.contains("read-only"), text);
+        assertFalse(text.contains("export_missing_days"), text);
+    }
+
+    @Test
+    void loggingHygieneCheck_shouldPointAtTheExportToolWhenTheWriteToolsAreOn() {
+        // when: the gap list is only half an answer if the tool that repairs it is registered
+        McpSchema.GetPromptResult result = writingPrompts.loggingHygieneCheck("2024-03-01", "2024-03-10");
+
+        // then
+        String text = textOf(result);
+        assertTrue(text.contains("export_missing_days for 2024-03-01 to 2024-03-10"), text);
+        // the claim that made the model refuse a tool it was holding
+        assertFalse(text.contains("read-only"), text);
+        assertFalse(text.contains("You cannot export anything yourself"), text);
+    }
+
+    @Test
+    void weeklyNutritionReview_shouldOfferToFillTheGapsOnlyWhenTheWriteToolsAreOn() {
+        // when
+        String withoutWriteTools = textOf(fddbPrompts.weeklyNutritionReview("2024-03-17"));
+        String withWriteTools = textOf(writingPrompts.weeklyNutritionReview("2024-03-17"));
+
+        // then
+        assertFalse(withoutWriteTools.contains("export_missing_days"), withoutWriteTools);
+        assertTrue(withWriteTools.contains("export_missing_days for 2024-03-11 to 2024-03-17"),
+                withWriteTools);
     }
 
     @Test
@@ -137,6 +166,15 @@ class FddbPromptsTest {
         assertUserMessage(fddbPrompts.findTriggerFoods("2024-04-02", null, null));
         assertUserMessage(fddbPrompts.proteinGapAnalysis(null, null));
         assertUserMessage(fddbPrompts.loggingHygieneCheck(null, null));
+    }
+
+    private static FddbPrompts promptsWithWriteTools(boolean enabled) {
+        FddbExporterProperties.Mcp mcp = new FddbExporterProperties.Mcp();
+        mcp.setEnabled(true);
+        mcp.setWriteToolsEnabled(enabled);
+        FddbExporterProperties properties = new FddbExporterProperties();
+        properties.setMcp(mcp);
+        return new FddbPrompts(properties);
     }
 
     private void assertUserMessage(McpSchema.GetPromptResult result) {

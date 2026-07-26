@@ -2,9 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.service.persistence;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductRanking;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductSummaryDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -282,30 +280,7 @@ public class MongoDBService {
     }
 
     public List<ProductWithDate> findByProductsWithExclusions(List<String> includeNames, List<String> excludeNames, LocalDate startDate) {
-        List<AggregationOperation> operations = new ArrayList<>();
-
-        // Add date filter first
-        if (startDate != null) {
-            operations.add(match(Criteria.where("date").gte(startDate)));
-        }
-
-        // Unwind products array
-        operations.add(unwind("products"));
-
-        // Match stage after unwind to filter individual products
-        if (!includeNames.isEmpty()) {
-            List<Criteria> includeList = includeNames.stream()
-                    .map(name -> Criteria.where("products.name").regex(name, "i"))
-                    .toList();
-            operations.add(match(new Criteria().orOperator(includeList.toArray(new Criteria[0]))));
-        }
-
-        if (!excludeNames.isEmpty()) {
-            List<Criteria> excludeList = excludeNames.stream()
-                    .map(name -> Criteria.where("products.name").regex(name, "i"))
-                    .toList();
-            operations.add(match(new Criteria().norOperator(excludeList.toArray(new Criteria[0]))));
-        }
+        List<AggregationOperation> operations = matchingOccurrences(includeNames, excludeNames, startDate);
 
         // Project required fields
         operations.add(project()
@@ -318,6 +293,114 @@ public class MongoDBService {
                 aggregation, COLLECTION_NAME, ProductWithDate.class);
 
         return results.getMappedResults();
+    }
+
+    /**
+     * Returns the most recent days on which a matching product was logged, grouped in the database.
+     * <p>
+     * The grouped counterpart of {@link #findByProductsWithExclusions}, which returns every single
+     * occurrence: a broad keyword over years of data matches tens of thousands of them, and a
+     * caller that only wants the dates would load all of them just to collapse them into a list of
+     * days. Here the collapsing and the cap happen server-side.
+     *
+     * @param includeNames case-insensitive substrings of the product name, at least one must match
+     * @param excludeNames case-insensitive substrings that disqualify an occurrence, may be empty
+     * @param startDate    the earliest date to consider, or null for the whole diary
+     * @param limit        the maximum number of days to return
+     * @return the matching days, newest first, at most {@code limit} of them
+     */
+    public List<DayWithProductsDTO> findDaysWithProducts(List<String> includeNames, List<String> excludeNames,
+                                                         LocalDate startDate, int limit) {
+        List<AggregationOperation> operations = matchingOccurrences(includeNames, excludeNames, startDate);
+
+        operations.add(group("date")
+                .addToSet("products.name").as("products")
+                .count().as("occurrences"));
+        operations.add(sort(Sort.Direction.DESC, "_id"));
+        operations.add(limit(limit));
+        operations.add(project("products", "occurrences")
+                .and("_id").as("date")
+                .andExclude("_id"));
+
+        AggregationResults<DayWithProductsDTO> results = mongoTemplate.aggregate(
+                newAggregation(operations), COLLECTION_NAME, DayWithProductsDTO.class);
+
+        // $addToSet has no defined order, so the names are sorted here rather than left arbitrary
+        return results.getMappedResults().stream()
+                .map(day -> DayWithProductsDTO.builder()
+                        .date(day.getDate())
+                        .products(day.getProducts().stream().sorted().toList())
+                        .occurrences(day.getOccurrences())
+                        .build())
+                .toList();
+    }
+
+    /**
+     * Counts how many days and how many individual occurrences a keyword search matches, without
+     * returning any of them - what {@link #findDaysWithProducts} needs to report the size of a
+     * result it deliberately cut.
+     *
+     * @param includeNames case-insensitive substrings of the product name, at least one must match
+     * @param excludeNames case-insensitive substrings that disqualify an occurrence, may be empty
+     * @param startDate    the earliest date to consider, or null for the whole diary
+     * @return the totals over the whole matching set
+     */
+    public ProductDayTotalsDTO countDaysWithProducts(List<String> includeNames, List<String> excludeNames,
+                                                     LocalDate startDate) {
+        List<AggregationOperation> operations = matchingOccurrences(includeNames, excludeNames, startDate);
+
+        operations.add(group("date").count().as("occurrences"));
+        operations.add(group().count().as("dayCount").sum("occurrences").as("occurrenceCount"));
+        operations.add(project("dayCount", "occurrenceCount").andExclude("_id"));
+
+        AggregationResults<ProductDayTotalsDTO> results = mongoTemplate.aggregate(
+                newAggregation(operations), COLLECTION_NAME, ProductDayTotalsDTO.class);
+
+        ProductDayTotalsDTO totals = results.getUniqueMappedResult();
+        return totals == null ? ProductDayTotalsDTO.builder().build() : totals;
+    }
+
+    /**
+     * The shared pipeline prefix of the keyword searches: every product occurrence matching at
+     * least one include keyword and none of the exclude ones.
+     */
+    private List<AggregationOperation> matchingOccurrences(List<String> includeNames, List<String> excludeNames,
+                                                           LocalDate startDate) {
+        List<AggregationOperation> operations = new ArrayList<>();
+
+        // Add date filter first
+        if (startDate != null) {
+            operations.add(match(Criteria.where("date").gte(startDate)));
+        }
+
+        // narrow to days that hold a match before unwinding, so the rest is never expanded at all
+        if (!includeNames.isEmpty()) {
+            operations.add(match(anyNameMatches(includeNames)));
+        }
+
+        // Unwind products array
+        operations.add(unwind("products"));
+
+        // Match stage after unwind to filter individual products
+        if (!includeNames.isEmpty()) {
+            operations.add(match(anyNameMatches(includeNames)));
+        }
+
+        if (!excludeNames.isEmpty()) {
+            List<Criteria> excludeList = excludeNames.stream()
+                    .map(name -> Criteria.where("products.name").regex(name, "i"))
+                    .toList();
+            operations.add(match(new Criteria().norOperator(excludeList.toArray(new Criteria[0]))));
+        }
+
+        return operations;
+    }
+
+    private Criteria anyNameMatches(List<String> names) {
+        List<Criteria> criteria = names.stream()
+                .map(name -> Criteria.where("products.name").regex(name, "i"))
+                .toList();
+        return new Criteria().orOperator(criteria.toArray(new Criteria[0]));
     }
 
     /**

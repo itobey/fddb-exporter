@@ -4,6 +4,7 @@ import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
+import dev.itobey.adapter.api.fddb.exporter.exception.ExportInProgressException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
@@ -22,6 +23,8 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -207,6 +210,64 @@ class FddbDataServiceTest {
         assertThrows(DateTimeException.class, () -> fddbDataService.exportForDaysBack(0, true));
         assertThrows(DateTimeException.class, () -> fddbDataService.exportForDaysBack(366, true));
         verifyNoInteractions(persistenceService);
+    }
+
+    @Test
+    @SneakyThrows
+    void exportForTimerange_shouldRefuseASecondExportWhileOneIsRunning() {
+        // given: an export that blocks in the middle of scraping, as a real one does for seconds
+        CountDownLatch scraping = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(mock(TimeframeDTO.class));
+        when(exportService.exportData(any(TimeframeDTO.class))).thenAnswer(invocation -> {
+            scraping.countDown();
+            release.await(5, TimeUnit.SECONDS);
+            return mockFddbData;
+        });
+
+        Thread first = new Thread(() ->
+                fddbDataService.exportForTimerange(new DateRangeDTO("2024-01-01", "2024-01-01")));
+        first.start();
+        assertTrue(scraping.await(5, TimeUnit.SECONDS), "the first export never started");
+
+        try {
+            // when / then: the second caller is told to wait rather than logging in a second time
+            ExportInProgressException exception = assertThrows(ExportInProgressException.class,
+                    () -> fddbDataService.exportForTimerange(new DateRangeDTO("2024-02-01", "2024-02-01")));
+            assertTrue(exception.getMessage().contains("already running"), exception.getMessage());
+        } finally {
+            release.countDown();
+            first.join(5000);
+        }
+
+        // only the first export ever reached fddb.info
+        verify(exportService, times(1)).exportData(any(TimeframeDTO.class));
+    }
+
+    @Test
+    @SneakyThrows
+    void withExportLock_shouldLetTheSameThreadNest() {
+        // given: export_missing_days holds the lock across a loop that itself exports per day
+        when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(mock(TimeframeDTO.class));
+        when(exportService.exportData(any(TimeframeDTO.class))).thenReturn(mockFddbData);
+
+        // when
+        ExportResultDTO result = fddbDataService.withExportLock(() ->
+                fddbDataService.exportForTimerange(new DateRangeDTO("2024-01-01", "2024-01-01")));
+
+        // then
+        assertEquals(List.of("2024-01-01"), result.getSuccessfulDays());
+    }
+
+    @Test
+    void withExportLock_shouldReleaseTheLockWhenTheExportFails() {
+        // given
+        assertThrows(IllegalStateException.class, () -> fddbDataService.withExportLock(() -> {
+            throw new IllegalStateException("boom");
+        }));
+
+        // when / then: a failed export must not lock the application out of exporting for good
+        assertEquals("fine", fddbDataService.withExportLock(() -> "fine"));
     }
 
     @Test

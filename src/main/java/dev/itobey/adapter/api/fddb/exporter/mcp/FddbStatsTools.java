@@ -1,10 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.ExtremeDaysResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.MissingDaysResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.TrendResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.WeekdayBreakdownResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.mcp.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +10,7 @@ import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -41,6 +39,17 @@ public class FddbStatsTools {
 
     private static final int MAX_EXTREME_DAYS_LIMIT = 100;
 
+    /**
+     * Upper bound on the dates {@code list_missing_days} lists, matching the range cap of
+     * {@code get_days} so the two agree on what a readable number of days is.
+     * <p>
+     * The cap sits here rather than in {@code StatsService.getMissingDays}: that method is also how
+     * {@code export_missing_days} and the REST/UI callers learn what to repair, and they need the
+     * complete list. Only the response an agent reads is bounded, and the counts next to it stay
+     * exact, so nothing about the answer becomes wrong - only shorter.
+     */
+    private static final int MAX_MISSING_DAYS_LISTED = FddbDataService.MAX_RANGE_DAYS;
+
     private final FddbDataService fddbDataService;
 
     @McpTool(
@@ -64,11 +73,14 @@ public class FddbStatsTools {
             description = """
                     Returns the average daily calories, fat, carbs, sugar, protein and fibre over a \
                     date range, both bounds inclusive. Only days that have an entry are averaged, so \
-                    days the user forgot to log do not drag the average down - call get_days for the \
-                    same range if the number of logged days matters for the answer.""",
+                    days the user forgot to log do not drag the average down - loggedDays says how \
+                    many days the averages rest on, and reading it next to daysInRange is what keeps \
+                    an average over three logged days out of thirty from being reported as a month. \
+                    A range with nothing logged in it comes back with found false and no averages, \
+                    which is an answer, not a failure.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
-    public RollingAveragesDTO getAverages(
+    public AveragesResultDTO getAverages(
             @McpToolParam(description = "First day of the range (inclusive): an ISO date "
                     + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = true)
             String fromDate,
@@ -80,10 +92,27 @@ public class FddbStatsTools {
         LocalDate to = McpDateParser.parse(toDate);
         log.debug("MCP: retrieving averages for {} to {}", from, to);
 
-        return fddbDataService.getRollingAverages(DateRangeDTO.builder()
-                .fromDate(from.toString())
-                .toDate(to.toString())
-                .build());
+        long daysInRange = daysBetween(from, to);
+        long loggedDays = fddbDataService.countByDateRange(from, to);
+        AveragesResultDTO.AveragesResultDTOBuilder result = AveragesResultDTO.builder()
+                .fromDate(from)
+                .toDate(to)
+                .daysInRange(daysInRange)
+                .loggedDays(loggedDays);
+
+        if (loggedDays == 0) {
+            return result.found(false)
+                    .message(nothingLoggedMessage(from, to, "average"))
+                    .build();
+        }
+
+        return result.found(true)
+                .averages(fddbDataService.getRollingAverages(DateRangeDTO.builder()
+                                .fromDate(from.toString())
+                                .toDate(to.toString())
+                                .build())
+                        .getAverages())
+                .build();
     }
 
     @McpTool(
@@ -217,13 +246,61 @@ public class FddbStatsTools {
     }
 
     @McpTool(
+            name = "get_macro_split",
+            description = """
+                    Returns the share of energy coming from fat, carbs and protein over a range. \
+                    The split is kcal-weighted, not gram-weighted: grams are converted with the \
+                    Atwater factors (fat 9 kcal/g, carbs and protein 4 kcal/g) before the \
+                    percentages are computed, which is the only way the three shares can be \
+                    compared to each other. macroCalories is derived from the macros and \
+                    averageCalories is what FDDB itself reports; the two normally differ by a few \
+                    kcal, and the percentages are computed against macroCalories. loggedDays says \
+                    how many days the split rests on, and a range with nothing logged in it comes \
+                    back with found false and no split rather than as an error.""",
+            annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
+                    idempotentHint = true, openWorldHint = false))
+    public MacroSplitResultDTO getMacroSplit(
+            @McpToolParam(description = "First day of the range (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'")
+            String fromDate,
+
+            @McpToolParam(description = "Last day of the range (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'")
+            String toDate) {
+        LocalDate from = McpDateParser.parse(fromDate);
+        LocalDate to = McpDateParser.parse(toDate);
+        log.debug("MCP: retrieving the macro split for {} to {}", from, to);
+
+        long daysInRange = daysBetween(from, to);
+        long loggedDays = fddbDataService.countByDateRange(from, to);
+        MacroSplitResultDTO.MacroSplitResultDTOBuilder result = MacroSplitResultDTO.builder()
+                .fromDate(from)
+                .toDate(to)
+                .daysInRange(daysInRange)
+                .loggedDays(loggedDays);
+
+        if (loggedDays == 0) {
+            return result.found(false)
+                    .message(nothingLoggedMessage(from, to, "split"))
+                    .build();
+        }
+
+        return result.found(true)
+                .split(fddbDataService.getMacroSplit(from, to))
+                .build();
+    }
+
+    @McpTool(
             name = "list_missing_days",
             description = """
                     Lists the days in a range that were never logged - "when did I forget to log?". A \
                     day with an entry but no calories at all counts as missing too, since that is \
                     what an aborted export looks like. Worth calling before drawing conclusions from \
                     averages over a long range: 20 missing days out of 30 makes any average of that \
-                    month close to meaningless.""",
+                    month close to meaningless. The range itself is unlimited, but at most 366 dates \
+                    are listed; missingCount and loggedCount always cover the whole range, so answer \
+                    "how many did I miss?" from those and narrow the range if the dates themselves \
+                    are needed.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public MissingDaysResultDTO listMissingDays(
@@ -236,19 +313,46 @@ public class FddbStatsTools {
             String toDate) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);
+        long daysChecked = daysBetween(from, to);
         log.debug("MCP: retrieving the missing days for {} to {}", from, to);
 
         List<LocalDate> missingDays = fddbDataService.getMissingDays(from, to);
-        long daysChecked = DAYS.between(from, to) + 1;
+        boolean truncated = missingDays.size() > MAX_MISSING_DAYS_LISTED;
 
         return MissingDaysResultDTO.builder()
                 .fromDate(from)
                 .toDate(to)
                 .daysChecked(daysChecked)
+                // the counts describe the whole range even when the list below does not
                 .missingCount(missingDays.size())
                 .loggedCount(daysChecked - missingDays.size())
-                .missingDays(missingDays)
+                .truncated(truncated)
+                .limit(truncated ? MAX_MISSING_DAYS_LISTED : null)
+                .missingDays(truncated
+                        ? List.copyOf(missingDays.subList(0, MAX_MISSING_DAYS_LISTED))
+                        : missingDays)
                 .build();
+    }
+
+    /**
+     * The length of a range in days, rejecting an inverted one before the store is touched. The
+     * aggregations behind these tools would raise their own error for it, but not one worded for
+     * the agent that has to correct the call.
+     */
+    private long daysBetween(LocalDate from, LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
+        }
+        return DAYS.between(from, to) + 1;
+    }
+
+    /**
+     * The answer for an empty range. Worded as a finding rather than a failure: an agent that reads
+     * "no data available" retries or apologises, where "nothing was logged" is the thing to report.
+     */
+    private String nothingLoggedMessage(LocalDate from, LocalDate to, String verb) {
+        return "No day between " + from + " and " + to + " has an entry, so there is nothing to "
+                + verb + " - the user logged nothing in this range.";
     }
 
     private int boundedLimit(Integer limit, int defaultLimit, int maxLimit) {

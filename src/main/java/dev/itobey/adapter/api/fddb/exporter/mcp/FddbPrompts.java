@@ -1,6 +1,8 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import io.modelcontextprotocol.spec.McpSchema;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.mcp.annotation.McpArg;
 import org.springframework.ai.mcp.annotation.McpPrompt;
@@ -23,8 +25,14 @@ import java.util.List;
  * quiet reason they are dynamic rather than static strings: a client works from whatever it
  * believes today is, and a review of "last week" anchored on a stale date silently reviews the
  * wrong week.
+ * <p>
+ * They also have to know whether {@link FddbExportTools} is registered. Two of these workflows end
+ * in a list of missing days, and whether the model may repair that list or has to hand it over is
+ * the difference between a useful answer and a wrong claim about what this server can do - a prompt
+ * that hardcodes "the tools are read-only" makes the model refuse a tool it is holding.
  */
 @Component
+@RequiredArgsConstructor
 @Slf4j
 @ConditionalOnProperty(
         name = {"fddb-exporter.mcp.enabled", "fddb-exporter.persistence.mongodb.enabled"},
@@ -51,6 +59,8 @@ public class FddbPrompts {
             + "infer anything about weight, body composition or health from the numbers alone - the "
             + "diary records what was logged, not what was eaten and not how it went.";
 
+    private final FddbExporterProperties properties;
+
     @McpPrompt(
             name = "weekly_nutrition_review",
             title = "Weekly nutrition review",
@@ -70,6 +80,11 @@ public class FddbPrompts {
         LocalDate priorFrom = priorTo.minusDays(6);
         log.debug("MCP: weekly review prompt for {} to {}", weekFrom, weekTo);
 
+        String repairGaps = writeToolsEnabled()
+                ? " If days are missing you can fill them first: call export_missing_days for "
+                + weekFrom + " to " + weekTo + ", then redo steps 1 and 2 on the completed week."
+                : "";
+
         return promptFor("Weekly nutrition review for " + weekFrom + " to " + weekTo, """
                 Review my nutrition for the week of %1$s to %2$s.
 
@@ -77,7 +92,7 @@ public class FddbPrompts {
                 1. get_averages for %1$s to %2$s.
                 2. compare_periods with period A = %1$s to %2$s and period B = %3$s to %4$s, the week before.
                 3. list_missing_days for %1$s to %2$s. If days are missing, say how many, and treat every \
-                average of this week as resting on that many fewer days.
+                average of this week as resting on that many fewer days.%6$s
                 4. get_stats, so you can put the week next to my all-time averages and see whether my \
                 logging streak held.
                 5. list_top_products ranked by CALORIES for %1$s to %2$s, to name what actually drove the week.
@@ -90,7 +105,7 @@ public class FddbPrompts {
                 - one or two concrete things to try next week, tied to products that are already in my diary.
 
                 Keep it under 300 words. %5$s
-                """.formatted(weekFrom, weekTo, priorFrom, priorTo, NOT_ADVICE));
+                """.formatted(weekFrom, weekTo, priorFrom, priorTo, NOT_ADVICE, repairGaps));
     }
 
     @McpPrompt(
@@ -228,6 +243,19 @@ public class FddbPrompts {
         }
         log.debug("MCP: logging hygiene prompt for {} to {}", resolvedFrom, resolvedTo);
 
+        // the whole point of this workflow is the gap list; whether it ends there or ends with the
+        // gaps filled is decided by whether the export tools are registered at all
+        String repairGaps = writeToolsEnabled()
+                ? "Once you have the list, call export_missing_days for " + resolvedFrom + " to "
+                + resolvedTo + " to re-fetch the gaps, then report what came back. A day that is "
+                + "still missing after that simply had nothing logged on FDDB, and re-running the "
+                + "export will not change it. It repairs at most " + FddbExportTools.MAX_EXPORT_DAYS
+                + " days per call; if the range has more gaps than that, do not loop - hand me the "
+                + "list and tell me to run the export from the app's Web UI or its REST API."
+                : "You cannot export anything yourself - the MCP tools are read-only. Say that "
+                + "plainly and hand me the list; re-exporting is done from the app's web UI or its "
+                + "REST API.";
+
         return promptFor("Logging hygiene check for " + resolvedFrom + " to " + resolvedTo, """
                 Check how complete my logging is between %1$s and %2$s.
 
@@ -244,10 +272,18 @@ public class FddbPrompts {
                 - which logged days look partial rather than light, and why you think so,
                 - the exact list of dates worth re-exporting, as ISO dates I can paste.
 
-                You cannot export anything yourself - the MCP tools are read-only. Say that plainly and hand \
-                me the list; re-exporting is done from the app's web UI or its REST API. Finish with one \
-                sentence on how much the gaps affect an average over this range.
-                """.formatted(resolvedFrom, resolvedTo));
+                %3$s Finish with one sentence on how much the gaps affect an average over this range.
+                """.formatted(resolvedFrom, resolvedTo, repairGaps));
+    }
+
+    /**
+     * Whether {@link FddbExportTools} is registered next to these prompts. Read from the properties
+     * rather than from the presence of the bean: the prompts are conditional on two flags and the
+     * export tools on three, so an optional dependency would only say the same thing less directly.
+     */
+    private boolean writeToolsEnabled() {
+        FddbExporterProperties.Mcp mcp = properties.getMcp();
+        return mcp != null && mcp.isWriteToolsEnabled();
     }
 
     /**

@@ -1,13 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.mcp;
 
-import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductRanking;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.DayRangeResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.DayResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.ProductSearchResultDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.mcp.TopProductsResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
+import dev.itobey.adapter.api.fddb.exporter.dto.mcp.*;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,8 +21,8 @@ import java.util.Optional;
 import static java.time.temporal.ChronoUnit.DAYS;
 
 /**
- * MCP tools for reading the exported diary: single days, date ranges, product occurrences and the
- * ranking of the products across them.
+ * MCP tools for reading the exported diary: single days, date ranges, product occurrences, the
+ * ranking and the aggregate of the products across them, and the vocabulary of names to search with.
  * <p>
  * Unlike the Vaadin UI, which goes through the REST API over HTTP, the tools call
  * {@link FddbDataService} directly - there is no benefit to an in-process HTTP hop, and it keeps
@@ -61,6 +55,22 @@ public class FddbQueryTools {
     private static final int DEFAULT_TOP_PRODUCTS_LIMIT = 20;
 
     private static final int MAX_TOP_PRODUCTS_LIMIT = 100;
+
+    /**
+     * Default cap for the vocabulary lookup. Enough to see the variants of a search term, and a
+     * plain name is cheap enough that a caller wanting the whole list can ask for it.
+     */
+    private static final int DEFAULT_DISTINCT_PRODUCTS_LIMIT = 50;
+
+    private static final int MAX_DISTINCT_PRODUCTS_LIMIT = 500;
+
+    /**
+     * Default cap for the keyword day search. A year of days is already a lot to reason about, and
+     * the count of matches is reported regardless of how many days come back.
+     */
+    private static final int DEFAULT_MATCHED_DAYS_LIMIT = 100;
+
+    private static final int MAX_MATCHED_DAYS_LIMIT = 366;
 
     private final FddbDataService fddbDataService;
 
@@ -235,6 +245,157 @@ public class FddbQueryTools {
                 .limit(effectiveLimit)
                 .truncated(truncated)
                 .results(results)
+                .build();
+    }
+
+    @McpTool(
+            name = "get_product_summary",
+            description = """
+                    Aggregates every product matching a search term into one figure set: how often \
+                    it was logged, when it was first and last eaten, what it contributed in total \
+                    and on average, and how the occurrences spread over the days of the week. Use \
+                    this instead of search_products when the question is "how much" or "how often" \
+                    rather than "when exactly". Read matchedProductNames before treating the result \
+                    as one food - a short search term folds several brands into one number.""",
+            annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
+                    idempotentHint = true, openWorldHint = false))
+    public ProductSummaryResultDTO getProductSummary(
+            @McpToolParam(description = "Case-insensitive substring of the product name")
+            String name,
+
+            @McpToolParam(description = "Optional first day to include (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            String fromDate,
+
+            @McpToolParam(description = "Optional last day to include (inclusive): an ISO date "
+                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            String toDate) {
+        LocalDate from = McpDateParser.parseOptional(fromDate);
+        LocalDate to = McpDateParser.parseOptional(toDate);
+        log.debug("MCP: summarizing products matching '{}' in {} to {}", name, from, to);
+
+        ProductSummaryDTO summary = fddbDataService.getProductSummary(name, from, to);
+        boolean found = summary.getTimesEaten() > 0;
+
+        return ProductSummaryResultDTO.builder()
+                .searchTerm(name)
+                .fromDate(from)
+                .toDate(to)
+                .found(found)
+                .message(found ? null : "No product matching '" + name + "' was logged in this range - "
+                        + "try a shorter fragment, or call list_distinct_products to see the names "
+                        + "the diary actually contains.")
+                .summary(found ? summary : null)
+                .build();
+    }
+
+    @McpTool(
+            name = "list_distinct_products",
+            description = """
+                    Lists the distinct product names in the diary, optionally filtered by a \
+                    case-insensitive substring. This is the vocabulary lookup: FDDB names are long, \
+                    usually German and brand-prefixed, so resolving the user's wording to a real \
+                    name here first saves an empty search later. 'flocken' finds 'Haferflocken \
+                    kernig' - the filter matches anywhere in the name, not just at the start.""",
+            annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
+                    idempotentHint = true, openWorldHint = false))
+    public DistinctProductsResultDTO listDistinctProducts(
+            @McpToolParam(description = "Optional case-insensitive substring the names must contain. "
+                    + "Omit to list from the whole diary", required = false)
+            String search,
+
+            @McpToolParam(description = "How many names to return, at most 500. Defaults to 50",
+                    required = false)
+            Integer limit) {
+        int effectiveLimit = limit == null || limit <= 0
+                ? DEFAULT_DISTINCT_PRODUCTS_LIMIT
+                : Math.min(limit, MAX_DISTINCT_PRODUCTS_LIMIT);
+        log.debug("MCP: listing distinct product names matching '{}' (limit={})", search, effectiveLimit);
+
+        // one more than asked for, so an overflow can be reported instead of silently truncating
+        List<String> names = fddbDataService.findDistinctProductNames(search, effectiveLimit + 1);
+        boolean truncated = names.size() > effectiveLimit;
+        List<String> results = truncated ? names.subList(0, effectiveLimit) : names;
+
+        return DistinctProductsResultDTO.builder()
+                .searchTerm(search)
+                .resultCount(results.size())
+                .limit(effectiveLimit)
+                .truncated(truncated)
+                .names(results)
+                .build();
+    }
+
+    @McpTool(
+            name = "find_days_with_products",
+            description = """
+                    Finds the days on which at least one product matching any of the include \
+                    keywords was logged, skipping days where a matching product also matches an \
+                    exclude keyword. Keywords are case-insensitive substrings of the product name. \
+                    This is the building block for elimination-diet questions - get the days here, \
+                    then line them up with correlate_products_with_dates or pull individual days \
+                    with get_day. Results are grouped by day, newest first. dayCount is how many \
+                    days came back and matchedDayCount how many exist - answer "on how many days \
+                    did I eat X?" with matchedDayCount, which stays right even when truncated is \
+                    set.""",
+            annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
+                    idempotentHint = true, openWorldHint = false))
+    public DaysWithProductsResultDTO findDaysWithProducts(
+            @McpToolParam(description = "One or more keywords, each a case-insensitive substring of "
+                    + "a product name. A day matches when any of them does")
+            List<String> includeKeywords,
+
+            @McpToolParam(description = "Optional keywords that disqualify a product: an occurrence "
+                    + "whose name contains one of these is not counted", required = false)
+            List<String> excludeKeywords,
+
+            @McpToolParam(description = "Optional earliest day to consider: an ISO date (YYYY-MM-DD), "
+                    + "'today', 'yesterday' or 'N_days_ago'. Omit to search the whole diary",
+                    required = false)
+            String startDate,
+
+            @McpToolParam(description = "How many days to return, at most 366. Defaults to 100",
+                    required = false)
+            Integer limit) {
+        if (includeKeywords == null || includeKeywords.isEmpty()) {
+            throw new IllegalArgumentException("At least one include keyword is required - without one "
+                    + "this would return every day in the diary");
+        }
+        LocalDate start = McpDateParser.parseOptional(startDate);
+        int effectiveLimit = limit == null || limit <= 0
+                ? DEFAULT_MATCHED_DAYS_LIMIT
+                : Math.min(limit, MAX_MATCHED_DAYS_LIMIT);
+        log.debug("MCP: finding days with {} (excluding {}) from {}", includeKeywords, excludeKeywords, start);
+
+        // grouped and capped in the database; one more than asked for, so an overflow is visible
+        List<DayWithProductsDTO> matched =
+                fddbDataService.findDaysWithProducts(includeKeywords, excludeKeywords, start, effectiveLimit + 1);
+        boolean truncated = matched.size() > effectiveLimit;
+        List<DayWithProductsDTO> returned = truncated ? matched.subList(0, effectiveLimit) : matched;
+
+        // an untruncated result already holds every match, so the totals cost a second query only
+        // when the answer would otherwise be a guess
+        ProductDayTotalsDTO totals = truncated
+                ? fddbDataService.countDaysWithProducts(includeKeywords, excludeKeywords, start)
+                : ProductDayTotalsDTO.builder()
+                .dayCount(matched.size())
+                .occurrenceCount(matched.stream().mapToLong(DayWithProductsDTO::getOccurrences).sum())
+                .build();
+
+        return DaysWithProductsResultDTO.builder()
+                .includeKeywords(includeKeywords)
+                .excludeKeywords(excludeKeywords == null || excludeKeywords.isEmpty() ? null : excludeKeywords)
+                .startDate(start)
+                .dayCount(returned.size())
+                .matchedDayCount(totals.getDayCount())
+                .occurrenceCount(totals.getOccurrenceCount())
+                .truncated(truncated)
+                .days(returned.stream()
+                        .map(day -> DaysWithProductsResultDTO.MatchedDay.builder()
+                                .date(day.getDate())
+                                .products(day.getProducts())
+                                .build())
+                        .toList())
                 .build();
     }
 

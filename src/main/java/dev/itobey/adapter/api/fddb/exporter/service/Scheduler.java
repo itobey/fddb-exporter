@@ -2,6 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
+import dev.itobey.adapter.api.fddb.exporter.exception.ExportInProgressException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.TelemetryService;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,10 @@ public class Scheduler implements SchedulingConfigurer {
             fddbDataService.exportForDaysBack(1, false);
         } catch (AuthenticationException authenticationException) {
             log.error("not logged in - skipping job execution");
+        } catch (ExportInProgressException exportInProgressException) {
+            // a manual or MCP-triggered export is running; yesterday will be picked up tomorrow, and
+            // this is not worth a notification
+            log.warn("an export is already running - skipping the scheduled export for yesterday");
         } catch (ParseException parseException) {
             String errorMessage = "data for yesterday cannot be parsed, skipping this day";
             log.warn(errorMessage, parseException);

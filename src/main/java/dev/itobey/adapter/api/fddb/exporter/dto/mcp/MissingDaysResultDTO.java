@@ -13,7 +13,9 @@ import java.util.List;
  * The result of an MCP gap check: the days in a range that were never logged.
  * <p>
  * The counts are given next to the list so an agent can answer "how well did I log last month?"
- * without counting array elements itself.
+ * without counting array elements itself. They stay accurate when the list is cut: a multi-year
+ * audit of a sparse diary would otherwise return thousands of bare date strings, and the count is
+ * the part of that answer worth reading anyway.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
@@ -42,7 +44,19 @@ public class MissingDaysResultDTO {
     private long loggedCount;
 
     /**
-     * The missing days in chronological order.
+     * Whether more days are missing than {@code missingDays} lists. {@code missingCount} stays the
+     * true total either way, so a "how many did I miss?" answer is never wrong - only the list of
+     * dates is cut.
+     */
+    private boolean truncated;
+
+    /**
+     * The upper bound on how many dates are listed, only set when the list was cut.
+     */
+    private Integer limit;
+
+    /**
+     * The missing days in chronological order, oldest first, at most {@code limit} of them.
      */
     private List<LocalDate> missingDays;
 }
