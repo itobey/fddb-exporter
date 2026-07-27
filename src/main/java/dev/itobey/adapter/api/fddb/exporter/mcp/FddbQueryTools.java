@@ -176,23 +176,20 @@ public class FddbQueryTools {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
         List<DayOfWeek> days = parseDaysOfWeek(daysOfWeek);
-        int effectiveLimit = effectiveLimit(limit);
+        int effectiveLimit = McpPage.boundedLimit(limit, DEFAULT_PRODUCT_SEARCH_LIMIT, MAX_PRODUCT_SEARCH_LIMIT);
         log.debug("MCP: searching products matching '{}' in {} to {} (limit={})", name, from, to, effectiveLimit);
 
-        // one more than asked for, so an overflow can be reported instead of silently truncating
-        List<ProductWithDateDTO> matches =
-                fddbDataService.findByProduct(name, days, from, to, effectiveLimit + 1);
-        boolean truncated = matches.size() > effectiveLimit;
-        List<ProductWithDateDTO> results = truncated ? matches.subList(0, effectiveLimit) : matches;
+        McpPage<ProductWithDateDTO> page = McpPage.fetch(effectiveLimit,
+                max -> fddbDataService.findByProduct(name, days, from, to, max));
 
         return ProductSearchResultDTO.builder()
                 .searchTerm(name)
                 .fromDate(from)
                 .toDate(to)
-                .resultCount(results.size())
+                .resultCount(page.size())
                 .limit(effectiveLimit)
-                .truncated(truncated)
-                .results(results)
+                .truncated(page.truncated())
+                .results(page.items())
                 .build();
     }
 
@@ -226,24 +223,20 @@ public class FddbQueryTools {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
         ProductRanking ranking = by == null ? ProductRanking.FREQUENCY : by;
-        int effectiveLimit = limit == null || limit <= 0
-                ? DEFAULT_TOP_PRODUCTS_LIMIT
-                : Math.min(limit, MAX_TOP_PRODUCTS_LIMIT);
+        int effectiveLimit = McpPage.boundedLimit(limit, DEFAULT_TOP_PRODUCTS_LIMIT, MAX_TOP_PRODUCTS_LIMIT);
         log.debug("MCP: ranking products by {} in {} to {} (limit={})", ranking, from, to, effectiveLimit);
 
-        // one more than asked for, so an overflow can be reported instead of silently truncating
-        List<TopProductDTO> ranked = fddbDataService.getTopProducts(ranking, from, to, effectiveLimit + 1);
-        boolean truncated = ranked.size() > effectiveLimit;
-        List<TopProductDTO> results = truncated ? ranked.subList(0, effectiveLimit) : ranked;
+        McpPage<TopProductDTO> page = McpPage.fetch(effectiveLimit,
+                max -> fddbDataService.getTopProducts(ranking, from, to, max));
 
         return TopProductsResultDTO.builder()
                 .rankedBy(ranking)
                 .fromDate(from)
                 .toDate(to)
-                .resultCount(results.size())
+                .resultCount(page.size())
                 .limit(effectiveLimit)
-                .truncated(truncated)
-                .results(results)
+                .truncated(page.truncated())
+                .results(page.items())
                 .build();
     }
 
@@ -306,22 +299,18 @@ public class FddbQueryTools {
             @McpToolParam(description = "How many names to return, at most 500. Defaults to 50",
                     required = false)
             Integer limit) {
-        int effectiveLimit = limit == null || limit <= 0
-                ? DEFAULT_DISTINCT_PRODUCTS_LIMIT
-                : Math.min(limit, MAX_DISTINCT_PRODUCTS_LIMIT);
+        int effectiveLimit = McpPage.boundedLimit(limit, DEFAULT_DISTINCT_PRODUCTS_LIMIT, MAX_DISTINCT_PRODUCTS_LIMIT);
         log.debug("MCP: listing distinct product names matching '{}' (limit={})", search, effectiveLimit);
 
-        // one more than asked for, so an overflow can be reported instead of silently truncating
-        List<String> names = fddbDataService.findDistinctProductNames(search, effectiveLimit + 1);
-        boolean truncated = names.size() > effectiveLimit;
-        List<String> results = truncated ? names.subList(0, effectiveLimit) : names;
+        McpPage<String> page = McpPage.fetch(effectiveLimit,
+                max -> fddbDataService.findDistinctProductNames(search, max));
 
         return DistinctProductsResultDTO.builder()
                 .searchTerm(search)
-                .resultCount(results.size())
+                .resultCount(page.size())
                 .limit(effectiveLimit)
-                .truncated(truncated)
-                .names(results)
+                .truncated(page.truncated())
+                .names(page.items())
                 .build();
     }
 
@@ -361,48 +350,37 @@ public class FddbQueryTools {
                     + "this would return every day in the diary");
         }
         LocalDate start = McpDateParser.parseOptional(startDate);
-        int effectiveLimit = limit == null || limit <= 0
-                ? DEFAULT_MATCHED_DAYS_LIMIT
-                : Math.min(limit, MAX_MATCHED_DAYS_LIMIT);
+        int effectiveLimit = McpPage.boundedLimit(limit, DEFAULT_MATCHED_DAYS_LIMIT, MAX_MATCHED_DAYS_LIMIT);
         log.debug("MCP: finding days with {} (excluding {}) from {}", includeKeywords, excludeKeywords, start);
 
-        // grouped and capped in the database; one more than asked for, so an overflow is visible
-        List<DayWithProductsDTO> matched =
-                fddbDataService.findDaysWithProducts(includeKeywords, excludeKeywords, start, effectiveLimit + 1);
-        boolean truncated = matched.size() > effectiveLimit;
-        List<DayWithProductsDTO> returned = truncated ? matched.subList(0, effectiveLimit) : matched;
+        // grouped and capped in the database already
+        McpPage<DayWithProductsDTO> page = McpPage.fetch(effectiveLimit,
+                max -> fddbDataService.findDaysWithProducts(includeKeywords, excludeKeywords, start, max));
 
         // an untruncated result already holds every match, so the totals cost a second query only
         // when the answer would otherwise be a guess
-        ProductDayTotalsDTO totals = truncated
+        ProductDayTotalsDTO totals = page.truncated()
                 ? fddbDataService.countDaysWithProducts(includeKeywords, excludeKeywords, start)
                 : ProductDayTotalsDTO.builder()
-                .dayCount(matched.size())
-                .occurrenceCount(matched.stream().mapToLong(DayWithProductsDTO::getOccurrences).sum())
+                .dayCount(page.size())
+                .occurrenceCount(page.items().stream().mapToLong(DayWithProductsDTO::getOccurrences).sum())
                 .build();
 
         return DaysWithProductsResultDTO.builder()
                 .includeKeywords(includeKeywords)
                 .excludeKeywords(excludeKeywords == null || excludeKeywords.isEmpty() ? null : excludeKeywords)
                 .startDate(start)
-                .dayCount(returned.size())
+                .dayCount(page.size())
                 .matchedDayCount(totals.getDayCount())
                 .occurrenceCount(totals.getOccurrenceCount())
-                .truncated(truncated)
-                .days(returned.stream()
+                .truncated(page.truncated())
+                .days(page.items().stream()
                         .map(day -> DaysWithProductsResultDTO.MatchedDay.builder()
                                 .date(day.getDate())
                                 .products(day.getProducts())
                                 .build())
                         .toList())
                 .build();
-    }
-
-    private int effectiveLimit(Integer limit) {
-        if (limit == null || limit <= 0) {
-            return DEFAULT_PRODUCT_SEARCH_LIMIT;
-        }
-        return Math.min(limit, MAX_PRODUCT_SEARCH_LIMIT);
     }
 
     private List<DayOfWeek> parseDaysOfWeek(List<String> daysOfWeek) {

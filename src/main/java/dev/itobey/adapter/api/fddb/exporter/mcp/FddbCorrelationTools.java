@@ -115,7 +115,8 @@ public class FddbCorrelationTools {
     private CorrelationResultDTO toResult(CorrelationOutputDto output, List<String> inclusions,
                                           List<String> exclusions, LocalDate start, int eventDateCount) {
         List<String> matchedProducts = output.getMatchedProducts();
-        boolean truncated = matchedProducts.size() > MAX_MATCHED_PRODUCTS;
+        // the correlation is computed over all of them, so only the listing of the names is capped
+        McpPage<String> names = McpPage.of(matchedProducts, MAX_MATCHED_PRODUCTS);
 
         CorrelationResultDTO.CorrelationResultDTOBuilder result = CorrelationResultDTO.builder()
                 .inclusionKeywords(inclusions)
@@ -123,8 +124,8 @@ public class FddbCorrelationTools {
                 .startDate(start)
                 .eventDateCount(eventDateCount)
                 .matchedProductCount(matchedProducts.size())
-                .matchedProducts(truncated ? matchedProducts.subList(0, MAX_MATCHED_PRODUCTS) : matchedProducts)
-                .matchedProductsTruncated(truncated)
+                .matchedProducts(names.items())
+                .matchedProductsTruncated(names.truncated())
                 .daysWithMatchingProduct(output.getAmountMatchedDates());
 
         if (output.getAmountMatchedDates() == 0) {

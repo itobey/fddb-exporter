@@ -165,15 +165,12 @@ public class FddbStatsTools {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
         ExtremeDirection effectiveDirection = direction == null ? ExtremeDirection.HIGHEST : direction;
-        int effectiveLimit = boundedLimit(limit, DEFAULT_EXTREME_DAYS_LIMIT, MAX_EXTREME_DAYS_LIMIT);
+        int effectiveLimit = McpPage.boundedLimit(limit, DEFAULT_EXTREME_DAYS_LIMIT, MAX_EXTREME_DAYS_LIMIT);
         log.debug("MCP: retrieving the {} {} days for {} in {} to {}",
                 effectiveLimit, effectiveDirection, metric, from, to);
 
-        // one more than asked for, so an overflow can be reported instead of silently truncating
-        List<StatsDTO.DayStats> ranked =
-                fddbDataService.getExtremeDays(metric, effectiveDirection, effectiveLimit + 1, from, to);
-        boolean truncated = ranked.size() > effectiveLimit;
-        List<StatsDTO.DayStats> days = truncated ? ranked.subList(0, effectiveLimit) : ranked;
+        McpPage<StatsDTO.DayStats> page = McpPage.fetch(effectiveLimit,
+                max -> fddbDataService.getExtremeDays(metric, effectiveDirection, max, from, to));
 
         return ExtremeDaysResultDTO.builder()
                 .metric(metric)
@@ -181,10 +178,10 @@ public class FddbStatsTools {
                 .unit(McpMetrics.unitOf(metric))
                 .fromDate(from)
                 .toDate(to)
-                .resultCount(days.size())
+                .resultCount(page.size())
                 .limit(effectiveLimit)
-                .truncated(truncated)
-                .days(days)
+                .truncated(page.truncated())
+                .days(page.items())
                 .build();
     }
 
@@ -340,7 +337,8 @@ public class FddbStatsTools {
         log.debug("MCP: retrieving the missing days for {} to {}", from, to);
 
         List<LocalDate> missingDays = fddbDataService.getMissingDays(from, to);
-        boolean truncated = missingDays.size() > MAX_MISSING_DAYS_LISTED;
+        // the full list is needed for the counts either way, so it is capped rather than queried short
+        McpPage<LocalDate> page = McpPage.of(missingDays, MAX_MISSING_DAYS_LISTED);
 
         return MissingDaysResultDTO.builder()
                 .fromDate(from)
@@ -349,11 +347,9 @@ public class FddbStatsTools {
                 // the counts describe the whole range even when the list below does not
                 .missingCount(missingDays.size())
                 .loggedCount(daysChecked - missingDays.size())
-                .truncated(truncated)
-                .limit(truncated ? MAX_MISSING_DAYS_LISTED : null)
-                .missingDays(truncated
-                        ? List.copyOf(missingDays.subList(0, MAX_MISSING_DAYS_LISTED))
-                        : missingDays)
+                .truncated(page.truncated())
+                .limit(page.truncated() ? MAX_MISSING_DAYS_LISTED : null)
+                .missingDays(page.items())
                 .build();
     }
 
@@ -403,12 +399,5 @@ public class FddbStatsTools {
     private String nothingLoggedMessage(LocalDate from, LocalDate to, String verb) {
         return "No day between " + from + " and " + to + " has an entry, so there is nothing to "
                 + verb + " - the user logged nothing in this range.";
-    }
-
-    private int boundedLimit(Integer limit, int defaultLimit, int maxLimit) {
-        if (limit == null || limit <= 0) {
-            return defaultLimit;
-        }
-        return Math.min(limit, maxLimit);
     }
 }
