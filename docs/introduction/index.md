@@ -19,5 +19,7 @@ You may want to do this for the following reasons:
 - **Mobile Support**: Works great on mobile devices and can be installed as a Progressive Web App (PWA)
 - **Product Search**: Find products with optional day-of-week filtering (e.g., only show products eaten on Mondays)
 - **Correlation Analysis**: Identify potential food sensitivities by correlating products with specific dates
+- **[MCP Server](/details/mcp-server.html)**: Opt-in, read-only by default — let an AI assistant answer questions about
+  your diary in natural language
 - **Automatic Updates**: Get notified when a new version is available
 

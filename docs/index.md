@@ -21,4 +21,6 @@ features:
     details: Persist daily totals to InfluxDB for easy querying with Grafana.
   - title: REST API support
     details: Access your data through a REST API and search for specific products with day-of-week filtering.
+  - title: MCP server
+    details: Opt-in, read-only by default. Let an AI assistant answer questions about your diary in natural language.
 ---

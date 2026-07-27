@@ -240,6 +240,9 @@ MCP results are read by a language model, so the tools are built to keep respons
   `missingCount` and `loggedCount` always describe the whole range, so a five-year audit still answers "how many days
   did I miss?" exactly — only the dates themselves are cut, and a narrower range gets them back. The repair path
   (`export_missing_days`, the REST API, the Web UI) works from the full list either way.
+- `correlate_products_with_dates` lists at most 50 of the product names a keyword matched, with
+  `matchedProductsTruncated` set when it cut the list. `matchedProductCount` is always the full number, so a broad
+  keyword still tells you how much it caught even when the names are cut. It also accepts at most 366 event dates.
 - `check_goals` returns the aggregate verdict by default and the individual days only with `includeDays`.
 - The database id is stripped and empty fields are dropped.
 
