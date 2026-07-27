@@ -122,7 +122,10 @@ public class FddbStatsTools {
                     first, optionally restricted to a date range. Use this for "which were my \
                     heaviest days" or "when did I eat the least protein" instead of pulling the range \
                     and sorting it. Only the date and the value of that one nutrient come back - call \
-                    get_day for a day found here to see what was actually eaten on it.""",
+                    get_day for a day found here to see what was actually eaten on it. Check the \
+                    'truncated' flag before calling this list "the" extremes: when it is true, more \
+                    days exist past the cut and the next one may be a hair behind the last one \
+                    returned.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public ExtremeDaysResultDTO getExtremeDays(
@@ -154,8 +157,11 @@ public class FddbStatsTools {
         log.debug("MCP: retrieving the {} {} days for {} in {} to {}",
                 effectiveLimit, effectiveDirection, metric, from, to);
 
-        List<StatsDTO.DayStats> days =
-                fddbDataService.getExtremeDays(metric, effectiveDirection, effectiveLimit, from, to);
+        // one more than asked for, so an overflow can be reported instead of silently truncating
+        List<StatsDTO.DayStats> ranked =
+                fddbDataService.getExtremeDays(metric, effectiveDirection, effectiveLimit + 1, from, to);
+        boolean truncated = ranked.size() > effectiveLimit;
+        List<StatsDTO.DayStats> days = truncated ? ranked.subList(0, effectiveLimit) : ranked;
 
         return ExtremeDaysResultDTO.builder()
                 .metric(metric)
@@ -164,6 +170,8 @@ public class FddbStatsTools {
                 .fromDate(from)
                 .toDate(to)
                 .resultCount(days.size())
+                .limit(effectiveLimit)
+                .truncated(truncated)
                 .days(days)
                 .build();
     }

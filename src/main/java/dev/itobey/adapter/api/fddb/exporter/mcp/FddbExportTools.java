@@ -43,6 +43,11 @@ import static java.time.temporal.ChronoUnit.DAYS;
  * sense of what a call costs. The refusal names the uncapped paths so the agent can hand a real
  * backfill back to the user instead of issuing the same call fourteen days at a time.
  * <p>
+ * A range reaching into the future is refused rather than scraped. The read tools accept any date
+ * the parser understands and answer {@code found=false} for a day that cannot have data; here the
+ * same mistake costs real requests to fddb.info out of the per-call budget. {@code export_days_back}
+ * needs no such check - it counts back from today or yesterday and cannot address a future day.
+ * <p>
  * Both underlying export methods swallow a parse failure per day and report it as an unsuccessful
  * day, which is also what a day with nothing logged on FDDB looks like. An authentication failure
  * is not swallowed and aborts the whole call - the credentials being wrong is not something to
@@ -109,9 +114,10 @@ public class FddbExportTools {
             @McpToolParam(description = "Last day to export (inclusive): an ISO date (YYYY-MM-DD), "
                     + "'today', 'yesterday' or 'N_days_ago'")
             String toDate) {
-        LocalDate from = McpDateParser.parse(fromDate);
-        LocalDate to = McpDateParser.parse(toDate);
-        long days = daysIn(from, to);
+        LocalDate today = LocalDate.now();
+        LocalDate from = McpDateParser.parse(fromDate, today);
+        LocalDate to = McpDateParser.parse(toDate, today);
+        long days = daysIn(from, to, today);
         log.info("MCP: exporting {} to {}", from, to);
 
         return summarize(from, to, days, exportForTimerange(from, to));
@@ -151,8 +157,10 @@ public class FddbExportTools {
         }
         log.info("MCP: exporting the last {} days (includeToday={})", days, withToday);
 
-        ExportResultDTO result = fddbDataService.exportForDaysBack(days, withToday);
+        // the end of the range is resolved once, here, and handed to the service - reading the clock
+        // again after the export would report a range shifted by a day for a run that crossed midnight
         LocalDate to = withToday ? LocalDate.now() : LocalDate.now().minusDays(1);
+        ExportResultDTO result = fddbDataService.exportForDaysBack(days, to);
 
         return summarize(to.minusDays(days - 1L), to, days, result);
     }
@@ -178,12 +186,10 @@ public class FddbExportTools {
             @McpToolParam(description = "Last day to check (inclusive): an ISO date (YYYY-MM-DD), "
                     + "'today', 'yesterday' or 'N_days_ago'")
             String toDate) {
-        LocalDate from = McpDateParser.parse(fromDate);
-        LocalDate to = McpDateParser.parse(toDate);
-        if (from.isAfter(to)) {
-            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
-        }
-        long daysInRange = DAYS.between(from, to) + 1;
+        LocalDate today = LocalDate.now();
+        LocalDate from = McpDateParser.parse(fromDate, today);
+        LocalDate to = McpDateParser.parse(toDate, today);
+        long daysInRange = validRangeDays(from, to, today);
 
         // the range itself is only read, so it is not capped - what is capped is the scraping below
         List<LocalDate> missingDays = fddbDataService.getMissingDays(from, to);
@@ -229,12 +235,34 @@ public class FddbExportTools {
                 .build());
     }
 
-    private long daysIn(LocalDate from, LocalDate to) {
+    /**
+     * The length of a range that may be scraped: not inverted, not reaching into the future.
+     * <p>
+     * The future check is here rather than in {@link McpDateParser} because it is only wrong for
+     * these tools. A read tool asked about tomorrow answers {@code found=false} and costs nothing;
+     * an export tool asked about tomorrow makes real requests to fddb.info for days that cannot have
+     * data, and spends the per-call budget on them. The message names the server's own today, since
+     * that is the number the agent got its arithmetic wrong against.
+     */
+    private long validRangeDays(LocalDate from, LocalDate to, LocalDate today) {
         if (from.isAfter(to)) {
             throw new DateTimeException("The 'from' date cannot be after the 'to' date");
         }
+        if (to.isAfter(today)) {
+            throw new DateTimeException("The range ends on " + to + ", which is in the future - "
+                    + "today is " + today + " on this server. FDDB cannot have a diary for a day "
+                    + "that has not happened yet, so there is nothing to export; recompute the range "
+                    + "against " + today + " and call again.");
+        }
+        return DAYS.between(from, to) + 1;
+    }
 
-        long days = DAYS.between(from, to) + 1;
+    /**
+     * The same, plus the per-call cap. Separate from {@link #validRangeDays} because
+     * {@code export_missing_days} caps the gaps it scrapes, not the range it reads.
+     */
+    private long daysIn(LocalDate from, LocalDate to, LocalDate today) {
+        long days = validRangeDays(from, to, today);
         if (days > MAX_EXPORT_DAYS) {
             throw new DateTimeException(exportTooLargeMessage(days));
         }

@@ -82,6 +82,22 @@ MongoDB persistence. For what it exposes and how to connect a client, see [MCP S
 | `FDDB-EXPORTER_MCP_ENABLED`             | false   | Enable the MCP server endpoint at `/mcp`, with the read-only tools                 |
 | `FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED` | false   | Additionally expose the export tools, which scrape FDDB and write to the database  |
 
+**A note on the hyphens.** The spelling above works wherever the variable is set as data — a Docker
+`-e` flag, a `docker-compose.yml` `environment:` block, a Kubernetes env var, an IDE run
+configuration:
+
+```bash
+docker run -e 'FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED=true' ghcr.io/itobey/fddb-exporter
+```
+
+It does **not** work with a POSIX shell's `export`, which rejects hyphens in a variable name. In a
+shell script use the all-underscore form instead — Spring Boot's relaxed binding accepts either, and
+this applies to every `FDDB-EXPORTER_*` variable on this page:
+
+```bash
+export FDDB_EXPORTER_MCP_WRITE_TOOLS_ENABLED=true
+```
+
 ### Logging Configuration
 
 | Variable             | Default | Description           |

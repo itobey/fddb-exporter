@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -114,16 +114,53 @@ class FddbExportToolsTest {
     }
 
     @Test
+    void exportRange_shouldRefuseToScrapeDaysThatHaveNotHappenedYet() {
+        // given
+        LocalDate today = LocalDate.now();
+        LocalDate tomorrow = today.plusDays(1);
+
+        // when / then: a read tool would answer found=false, but here it costs real requests
+        DateTimeException exception = assertThrows(DateTimeException.class,
+                () -> fddbExportTools.exportRange("yesterday", tomorrow.toString()));
+        assertTrue(exception.getMessage().contains("in the future"), exception.getMessage());
+        // naming the server's today is what lets the agent correct itself in one step
+        assertTrue(exception.getMessage().contains(today.toString()), exception.getMessage());
+        verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
+    void exportRange_shouldStillAcceptARangeEndingToday() {
+        // given
+        when(fddbDataService.exportForTimerange(any())).thenReturn(result(List.of(), List.of()));
+
+        // when
+        ExportSummaryDTO summary = fddbExportTools.exportRange("today", "today");
+
+        // then
+        assertEquals(LocalDate.now(), summary.getToDate());
+        assertEquals(1, summary.getDaysRequested());
+    }
+
+    @Test
+    void exportMissingDays_shouldRefuseToScrapeDaysThatHaveNotHappenedYet() {
+        // when / then
+        DateTimeException exception = assertThrows(DateTimeException.class,
+                () -> fddbExportTools.exportMissingDays("2024-01-01", LocalDate.now().plusDays(30).toString()));
+        assertTrue(exception.getMessage().contains("in the future"), exception.getMessage());
+        verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
     void exportDaysBack_shouldEndYesterdayUnlessTodayIsAskedFor() {
         // given
         LocalDate yesterday = LocalDate.now().minusDays(1);
-        when(fddbDataService.exportForDaysBack(3, false)).thenReturn(result(List.of(), List.of()));
+        when(fddbDataService.exportForDaysBack(3, yesterday)).thenReturn(result(List.of(), List.of()));
 
         // when
         ExportSummaryDTO summary = fddbExportTools.exportDaysBack(3, null);
 
         // then
-        verify(fddbDataService).exportForDaysBack(3, false);
+        verify(fddbDataService).exportForDaysBack(3, yesterday);
         assertEquals(yesterday, summary.getToDate());
         assertEquals(yesterday.minusDays(2), summary.getFromDate());
     }
@@ -132,7 +169,7 @@ class FddbExportToolsTest {
     void exportDaysBack_shouldIncludeTodayWhenAskedTo() {
         // given
         LocalDate today = LocalDate.now();
-        when(fddbDataService.exportForDaysBack(2, true)).thenReturn(result(List.of(), List.of()));
+        when(fddbDataService.exportForDaysBack(2, today)).thenReturn(result(List.of(), List.of()));
 
         // when
         ExportSummaryDTO summary = fddbExportTools.exportDaysBack(2, true);
@@ -140,6 +177,23 @@ class FddbExportToolsTest {
         // then
         assertEquals(today, summary.getToDate());
         assertEquals(today.minusDays(1), summary.getFromDate());
+    }
+
+    @Test
+    void exportDaysBack_shouldReportTheSameEndDateItHandedTheService() {
+        // given: the reported range has to come from the same clock reading the export used, or a
+        // run crossing midnight reports a range one day off the one it fetched
+        ArgumentCaptor<LocalDate> exported = ArgumentCaptor.forClass(LocalDate.class);
+        when(fddbDataService.exportForDaysBack(anyInt(), any(LocalDate.class)))
+                .thenReturn(result(List.of(), List.of()));
+
+        // when
+        ExportSummaryDTO summary = fddbExportTools.exportDaysBack(5, false);
+
+        // then
+        verify(fddbDataService).exportForDaysBack(eq(5), exported.capture());
+        assertEquals(exported.getValue(), summary.getToDate());
+        assertEquals(exported.getValue().minusDays(4), summary.getFromDate());
     }
 
     @Test

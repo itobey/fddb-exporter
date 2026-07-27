@@ -56,6 +56,11 @@ public class GoalCheckResultDTO {
 
     /**
      * The run of consecutive days that passed every target, counted back from the end of the range.
+     * <p>
+     * Reads 0 whenever {@code toDate} itself has no entry, since an unlogged day breaks the run -
+     * and the diary is normally scraped for yesterday, so a range ending today reports 0 almost
+     * every time however well the days before it went. The tool description says so; a caller that
+     * wants a meaningful current streak ends the range on the last day that can be logged.
      */
     private int currentStreak;
 

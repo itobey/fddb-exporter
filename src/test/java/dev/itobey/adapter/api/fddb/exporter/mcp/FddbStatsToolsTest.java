@@ -119,8 +119,8 @@ class FddbStatsToolsTest {
 
     @Test
     void getExtremeDays_shouldDefaultToTheTenHighestDaysOfTheWholeDiary() {
-        // given
-        when(fddbDataService.getExtremeDays(NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 10, null, null))
+        // given: one more than the limit is asked for, so an overflow would be visible
+        when(fddbDataService.getExtremeDays(NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 11, null, null))
                 .thenReturn(List.of(dayStats(LocalDate.of(2024, 3, 1), 3500)));
 
         // when
@@ -131,8 +131,32 @@ class FddbStatsToolsTest {
         assertEquals(NutrientMetric.CALORIES, result.getMetric());
         assertEquals("kcal", result.getUnit());
         assertEquals(1, result.getResultCount());
+        assertEquals(10, result.getLimit());
+        assertFalse(result.isTruncated());
         assertNull(result.getFromDate());
         assertNull(result.getToDate());
+    }
+
+    @Test
+    void getExtremeDays_shouldSayWhenMoreDaysExistPastTheCut() {
+        // given: the store has more days than were asked for
+        when(fddbDataService.getExtremeDays(any(), any(), eq(4), any(), any()))
+                .thenReturn(List.of(
+                        dayStats(LocalDate.of(2024, 3, 1), 3500),
+                        dayStats(LocalDate.of(2024, 3, 2), 3400),
+                        dayStats(LocalDate.of(2024, 3, 3), 3300),
+                        dayStats(LocalDate.of(2024, 3, 4), 3299)));
+
+        // when
+        ExtremeDaysResultDTO result =
+                fddbStatsTools.getExtremeDays(NutrientMetric.CALORIES, null, 3, null, null);
+
+        // then: the extra day is the signal, not part of the answer
+        assertTrue(result.isTruncated());
+        assertEquals(3, result.getLimit());
+        assertEquals(3, result.getResultCount());
+        assertEquals(3, result.getDays().size());
+        assertEquals(LocalDate.of(2024, 3, 3), result.getDays().getLast().getDate());
     }
 
     @Test
@@ -161,8 +185,8 @@ class FddbStatsToolsTest {
         fddbStatsTools.getExtremeDays(NutrientMetric.FAT, ExtremeDirection.HIGHEST, 5000,
                 "2024-01-01", "2024-12-31");
 
-        // then
-        verify(fddbDataService).getExtremeDays(NutrientMetric.FAT, ExtremeDirection.HIGHEST, 100, from, to);
+        // then: capped at 100, plus the one extra that reveals a truncation
+        verify(fddbDataService).getExtremeDays(NutrientMetric.FAT, ExtremeDirection.HIGHEST, 101, from, to);
     }
 
     @Test

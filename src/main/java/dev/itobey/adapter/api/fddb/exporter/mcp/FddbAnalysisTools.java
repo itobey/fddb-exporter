@@ -118,7 +118,12 @@ public class FddbAnalysisTools {
                     combined and a day only counts as met when it passes all of them. Values are kcal \
                     for CALORIES and grams for every other nutrient. The app stores no goals of its \
                     own - pass whatever the user states. Days without an entry are not evaluated, but \
-                    they do break a streak, since a goal cannot be claimed for a day with no data.""",
+                    they do break a streak, since a goal cannot be claimed for a day with no data. \
+                    That makes currentStreak depend on how the range ends: it counts back from \
+                    toDate, so a range ending on a day that is not logged yet reports 0 however well \
+                    the days before it went. The diary is normally scraped for yesterday, so pass \
+                    toDate='yesterday' when the current streak is the question, and do not report a \
+                    0 from a range ending today as a fact about the user's habits.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public GoalCheckResultDTO checkGoals(

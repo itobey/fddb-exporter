@@ -4,6 +4,7 @@ import dev.itobey.adapter.api.fddb.exporter.config.TestConfig;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.Product;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
+import dev.itobey.adapter.api.fddb.exporter.service.VersionCheckService;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
@@ -18,6 +19,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -29,6 +31,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 
 /**
  * Drives the MCP server the way a real client does: over HTTP, with the official MCP SDK client.
@@ -37,6 +40,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * actually discoverable over the transport, whether Spring AI derives a usable input schema from
  * the method signatures, and whether the results survive JSON serialization - which is where a
  * date silently turning into an object array would break every client.
+ * <p>
+ * Named {@code *IntegrationTest} rather than {@code *IT}, so it runs on every {@code mvn test}
+ * rather than only when invoked by name - see {@link McpWriteToolsIntegrationTest} for why that
+ * build cost is accepted for both of them.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "fddb-exporter.mcp.enabled=true",
@@ -58,6 +65,13 @@ class McpServerIntegrationTest {
     private FddbDataRepository fddbDataRepository;
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    /**
+     * A spy rather than a mock, so it behaves exactly like the real bean for every other test here
+     * and only one of them makes it fail. Reset between test methods by Spring Boot.
+     */
+    @MockitoSpyBean
+    private VersionCheckService versionCheckService;
 
     private McpSyncClient mcpClient;
 
@@ -196,6 +210,16 @@ class McpServerIntegrationTest {
 
         assertThat(result).contains("\"unit\":\"kcal\"", "\"direction\":\"HIGHEST\"",
                 "\"date\":\"2024-01-06\"", "\"total\":3500");
+        // three logged days, one asked for: without this the model reads the list as the whole story
+        assertThat(result).contains("\"resultCount\":1", "\"limit\":1", "\"truncated\":true");
+        assertThat(result).doesNotContain("2024-01-02");
+    }
+
+    @Test
+    void getExtremeDays_shouldNotClaimTruncationWhenTheDiaryIsShorterThanTheLimit() {
+        String result = callTool("get_extreme_days", Map.of("metric", "CALORIES"));
+
+        assertThat(result).contains("\"resultCount\":3", "\"truncated\":false");
     }
 
     @Test
@@ -447,6 +471,23 @@ class McpServerIntegrationTest {
 
         assertThat(result.isError()).isTrue();
         assertThat(textOf(result)).contains("last tuesday");
+    }
+
+    @Test
+    void callTool_shouldNotHandAnInternalFailureToTheModelVerbatim() {
+        // the unit test covers what McpErrorAspect does; this covers whether it is in the path at
+        // all - Spring AI invokes the tool method reflectively on the registered bean, so the whole
+        // shim only works if that bean is the proxy and not the raw target
+        doThrow(new IllegalStateException("Mongo connection refused at mongodb://internal-host:27017"))
+                .when(versionCheckService).getCurrentVersion();
+
+        McpSchema.CallToolResult result =
+                mcpClient.callTool(new McpSchema.CallToolRequest("get_server_info", Map.of()));
+
+        assertThat(result.isError()).isTrue();
+        assertThat(textOf(result)).contains("server-side problem",
+                "not something to retry with different parameters");
+        assertThat(textOf(result)).doesNotContain("Mongo connection refused", "internal-host");
     }
 
     private String callTool(String name, Map<String, Object> arguments) {

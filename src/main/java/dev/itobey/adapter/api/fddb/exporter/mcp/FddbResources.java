@@ -56,6 +56,13 @@ public class FddbResources {
         return toJson(fddbDataService.getStats());
     }
 
+    /**
+     * The {@code {date}} template variable carries no parameter annotation on purpose, unlike every
+     * tool parameter here. {@code @McpArg} is only read for prompt arguments, and the MCP
+     * {@code ResourceTemplate} has no per-variable description field for a client to render - the
+     * only place the accepted forms can reach a client is the resource description above, which is
+     * why it spells them out there.
+     */
     @McpResource(
             uri = "fddb://day/{date}",
             name = "diary_day",

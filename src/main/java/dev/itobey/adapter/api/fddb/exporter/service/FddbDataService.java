@@ -238,6 +238,23 @@ public class FddbDataService {
     }
 
     public ExportResultDTO exportForDaysBack(int days, boolean includeToday) {
+        return exportForDaysBack(days, includeToday ? LocalDate.now() : LocalDate.now().minusDays(1));
+    }
+
+    /**
+     * Exports the last {@code days} days ending on an explicitly given day.
+     * <p>
+     * Exists so a caller that has to report the range it exported can resolve the end date itself
+     * and pass the same value in. Letting this method read the clock leaves the caller reading it a
+     * second time after the export has run, and a run that crosses midnight then gets reported
+     * against a range one day off the one it actually fetched.
+     *
+     * @param days the number of days to export, counting back from and including {@code toDate}
+     * @param toDate the last day of the range
+     * @return which days were exported successfully and which came back empty
+     * @throws DateTimeException if {@code days} is outside the configured min/max window
+     */
+    public ExportResultDTO exportForDaysBack(int days, LocalDate toDate) {
         // safety net to prevent accidents
         int maxDaysBack = properties.getFddb().getMaxDaysBack();
         int minDaysBack = properties.getFddb().getMinDaysBack();
@@ -245,12 +262,11 @@ public class FddbDataService {
             throw new DateTimeException("Days back must be between " + minDaysBack + " and " + maxDaysBack);
         }
 
-        LocalDate to = includeToday ? LocalDate.now() : LocalDate.now().minusDays(1);
-        LocalDate from = to.minusDays(days - 1);
+        LocalDate from = toDate.minusDays(days - 1);
 
         DateRangeDTO timeframe = DateRangeDTO.builder()
                 .fromDate(from.toString())
-                .toDate(to.toString())
+                .toDate(toDate.toString())
                 .build();
 
         return exportForTimerange(timeframe);

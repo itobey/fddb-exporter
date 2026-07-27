@@ -42,6 +42,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  * tools is a bean condition, so the two states cannot coexist in one application context - which is
  * exactly the property worth proving. The read-only test asserts the export tools are absent; this
  * one asserts that with the flag set they appear, scrape and persist.
+ * <p>
+ * Named {@code *IntegrationTest} rather than {@code *IT}, so it runs on every {@code mvn test}
+ * instead of only when invoked by name. That is a deliberate trade and not an oversight: a second
+ * Spring context plus a MongoDB container is real build time, but the only tools in this application
+ * that write to a third-party account under the user's credentials should not be the ones covered
+ * by a suite someone has to remember to run. The build already requires Docker for the other
+ * Testcontainers tests, so this costs a context, not a new prerequisite.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "fddb-exporter.mcp.enabled=true",

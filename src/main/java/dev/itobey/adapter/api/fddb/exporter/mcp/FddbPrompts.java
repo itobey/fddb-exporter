@@ -181,7 +181,7 @@ public class FddbPrompts {
                     description = "How many days back to analyse, at most 366. Defaults to 30")
             String days) {
         double proteinTarget = parsePositiveNumber(target, DEFAULT_PROTEIN_TARGET, "target");
-        int rangeDays = (int) parsePositiveNumber(days, DEFAULT_PROTEIN_DAYS, "days");
+        int rangeDays = parsePositiveWholeNumber(days, DEFAULT_PROTEIN_DAYS, "days");
         if (rangeDays > MAX_ANALYSIS_DAYS) {
             throw new IllegalArgumentException("At most " + MAX_ANALYSIS_DAYS + " days can be analysed "
                     + "at once, but " + rangeDays + " were requested");
@@ -342,6 +342,25 @@ public class FddbPrompts {
             throw new IllegalArgumentException(name + " has to be a positive number, but was " + value);
         }
         return parsed;
+    }
+
+    /**
+     * The same for an argument that counts days, which has to be whole.
+     * <p>
+     * Rejected rather than floored: prompt arguments arrive as free text a user typed, and silently
+     * turning "30.9" into 30 answers a slightly different question than the one that was asked
+     * without ever saying so.
+     */
+    private int parsePositiveWholeNumber(String value, int fallback, String name) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        double parsed = parsePositiveNumber(value, fallback, name);
+        if (parsed != Math.rint(parsed)) {
+            throw new IllegalArgumentException(name + " has to be a whole number of days, but was "
+                    + value);
+        }
+        return (int) parsed;
     }
 
     private String blankTo(String value, String fallback) {

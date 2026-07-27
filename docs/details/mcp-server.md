@@ -34,8 +34,8 @@ The MCP endpoint has **no authentication**, exactly like the REST API, and it se
 
 Set the following environment variable (or the equivalent property `fddb-exporter.mcp.enabled`):
 
-```
-FDDB-EXPORTER_MCP_ENABLED=true
+```bash
+docker run -e 'FDDB-EXPORTER_MCP_ENABLED=true' ghcr.io/itobey/fddb-exporter
 ```
 
 The server is then available at:
@@ -123,9 +123,14 @@ of days and store the result — the same thing the scheduler and the Web UI do,
 
 They are **not registered** unless you enable them explicitly, on top of the MCP server itself:
 
+```bash
+docker run -e 'FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED=true' ghcr.io/itobey/fddb-exporter
 ```
-FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED=true
-```
+
+A POSIX shell will not `export` a name with hyphens in it — in a shell script write
+`FDDB_EXPORTER_MCP_WRITE_TOOLS_ENABLED=true` instead, which binds to the same property. Either way,
+`get_server_info` reports `writeToolsEnabled`, so you can check the flag took effect without
+guessing from the tool list.
 
 The flag is read at startup, so changing it needs a restart. While it is off, the tools do not exist as far as any
 client is concerned.
@@ -154,6 +159,10 @@ Worth knowing before turning this on:
   on what is sensible to do inside a single tool call.
 - `export_missing_days` fetches one day per gap, so days you already logged are never re-fetched. Its cap counts the
   gaps, not the range: a year-long range with nine missing days is fine.
+- **A range reaching into the future is refused, not scraped.** The read tools accept any date and answer
+  `found: false` for a day that cannot have data, which costs nothing; here the same slip in an assistant's date
+  arithmetic would spend the per-call budget on requests to fddb.info for days that have not happened. The refusal
+  names the server's own today, so the assistant can correct itself in one step.
 - **Only one export runs at a time.** The guard is application-wide, not per client: the MCP tools, the REST API, the
   Web UI and the nightly scheduler all pass through it. A second export is refused immediately with *"An export is
   already running"* rather than queued — an assistant handles "try again later" well, and two runs scraping fddb.info
@@ -200,6 +209,12 @@ Several targets combine, and a day only counts as met when it passes all of them
 grams for every other nutrient. Days without an entry are not evaluated, but they do break a streak — a goal cannot be
 claimed for a day with no data.
 
+That last rule is worth knowing when you read `currentStreak`, which counts back from the end of the range. The
+scheduler exports **yesterday**, so today is normally unlogged, and a check ending today reports a current streak of
+`0` however well the previous fortnight went. End the range on yesterday when the streak is the question. The tool
+description tells the assistant the same thing, so it should not report a `0` from a range ending today as a fact
+about your habits.
+
 ### Dates
 
 Every date parameter accepts an ISO date (`2024-12-22`) as well as the relative aliases `today`, `yesterday` and
@@ -212,8 +227,9 @@ MCP results are read by a language model, so the tools are built to keep respons
 
 - `get_days` omits the product lists unless `includeProducts` is set — a long range with products is a very large
   response.
-- `search_products` and `list_top_products` cap their results and report a `truncated` flag, so a count derived from a
-  capped result is never mistaken for the full picture.
+- `search_products`, `list_top_products`, `list_distinct_products` and `get_extreme_days` cap their results and report
+  a `truncated` flag, so a count derived from a capped result is never mistaken for the full picture — and a top-10
+  list is not read as "there were only ten".
 - `find_days_with_products` groups and caps in the database rather than in memory, and reports both numbers:
   `dayCount` is how many days came back, `matchedDayCount` how many exist. "On how many days did I eat X?" is answered
   by the second one, which stays correct when `truncated` is set.
@@ -230,6 +246,21 @@ A range you logged nothing in is an answer, not a failure. `get_day`, `get_avera
 `get_product_summary` report it as `found: false` with a sentence saying so, instead of failing the tool call — an
 assistant that sees a failed call tends to retry it or blame the server, where "you logged nothing that week" is the
 thing you asked about.
+
+### When something does go wrong
+
+A parameter the tools can reject themselves — an unparseable date, an inverted range, a range past a cap, a missing
+goal target — comes back with a message written for the assistant, naming what was wrong and what the accepted forms
+are. Those are the errors you want it to see: it can fix the call and carry on without bothering you.
+
+Anything else — the database being unreachable, an unexpected failure inside the application — is replaced with a
+single sentence saying the request failed for a server-side reason and is not worth retrying with different
+parameters, while the real exception and its stack trace go to the application log. Internal error text in a chat
+window helps nobody: the assistant cannot act on it, and without the "do not retry" it will burn several turns
+re-wording a call that failed for reasons no argument can influence.
+
+One exception on purpose: wrong FDDB credentials are reported as such, since that names the one thing that would
+actually fix it. The message never contains the credentials themselves.
 
 ### Things the tools do not do
 

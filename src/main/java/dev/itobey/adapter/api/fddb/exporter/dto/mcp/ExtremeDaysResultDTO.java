@@ -39,7 +39,20 @@ public class ExtremeDaysResultDTO {
 
     private LocalDate toDate;
 
+    /**
+     * The number of days in this response, which is at most {@code limit}.
+     */
     private int resultCount;
+
+    private int limit;
+
+    /**
+     * Whether more days exist beyond the cut. The days here are still the most extreme ones, but
+     * without this an agent has no way to tell whether the next day was a hair behind the last one
+     * returned or nowhere near it - which is what turns a capped list into "these were my heavy
+     * days" rather than "the ten heaviest I asked for".
+     */
+    private boolean truncated;
 
     /**
      * The days, most extreme first, each with its value for the metric in {@code total}.

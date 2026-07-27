@@ -109,6 +109,19 @@ class FddbPromptsTest {
     }
 
     @Test
+    void proteinGapAnalysis_shouldRejectAFractionalDayCountRatherThanFlooringIt() {
+        // a silently floored "30.9" answers a slightly different question than the one that was asked
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> fddbPrompts.proteinGapAnalysis(null, "30.9"));
+        assertTrue(exception.getMessage().contains("whole number"), exception.getMessage());
+        // a target of 122.5 g is a perfectly sensible thing to ask for, so only days are restricted
+        assertTrue(textOf(fddbPrompts.proteinGapAnalysis("122.5", "30")).contains("122.5 g of protein"));
+        // and a whole number written with a decimal point is still whole
+        assertTrue(textOf(fddbPrompts.proteinGapAnalysis(null, "14.0"))
+                .contains(LocalDate.now().minusDays(14) + " to " + LocalDate.now().minusDays(1)));
+    }
+
+    @Test
     void loggingHygieneCheck_shouldDefaultToTheLast90DaysAndSayItCannotExport() {
         // when
         McpSchema.GetPromptResult result = fddbPrompts.loggingHygieneCheck(null, null);
