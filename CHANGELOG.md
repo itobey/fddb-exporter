@@ -24,6 +24,13 @@
 
 ### Changed
 
+- **Exports no longer run in parallel.** Scraping fddb.info is now serialised across the whole application - the
+  scheduler, the REST API, the Web UI and the MCP export tools share one lock, so a single account is never logged in
+  and scraped twice at the same time. **If you script against the API:** `POST /api/v2/fddbdata` and
+  `GET /api/v2/fddbdata/export` (and their `/api/v1` equivalents) now return **`409 Conflict`** instead of running
+  alongside a request that is already exporting. The request is refused, not queued - retry once the running export
+  has finished. The nightly scheduled export logs a warning and skips its run on a collision rather than sending a
+  notification; the day is picked up by the next run.
 - The **Macro distribution** breakdown on the Rolling Averages view is now kcal-weighted (fat 9 kcal/g, carbs and
   protein 4 kcal/g) for a more accurate picture of where your energy comes from.
 - Navigation menu updated to reflect the new **Entries**, **Products** and **Trends** views.

@@ -320,6 +320,12 @@ Example responses:
       ]
     }
     ```
+- **Error Responses:**
+  - Returns HTTP 400 Bad Request if `fromDate` is after `toDate`.
+  - Returns HTTP 409 Conflict if another export is already running - see
+    [only one export at a time](/details/exports-and-data.md#only-one-export-at-a-time). The request is not queued;
+    retry it once the running export has finished.
+  - Returns HTTP 500 Internal Server Error if logging in to fddb.info fails.
 
 ---
 
@@ -345,6 +351,13 @@ Example responses:
       ]
     }
     ```
+- **Error Responses:**
+  - Returns HTTP 400 Bad Request if `days` is outside the window configured by
+    `FDDB-EXPORTER_FDDB_MIN-DAYS-BACK` and `FDDB-EXPORTER_FDDB_MAX-DAYS-BACK` (1-365 by default).
+  - Returns HTTP 409 Conflict if another export is already running - see
+    [only one export at a time](/details/exports-and-data.md#only-one-export-at-a-time). The request is not queued;
+    retry it once the running export has finished.
+  - Returns HTTP 500 Internal Server Error if logging in to fddb.info fails.
 
 ---
 
