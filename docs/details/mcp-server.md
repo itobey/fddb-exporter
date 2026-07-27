@@ -97,7 +97,7 @@ default.
 | `get_stats`              | –                                                                | Entry count, first/last entry, coverage, unique products, all-time averages, extremes, streaks |
 | `get_averages`           | `fromDate`, `toDate`                                             | Average daily calories, fat, carbs, sugar, protein and fibre over a range, and the days it rests on |
 | `get_extreme_days`       | `metric`, `direction?`, `limit?`, `fromDate?`, `toDate?`         | The highest or lowest days for one nutrient                                                    |
-| `get_trend`              | `metric`, `fromDate`, `toDate`, `granularity?`                   | One nutrient over time, bucketed by day, ISO week or month                                     |
+| `get_trend`              | `metric`, `fromDate`, `toDate`, `granularity?`                   | One nutrient over time, bucketed by day, ISO week or month — at most 366 buckets               |
 | `get_weekday_breakdown`  | `fromDate?`, `toDate?`                                           | Averages grouped by day of the week — "do my weekends wreck the average?"                      |
 | `get_macro_split`        | `fromDate`, `toDate`                                             | Share of energy from fat, carbs and protein — kcal-weighted, not gram-weighted                 |
 | `compare_periods`        | `periodAFrom`, `periodATo`, `periodBFrom`, `periodBTo`           | Both averages plus the absolute and percentage change per nutrient                              |
@@ -233,6 +233,9 @@ MCP results are read by a language model, so the tools are built to keep respons
 - `find_days_with_products` groups and caps in the database rather than in memory, and reports both numbers:
   `dayCount` is how many days came back, `matchedDayCount` how many exist. "On how many days did I eat X?" is answered
   by the second one, which stays correct when `truncated` is set.
+- `get_trend` returns at most 366 buckets and rejects a range that would produce more. The cap is on buckets rather
+  than on days on purpose: a five-year `MONTH` trend is 60 rows and passes, while the same range bucketed by `DAY`
+  would be ~1,800 and is refused with a message naming the coarser granularity as the way out.
 - `list_missing_days` accepts any range but lists at most 366 dates, with `truncated` set when it cut the list. Its
   `missingCount` and `loggedCount` always describe the whole range, so a five-year audit still answers "how many days
   did I miss?" exactly — only the dates themselves are cut, and a narrower range gets them back. The repair path

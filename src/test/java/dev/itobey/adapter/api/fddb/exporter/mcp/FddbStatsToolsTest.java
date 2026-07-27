@@ -224,6 +224,56 @@ class FddbStatsToolsTest {
     }
 
     @Test
+    void getTrend_shouldRejectARangeThatWouldProduceMoreThan366Buckets() {
+        // given: 367 days, which at DAY granularity is 367 buckets
+        LocalDate from = LocalDate.of(2024, 1, 1);
+        String to = from.plusDays(366).toString();
+
+        // when / then
+        DateTimeException exception = assertThrows(DateTimeException.class,
+                () -> fddbStatsTools.getTrend(NutrientMetric.CALORIES, "2024-01-01", to, TrendGranularity.DAY));
+        assertTrue(exception.getMessage().contains("367"), exception.getMessage());
+        verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
+    void getTrend_shouldAllowTheSameRangeAtACoarserGranularity() {
+        // given: the range above is only ~53 weeks, so coarsening is the way out the message names
+        LocalDate from = LocalDate.of(2024, 1, 1);
+        LocalDate to = from.plusDays(366);
+        when(fddbDataService.getTrend(NutrientMetric.CALORIES, from, to, TrendGranularity.WEEK))
+                .thenReturn(List.of());
+
+        // when
+        TrendResultDTO result = fddbStatsTools.getTrend(
+                NutrientMetric.CALORIES, "2024-01-01", to.toString(), TrendGranularity.WEEK);
+
+        // then
+        assertEquals(0, result.getBucketCount());
+    }
+
+    @Test
+    void getTrend_shouldCountAPartialFirstBucketAgainstTheCap() {
+        // given: a Sunday start, so the first ISO week is one day long but still a bucket
+        LocalDate from = LocalDate.of(2024, 1, 7);
+        // 365 further Sundays: 366 full weeks after the partial one, i.e. 367 buckets
+        String to = from.plusWeeks(366).toString();
+
+        // when / then
+        assertThrows(DateTimeException.class,
+                () -> fddbStatsTools.getTrend(NutrientMetric.CALORIES, from.toString(), to, TrendGranularity.WEEK));
+        verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
+    void getTrend_shouldRejectAnInvertedRangeBeforeTouchingTheStore() {
+        // when / then
+        assertThrows(DateTimeException.class,
+                () -> fddbStatsTools.getTrend(NutrientMetric.CALORIES, "2024-01-31", "2024-01-01", null));
+        verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
     void getWeekdayBreakdown_shouldAcceptOpenBoundsAndSumTheLoggedDays() {
         // given
         when(fddbDataService.getWeekdayBreakdown(null, null)).thenReturn(List.of(

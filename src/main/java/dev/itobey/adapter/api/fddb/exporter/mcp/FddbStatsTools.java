@@ -11,10 +11,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.DateTimeException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 
-import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.ChronoUnit.*;
 
 /**
  * MCP tools for the aggregated view of the diary.
@@ -49,6 +50,17 @@ public class FddbStatsTools {
      * exact, so nothing about the answer becomes wrong - only shorter.
      */
     private static final int MAX_MISSING_DAYS_LISTED = FddbDataService.MAX_RANGE_DAYS;
+
+    /**
+     * Upper bound on the buckets a single trend may return.
+     * <p>
+     * The bound is on buckets rather than on the range, because the buckets are what lands in the
+     * client's context: a five-year MONTH trend is 60 rows and worth answering, while the same range
+     * bucketed by DAY is ~1,800. Capping the range instead - the way {@code get_days} and
+     * {@code compare_periods} do - would refuse the useful long trend along with the useless one. At
+     * {@link FddbDataService#MAX_RANGE_DAYS} the DAY case ends up with exactly their cap anyway.
+     */
+    private static final int MAX_TREND_BUCKETS = FddbDataService.MAX_RANGE_DAYS;
 
     private final FddbDataService fddbDataService;
 
@@ -182,9 +194,11 @@ public class FddbStatsTools {
                     Returns one nutrient over time as a series of buckets, each with the average and \
                     the summed value of the days inside it. Use WEEK or MONTH granularity to answer \
                     "am I trending up?" over a long range - DAY granularity on a long range is just \
-                    get_days with extra steps. Buckets without a single logged day are omitted rather \
-                    than reported as zero, so always read dayCount before comparing two buckets: a \
-                    week with two logged days is not comparable to a full one.""",
+                    get_days with extra steps. At most 366 buckets are returned, so a range that would \
+                    produce more is rejected: coarsen the granularity rather than narrowing the range \
+                    when a long trend is what is wanted. Buckets without a single logged day are \
+                    omitted rather than reported as zero, so always read dayCount before comparing two \
+                    buckets: a week with two logged days is not comparable to a full one.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public TrendResultDTO getTrend(
@@ -206,6 +220,7 @@ public class FddbStatsTools {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);
         TrendGranularity effectiveGranularity = granularity == null ? TrendGranularity.WEEK : granularity;
+        checkBucketCount(from, to, effectiveGranularity);
         log.debug("MCP: retrieving the {} trend of {} for {} to {}", effectiveGranularity, metric, from, to);
 
         List<TrendPointDTO> buckets = fddbDataService.getTrend(metric, from, to, effectiveGranularity);
@@ -352,6 +367,33 @@ public class FddbStatsTools {
             throw new DateTimeException("The 'from' date cannot be after the 'to' date");
         }
         return DAYS.between(from, to) + 1;
+    }
+
+    /**
+     * Rejects a trend that would come back with more than {@link #MAX_TREND_BUCKETS} buckets, before
+     * the store is touched.
+     * <p>
+     * Counts the buckets the range spans rather than the ones that will actually be filled: empty
+     * buckets are omitted from the response, so the span is an upper bound, and one that can be
+     * computed without loading anything. The message names both ways out, since coarsening the
+     * granularity is usually the one the caller wants and narrowing the range is the one it would
+     * otherwise guess.
+     */
+    private void checkBucketCount(LocalDate from, LocalDate to, TrendGranularity granularity) {
+        long days = daysBetween(from, to);
+        long buckets = switch (granularity) {
+            case DAY -> days;
+            // from the Monday of the first ISO week / the first of the first month, so a range
+            // starting mid-bucket still counts that bucket
+            case WEEK -> WEEKS.between(from.with(DayOfWeek.MONDAY), to) + 1;
+            case MONTH -> MONTHS.between(from.withDayOfMonth(1), to) + 1;
+        };
+
+        if (buckets > MAX_TREND_BUCKETS) {
+            throw new DateTimeException("A trend must not exceed " + MAX_TREND_BUCKETS + " buckets, but "
+                    + granularity + " granularity over " + from + " to " + to + " would produce "
+                    + buckets + " - please use a coarser granularity or narrow the range");
+        }
     }
 
     /**
