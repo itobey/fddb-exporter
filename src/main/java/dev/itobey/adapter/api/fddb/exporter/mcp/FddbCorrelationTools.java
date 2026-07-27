@@ -86,14 +86,14 @@ public class FddbCorrelationTools {
             List<String> exclusionKeywords,
 
             @McpToolParam(description = "The event dates - the days the symptom or event occurred. "
-                    + "ISO dates (YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'. At least one, "
-                    + "at most 366", required = true)
+                    + "Each one is " + McpDateParser.ACCEPTED_FORMATS + ". At least one, at most 366",
+                    required = true)
             List<String> occurrenceDates,
 
-            @McpToolParam(description = "Optional earliest day to consider: an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'. Omit to search the whole "
-                    + "diary. Narrowing it to the period the user actually logged keeps the "
-                    + "denominator honest", required = false)
+            @McpToolParam(description = "Optional earliest day to consider: "
+                    + McpDateParser.ACCEPTED_FORMATS + ". Omit to search the whole diary. Narrowing "
+                    + "it to the period the user actually logged keeps the denominator honest",
+                    required = false)
             String startDate) {
         List<String> inclusions = requireKeywords(inclusionKeywords);
         List<String> exclusions = exclusionKeywords == null ? List.of() : exclusionKeywords;

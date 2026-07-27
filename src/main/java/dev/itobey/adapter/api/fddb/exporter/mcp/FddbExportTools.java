@@ -107,12 +107,12 @@ public class FddbExportTools {
             annotations = @McpTool.McpAnnotations(destructiveHint = false,
                     idempotentHint = true))
     public ExportSummaryDTO exportRange(
-            @McpToolParam(description = "First day to export (inclusive): an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "First day to export (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String fromDate,
 
-            @McpToolParam(description = "Last day to export (inclusive): an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "Last day to export (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String toDate) {
         LocalDate today = LocalDate.now();
         LocalDate from = McpDateParser.parse(fromDate, today);
@@ -179,12 +179,12 @@ public class FddbExportTools {
             annotations = @McpTool.McpAnnotations(destructiveHint = false,
                     idempotentHint = true))
     public ExportSummaryDTO exportMissingDays(
-            @McpToolParam(description = "First day to check (inclusive): an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "First day to check (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String fromDate,
 
-            @McpToolParam(description = "Last day to check (inclusive): an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "Last day to check (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String toDate) {
         LocalDate today = LocalDate.now();
         LocalDate from = McpDateParser.parse(fromDate, today);

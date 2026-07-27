@@ -84,8 +84,7 @@ public class FddbQueryTools {
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public DayResultDTO getDay(
-            @McpToolParam(description = "The day to look up: an ISO date (YYYY-MM-DD), 'today', "
-                    + "'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "The day to look up: " + McpDateParser.ACCEPTED_FORMATS)
             String date) {
         LocalDate resolvedDate = McpDateParser.parse(date);
         log.debug("MCP: retrieving day {}", resolvedDate);
@@ -115,12 +114,12 @@ public class FddbQueryTools {
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public DayRangeResultDTO getDays(
-            @McpToolParam(description = "First day of the range (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "First day of the range (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String fromDate,
 
-            @McpToolParam(description = "Last day of the range (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "Last day of the range (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String toDate,
 
             @McpToolParam(description = "Whether to include the products logged on each day. "
@@ -163,12 +162,12 @@ public class FddbQueryTools {
                     + "English upper-case names, e.g. ['MONDAY', 'FRIDAY']", required = false)
             List<String> daysOfWeek,
 
-            @McpToolParam(description = "Optional first day to include (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            @McpToolParam(description = "Optional first day to include (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = false)
             String fromDate,
 
-            @McpToolParam(description = "Optional last day to include (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            @McpToolParam(description = "Optional last day to include (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = false)
             String toDate,
 
             @McpToolParam(description = "Maximum number of occurrences to return, at most 500. "
@@ -213,12 +212,12 @@ public class FddbQueryTools {
                     + "Defaults to FREQUENCY", required = false)
             ProductRanking by,
 
-            @McpToolParam(description = "Optional first day to include (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            @McpToolParam(description = "Optional first day to include (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = false)
             String fromDate,
 
-            @McpToolParam(description = "Optional last day to include (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            @McpToolParam(description = "Optional last day to include (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = false)
             String toDate,
 
             @McpToolParam(description = "How many products to return, at most 100. Defaults to 20",
@@ -263,12 +262,12 @@ public class FddbQueryTools {
             @McpToolParam(description = "Case-insensitive substring of the product name")
             String name,
 
-            @McpToolParam(description = "Optional first day to include (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            @McpToolParam(description = "Optional first day to include (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = false)
             String fromDate,
 
-            @McpToolParam(description = "Optional last day to include (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            @McpToolParam(description = "Optional last day to include (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = false)
             String toDate) {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
@@ -349,8 +348,8 @@ public class FddbQueryTools {
                     + "whose name contains one of these is not counted", required = false)
             List<String> excludeKeywords,
 
-            @McpToolParam(description = "Optional earliest day to consider: an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'. Omit to search the whole diary",
+            @McpToolParam(description = "Optional earliest day to consider: "
+                    + McpDateParser.ACCEPTED_FORMATS + ". Omit to search the whole diary",
                     required = false)
             String startDate,
 

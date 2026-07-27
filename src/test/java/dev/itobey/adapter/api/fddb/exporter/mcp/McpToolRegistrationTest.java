@@ -6,10 +6,7 @@ import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import dev.itobey.adapter.api.fddb.exporter.service.VersionCheckService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.ai.mcp.annotation.McpArg;
-import org.springframework.ai.mcp.annotation.McpPrompt;
-import org.springframework.ai.mcp.annotation.McpResource;
-import org.springframework.ai.mcp.annotation.McpTool;
+import org.springframework.ai.mcp.annotation.*;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +14,8 @@ import org.springframework.context.annotation.Configuration;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -197,6 +196,52 @@ class McpToolRegistrationTest {
             // a resource method may only return a String or an SDK content type
             assertThat(method.getReturnType()).as("return type of %s", method).isEqualTo(String.class);
         });
+    }
+
+    /**
+     * The accepted date syntax is advertised roughly three dozen times, and the copies had drifted
+     * apart before they were replaced by concatenations of
+     * {@link McpDateParser#ACCEPTED_FORMATS}. This fails the moment someone writes the sentence out
+     * by hand again: what a tool advertises and what the parser accepts have to stay the same text.
+     */
+    @Test
+    void descriptions_shouldNeverSpellOutTheDateFormatsByHand() {
+        List<String> withFormats = allDescriptions().stream()
+                .filter(description -> description.contains(McpDateParser.ACCEPTED_FORMATS))
+                .toList();
+
+        // guards against the check below passing because the syntax stopped being advertised at all
+        assertThat(withFormats).hasSizeGreaterThan(30);
+        allDescriptions().forEach(description ->
+                assertThat(description.replace(McpDateParser.ACCEPTED_FORMATS, ""))
+                        .as("hand-written date syntax in: %s", description)
+                        .doesNotContain("YYYY-MM-DD")
+                        .doesNotContain("N_days_ago"));
+    }
+
+    /**
+     * Every description string the server advertises: the tools and their parameters, the prompts and
+     * their arguments, and the resources. The write tools are included - they carry date parameters
+     * too, and are the copies that worded the syntax differently again.
+     */
+    private static List<String> allDescriptions() {
+        return Stream.concat(TOOL_CLASSES.stream(), Stream.of(FddbExportTools.class))
+                .flatMap(toolClass -> Arrays.stream(toolClass.getDeclaredMethods()))
+                .flatMap(method -> Stream.concat(
+                        Stream.of(
+                                method.isAnnotationPresent(McpTool.class)
+                                        ? method.getAnnotation(McpTool.class).description() : null,
+                                method.isAnnotationPresent(McpPrompt.class)
+                                        ? method.getAnnotation(McpPrompt.class).description() : null,
+                                method.isAnnotationPresent(McpResource.class)
+                                        ? method.getAnnotation(McpResource.class).description() : null),
+                        Arrays.stream(method.getParameters()).flatMap(parameter -> Stream.of(
+                                parameter.isAnnotationPresent(McpToolParam.class)
+                                        ? parameter.getAnnotation(McpToolParam.class).description() : null,
+                                parameter.isAnnotationPresent(McpArg.class)
+                                        ? parameter.getAnnotation(McpArg.class).description() : null))))
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     @Configuration(proxyBeanMethods = false)

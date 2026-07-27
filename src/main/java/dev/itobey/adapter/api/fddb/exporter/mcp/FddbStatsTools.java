@@ -93,12 +93,12 @@ public class FddbStatsTools {
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public AveragesResultDTO getAverages(
-            @McpToolParam(description = "First day of the range (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = true)
+            @McpToolParam(description = "First day of the range (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = true)
             String fromDate,
 
-            @McpToolParam(description = "Last day of the range (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = true)
+            @McpToolParam(description = "Last day of the range (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = true)
             String toDate) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);
@@ -153,14 +153,14 @@ public class FddbStatsTools {
                     required = false)
             Integer limit,
 
-            @McpToolParam(description = "Optional first day to consider (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'. Omit to search the whole "
-                    + "diary", required = false)
+            @McpToolParam(description = "Optional first day to consider (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS + ". Omit to search the whole diary",
+                    required = false)
             String fromDate,
 
-            @McpToolParam(description = "Optional last day to consider (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'. Omit to search the whole "
-                    + "diary", required = false)
+            @McpToolParam(description = "Optional last day to consider (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS + ". Omit to search the whole diary",
+                    required = false)
             String toDate) {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
@@ -206,12 +206,12 @@ public class FddbStatsTools {
                     + "or FIBRE")
             NutrientMetric metric,
 
-            @McpToolParam(description = "First day of the range (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = true)
+            @McpToolParam(description = "First day of the range (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = true)
             String fromDate,
 
-            @McpToolParam(description = "Last day of the range (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = true)
+            @McpToolParam(description = "Last day of the range (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = true)
             String toDate,
 
             @McpToolParam(description = "Bucket size: DAY, WEEK (ISO weeks, Monday to Sunday) or "
@@ -247,12 +247,12 @@ public class FddbStatsTools {
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public WeekdayBreakdownResultDTO getWeekdayBreakdown(
-            @McpToolParam(description = "Optional first day to include (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            @McpToolParam(description = "Optional first day to include (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = false)
             String fromDate,
 
-            @McpToolParam(description = "Optional last day to include (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'", required = false)
+            @McpToolParam(description = "Optional last day to include (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = false)
             String toDate) {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
@@ -283,12 +283,12 @@ public class FddbStatsTools {
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public MacroSplitResultDTO getMacroSplit(
-            @McpToolParam(description = "First day of the range (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "First day of the range (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String fromDate,
 
-            @McpToolParam(description = "Last day of the range (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "Last day of the range (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String toDate) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);
@@ -327,12 +327,12 @@ public class FddbStatsTools {
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public MissingDaysResultDTO listMissingDays(
-            @McpToolParam(description = "First day to check (inclusive): an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'", required = true)
+            @McpToolParam(description = "First day to check (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = true)
             String fromDate,
 
-            @McpToolParam(description = "Last day to check (inclusive): an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'", required = true)
+            @McpToolParam(description = "Last day to check (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS, required = true)
             String toDate) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);

@@ -68,9 +68,8 @@ public class FddbPrompts {
                     + "all-time average, and names what drove the difference.")
     public McpSchema.GetPromptResult weeklyNutritionReview(
             @McpArg(name = "endDate",
-                    description = "Last day of the week to review: an ISO date (YYYY-MM-DD), "
-                            + "'today', 'yesterday' or 'N_days_ago'. Defaults to yesterday, since "
-                            + "today is usually only half logged")
+                    description = "Last day of the week to review: " + McpDateParser.ACCEPTED_FORMATS
+                            + ". Defaults to yesterday, since today is usually only half logged")
             String endDate) {
         LocalDate weekTo = endDate == null || endDate.isBlank()
                 ? LocalDate.now().minusDays(1)
@@ -224,13 +223,13 @@ public class FddbPrompts {
                     + "everything else rests on can be trusted.")
     public McpSchema.GetPromptResult loggingHygieneCheck(
             @McpArg(name = "fromDate",
-                    description = "First day to check: an ISO date (YYYY-MM-DD), 'today', "
-                            + "'yesterday' or 'N_days_ago'. Defaults to 90 days ago")
+                    description = "First day to check: " + McpDateParser.ACCEPTED_FORMATS
+                            + ". Defaults to 90 days ago")
             String fromDate,
 
             @McpArg(name = "toDate",
-                    description = "Last day to check: an ISO date (YYYY-MM-DD), 'today', "
-                            + "'yesterday' or 'N_days_ago'. Defaults to yesterday")
+                    description = "Last day to check: " + McpDateParser.ACCEPTED_FORMATS
+                            + ". Defaults to yesterday")
             String toDate) {
         LocalDate resolvedTo = toDate == null || toDate.isBlank()
                 ? LocalDate.now().minusDays(1)

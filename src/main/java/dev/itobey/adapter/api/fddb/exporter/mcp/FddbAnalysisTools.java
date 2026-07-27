@@ -67,20 +67,20 @@ public class FddbAnalysisTools {
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public PeriodComparisonDTO comparePeriods(
-            @McpToolParam(description = "First day of period A (inclusive): an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "First day of period A (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String periodAFrom,
 
-            @McpToolParam(description = "Last day of period A (inclusive): an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "Last day of period A (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String periodATo,
 
-            @McpToolParam(description = "First day of period B, the baseline (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "First day of period B, the baseline (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String periodBFrom,
 
-            @McpToolParam(description = "Last day of period B, the baseline (inclusive): an ISO date "
-                    + "(YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "Last day of period B, the baseline (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String periodBTo) {
         LocalDate aFrom = McpDateParser.parse(periodAFrom);
         LocalDate aTo = McpDateParser.parse(periodATo);
@@ -127,12 +127,12 @@ public class FddbAnalysisTools {
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public GoalCheckResultDTO checkGoals(
-            @McpToolParam(description = "First day to check (inclusive): an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "First day to check (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String fromDate,
 
-            @McpToolParam(description = "Last day to check (inclusive): an ISO date (YYYY-MM-DD), "
-                    + "'today', 'yesterday' or 'N_days_ago'")
+            @McpToolParam(description = "Last day to check (inclusive): "
+                    + McpDateParser.ACCEPTED_FORMATS)
             String toDate,
 
             @McpToolParam(description = "The targets every day is checked against, at least one",

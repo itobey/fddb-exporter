@@ -68,8 +68,8 @@ public class FddbResources {
             name = "diary_day",
             title = "One day of the diary",
             description = "The daily totals and the full product list for a single day. The date is "
-                    + "an ISO date (YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago'. A day that "
-                    + "was never logged comes back with found=false rather than as an error.",
+                    + McpDateParser.ACCEPTED_FORMATS + ". A day that was never logged comes back "
+                    + "with found=false rather than as an error.",
             mimeType = "application/json")
     public String day(String date) {
         LocalDate resolvedDate = McpDateParser.parse(date);

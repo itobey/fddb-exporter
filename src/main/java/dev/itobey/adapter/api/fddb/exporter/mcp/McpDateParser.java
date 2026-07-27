@@ -20,6 +20,11 @@ public final class McpDateParser {
 
     /**
      * Accepted forms, listed in every error message so the agent can correct itself in one step.
+     * <p>
+     * A constant expression, so it is also the text every {@code @McpToolParam}/{@code @McpArg}
+     * description concatenates - roughly three dozen of them. Kept in one place because the copies
+     * had already drifted apart once: what the tool advertises and what the parser accepts have to
+     * be the same sentence, or an agent corrects a rejected call into another rejected call.
      */
     public static final String ACCEPTED_FORMATS =
             "an ISO date (YYYY-MM-DD), 'today', 'yesterday' or 'N_days_ago' (e.g. '13_days_ago')";
