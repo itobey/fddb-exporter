@@ -58,28 +58,25 @@ public class FddbAnalysisTools {
             name = "compare_periods",
             description = """
                     Compares the average daily nutrition of two date ranges and returns both sets of \
-                    averages plus the absolute and percentage change per nutrient. Period A is the one \
-                    being judged and period B is what it is judged against, so for "this month vs. \
-                    last month" period A is this month: a positive change means period A is higher. \
-                    Only logged days are averaged, and loggedDays is reported per period - a period \
-                    with 5 logged days out of 30 does not support a conclusion. Each range is limited \
-                    to 366 days.""",
+                    averages plus the absolute and percentage change per nutrient. Period A is the \
+                    one being judged and period B what it is judged against, so for "this month vs. \
+                    last month" period A is this month and a positive change means A is higher. \
+                    loggedDays is reported per period - one with 5 logged days out of 30 does not \
+                    support a conclusion. Each range is at most 366 days.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public PeriodComparisonDTO comparePeriods(
-            @McpToolParam(description = "First day of period A (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "First day of period A: " + McpDateParser.ACCEPTED_FORMATS)
             String periodAFrom,
 
-            @McpToolParam(description = "Last day of period A (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "Last day of period A: " + McpDateParser.ACCEPTED_FORMATS)
             String periodATo,
 
-            @McpToolParam(description = "First day of period B, the baseline (inclusive): "
+            @McpToolParam(description = "First day of period B, the baseline: "
                     + McpDateParser.ACCEPTED_FORMATS)
             String periodBFrom,
 
-            @McpToolParam(description = "Last day of period B, the baseline (inclusive): "
+            @McpToolParam(description = "Last day of period B, the baseline: "
                     + McpDateParser.ACCEPTED_FORMATS)
             String periodBTo) {
         LocalDate aFrom = McpDateParser.parse(periodAFrom);
@@ -111,38 +108,32 @@ public class FddbAnalysisTools {
             name = "check_goals",
             description = """
                     Checks every logged day of a range against one or more nutritional targets and \
-                    returns the hit rate, the longest and current streak, a breakdown per target and, \
-                    on request, the individual days. A target is a nutrient, a direction and a value, \
-                    e.g. {"metric":"PROTEIN","comparator":"AT_LEAST","value":120} or \
-                    {"metric":"CALORIES","comparator":"AT_MOST","value":2200}; several targets can be \
-                    combined and a day only counts as met when it passes all of them. Values are kcal \
-                    for CALORIES and grams for every other nutrient. The app stores no goals of its \
-                    own - pass whatever the user states. Days without an entry are not evaluated, but \
-                    they do break a streak, since a goal cannot be claimed for a day with no data. \
-                    That makes currentStreak depend on how the range ends: it counts back from \
-                    toDate, so a range ending on a day that is not logged yet reports 0 however well \
-                    the days before it went. The diary is normally scraped for yesterday, so pass \
-                    toDate='yesterday' when the current streak is the question, and do not report a \
-                    0 from a range ending today as a fact about the user's habits.""",
+                    returns the hit rate, the longest and current streak, a breakdown per target \
+                    and, on request, the individual days. A target is a nutrient, a direction and a \
+                    value, e.g. {"metric":"PROTEIN","comparator":"AT_LEAST","value":120}; several \
+                    can be combined and a day only counts as met when it passes all of them. The app \
+                    stores no goals of its own - pass whatever the user states. Days without an \
+                    entry are not evaluated but do break a streak, so currentStreak counts back from \
+                    toDate and reports 0 when the last day is not logged yet, however well the days \
+                    before it went. The diary is normally scraped for yesterday, so pass \
+                    toDate='yesterday' when the current streak is the question. The range is at most \
+                    366 days.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public GoalCheckResultDTO checkGoals(
-            @McpToolParam(description = "First day to check (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "First day to check: " + McpDateParser.ACCEPTED_FORMATS)
             String fromDate,
 
-            @McpToolParam(description = "Last day to check (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "Last day to check: " + McpDateParser.ACCEPTED_FORMATS)
             String toDate,
 
             @McpToolParam(description = "The targets every day is checked against, at least one",
                     required = true)
             List<GoalTargetDTO> targets,
 
-            @McpToolParam(description = "Whether to include the verdict for each individual day. "
-                    + "Defaults to false, which keeps the response small - set it only when the "
-                    + "question is about specific dates rather than about the hit rate",
-                    required = false)
+            @McpToolParam(description = "Include the verdict for each individual day. Defaults to "
+                    + "false, which keeps the response small - set it only when the question is "
+                    + "about specific dates rather than the hit rate", required = false)
             Boolean includeDays) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);

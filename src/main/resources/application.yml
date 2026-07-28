@@ -19,15 +19,25 @@ spring:
         name: fddb-exporter
         # streamable HTTP on /mcp, not the deprecated SSE transport Spring AI still defaults to
         protocol: STREAMABLE
+        # the conventions that hold across every tool live here rather than in each tool's own
+        # description: this text is sent once per conversation, a tool description is sent once per
+        # tool. Only what is specific to one tool belongs in that tool.
         instructions: >
           Access to the user's own FDDB nutrition diary: one entry per day with the totals for
           calories, fat, carbs, sugar, protein and fibre, plus the list of products logged that day.
-          Dates are always ISO YYYY-MM-DD; calories are kcal and all other nutrients are grams.
-          Call get_server_info once to learn today's date and which period the data covers, and
-          get_data_schema once before interpreting numbers. Prefer the aggregating tools over pulling
-          raw days when a question is about averages or trends. Unlogged days are left out of every
-          aggregation rather than counted as zero, so check list_missing_days before drawing
-          conclusions from a long range. Everything here reads stored data. If export tools are
+          Dates are always ISO YYYY-MM-DD, and every date parameter also accepts 'today', 'yesterday'
+          or 'N_days_ago'. Calories are kcal and every other nutrient is grams, both in what comes
+          back and in any value passed in. Call get_server_info once to learn today's date and which
+          period the data covers, and get_data_schema once before interpreting numbers. Prefer the
+          aggregating tools over pulling raw days when a question is about averages or trends.
+          Four conventions hold across every tool here. Unlogged days are left out of every aggregation
+          rather than counted as zero, so read the loggedDays or dayCount reported next to a figure
+          before comparing it with another, and check list_missing_days before drawing conclusions
+          from a long range. A truncated flag set to true means more results exist than were
+          returned, so never derive a count from such a list - where a true count exists the tool
+          reports it in its own field. A range with nothing logged in it comes back with found=false
+          and a message rather than as an error: that is an answer to report, not a failure to retry.
+          Ranges are inclusive at both ends. Everything here reads stored data. If export tools are
           present as well, they fetch fresh data from fddb.info, take about a second per day and put
           load on a third-party site under the user's own account - use them only when the user
           explicitly asks for fresh data, never to answer a question about data that is already

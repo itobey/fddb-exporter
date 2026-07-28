@@ -77,10 +77,8 @@ public class FddbQueryTools {
     @McpTool(
             name = "get_day",
             description = """
-                    Returns the logged nutrition data for a single day: the daily totals and every \
-                    product logged that day. Calories are kcal, all other nutrients are grams. \
-                    A day with no entry is reported as found=false, which means nothing was logged \
-                    that day - it does not mean the user ate nothing.""",
+                    Returns the daily totals and every product logged for a single day. found=false \
+                    means nothing was logged that day - not that the user ate nothing.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public DayResultDTO getDay(
@@ -106,24 +104,21 @@ public class FddbQueryTools {
     @McpTool(
             name = "get_days",
             description = """
-                    Returns the daily nutrition totals for a date range, both bounds inclusive and \
-                    oldest first. Days without an entry are simply absent from the result. Product \
-                    lists are omitted unless includeProducts is set, because a long range with \
-                    products is a very large response - ask for them only when the question is about \
-                    what was eaten rather than about the totals. The range is limited to 366 days.""",
+                    Returns the daily totals for a date range, oldest first, at most 366 days. \
+                    Product lists are omitted unless includeProducts is set, because a long range \
+                    with them is a very large response - ask for them only when the question is \
+                    about what was eaten rather than about the totals.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public DayRangeResultDTO getDays(
-            @McpToolParam(description = "First day of the range (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "First day: " + McpDateParser.ACCEPTED_FORMATS)
             String fromDate,
 
-            @McpToolParam(description = "Last day of the range (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "Last day: " + McpDateParser.ACCEPTED_FORMATS)
             String toDate,
 
-            @McpToolParam(description = "Whether to include the products logged on each day. "
-                    + "Defaults to false", required = false)
+            @McpToolParam(description = "Include each day's products. Defaults to false",
+                    required = false)
             Boolean includeProducts) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);
@@ -148,30 +143,29 @@ public class FddbQueryTools {
             description = """
                     Finds every occurrence of a product in the diary, newest first, with the date it \
                     was logged, the amount and its macros. The name is matched as a case-insensitive \
-                    substring, so 'hafer' also finds 'Haferflocken kernig'. Product names come from \
-                    FDDB and are usually German and brand-prefixed - if a search comes back empty, \
-                    try a shorter fragment. Check the 'truncated' flag before deriving any count \
-                    from the result: when it is true, more occurrences exist than were returned.""",
+                    substring, so 'hafer' also finds 'Haferflocken kernig'. FDDB names are usually \
+                    German and brand-prefixed - if a search comes back empty, try a shorter \
+                    fragment.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public ProductSearchResultDTO searchProducts(
             @McpToolParam(description = "Case-insensitive substring of the product name")
             String name,
 
-            @McpToolParam(description = "Optional days of the week to restrict the search to, as "
-                    + "English upper-case names, e.g. ['MONDAY', 'FRIDAY']", required = false)
+            @McpToolParam(description = "Optional days of the week to restrict to, as English "
+                    + "upper-case names, e.g. ['MONDAY', 'FRIDAY']", required = false)
             List<String> daysOfWeek,
 
-            @McpToolParam(description = "Optional first day to include (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = false)
+            @McpToolParam(description = "Optional first day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = false)
             String fromDate,
 
-            @McpToolParam(description = "Optional last day to include (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = false)
+            @McpToolParam(description = "Optional last day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = false)
             String toDate,
 
-            @McpToolParam(description = "Maximum number of occurrences to return, at most 500. "
-                    + "Defaults to 100", required = false)
+            @McpToolParam(description = "How many occurrences to return, at most 500. Defaults to "
+                    + "100", required = false)
             Integer limit) {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
@@ -197,11 +191,10 @@ public class FddbQueryTools {
             name = "list_top_products",
             description = """
                     Ranks the products in the diary either by how often they were logged (FREQUENCY) \
-                    or by the total amount of a nutrient they contributed, optionally restricted to a \
-                    date range. This is the tool for "what do I actually eat the most" and "where do \
-                    my calories come from". The totals are sums across every logged occurrence, so a \
-                    product eaten daily in small portions can outrank a rare large one. Check the \
-                    'truncated' flag before calling anything "the top" of the list.""",
+                    or by the total amount of a nutrient they contributed, optionally within a date \
+                    range - "what do I actually eat the most", "where do my calories come from". The \
+                    totals are sums across every logged occurrence, so a product eaten daily in \
+                    small portions can outrank a rare large one.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public TopProductsResultDTO listTopProducts(
@@ -209,12 +202,12 @@ public class FddbQueryTools {
                     + "Defaults to FREQUENCY", required = false)
             ProductRanking by,
 
-            @McpToolParam(description = "Optional first day to include (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = false)
+            @McpToolParam(description = "Optional first day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = false)
             String fromDate,
 
-            @McpToolParam(description = "Optional last day to include (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = false)
+            @McpToolParam(description = "Optional last day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = false)
             String toDate,
 
             @McpToolParam(description = "How many products to return, at most 100. Defaults to 20",
@@ -243,24 +236,24 @@ public class FddbQueryTools {
     @McpTool(
             name = "get_product_summary",
             description = """
-                    Aggregates every product matching a search term into one figure set: how often \
-                    it was logged, when it was first and last eaten, what it contributed in total \
-                    and on average, and how the occurrences spread over the days of the week. Use \
-                    this instead of search_products when the question is "how much" or "how often" \
-                    rather than "when exactly". Read matchedProductNames before treating the result \
-                    as one food - a short search term folds several brands into one number.""",
+                    Aggregates every product matching a search term into one figure set: times \
+                    logged, first and last eaten, the totals, the averages and the spread over the \
+                    days of the week. Use it instead of search_products when the question is "how \
+                    much" or "how often" rather than "when exactly". Read matchedProductNames before \
+                    treating the result as one food - a short term folds several brands into one \
+                    number.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public ProductSummaryResultDTO getProductSummary(
             @McpToolParam(description = "Case-insensitive substring of the product name")
             String name,
 
-            @McpToolParam(description = "Optional first day to include (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = false)
+            @McpToolParam(description = "Optional first day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = false)
             String fromDate,
 
-            @McpToolParam(description = "Optional last day to include (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = false)
+            @McpToolParam(description = "Optional last day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = false)
             String toDate) {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
@@ -285,10 +278,10 @@ public class FddbQueryTools {
             name = "list_distinct_products",
             description = """
                     Lists the distinct product names in the diary, optionally filtered by a \
-                    case-insensitive substring. This is the vocabulary lookup: FDDB names are long, \
-                    usually German and brand-prefixed, so resolving the user's wording to a real \
-                    name here first saves an empty search later. 'flocken' finds 'Haferflocken \
-                    kernig' - the filter matches anywhere in the name, not just at the start.""",
+                    case-insensitive substring. The vocabulary lookup: FDDB names are long, usually \
+                    German and brand-prefixed, so resolving the user's wording to a real name here \
+                    saves an empty search later. 'flocken' finds 'Haferflocken kernig' - the filter \
+                    matches anywhere in the name, not just at the start.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public DistinctProductsResultDTO listDistinctProducts(
@@ -320,12 +313,11 @@ public class FddbQueryTools {
                     Finds the days on which at least one product matching any of the include \
                     keywords was logged, skipping days where a matching product also matches an \
                     exclude keyword. Keywords are case-insensitive substrings of the product name. \
-                    This is the building block for elimination-diet questions - get the days here, \
-                    then line them up with correlate_products_with_dates or pull individual days \
-                    with get_day. Results are grouped by day, newest first. dayCount is how many \
-                    days came back and matchedDayCount how many exist - answer "on how many days \
-                    did I eat X?" with matchedDayCount, which stays right even when truncated is \
-                    set.""",
+                    The building block for elimination-diet questions - get the days here, then line \
+                    them up with correlate_products_with_dates or pull individual days with get_day. \
+                    Grouped by day, newest first. Answer "on how many days did I eat X?" with \
+                    matchedDayCount, which is how many exist, not with dayCount, which is how many \
+                    came back.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public DaysWithProductsResultDTO findDaysWithProducts(
@@ -337,9 +329,8 @@ public class FddbQueryTools {
                     + "whose name contains one of these is not counted", required = false)
             List<String> excludeKeywords,
 
-            @McpToolParam(description = "Optional earliest day to consider: "
-                    + McpDateParser.ACCEPTED_FORMATS + ". Omit to search the whole diary",
-                    required = false)
+            @McpToolParam(description = "Optional earliest day: " + McpDateParser.ACCEPTED_FORMATS
+                    + ". Omit for the whole diary", required = false)
             String startDate,
 
             @McpToolParam(description = "How many days to return, at most 366. Defaults to 100",

@@ -48,8 +48,8 @@ public class FddbResources {
             name = "diary_stats",
             title = "Diary statistics",
             description = "The global overview of the whole diary: entry count, first and last "
-                    + "entry, coverage, unique and total products, all-time averages, the highest "
-                    + "day per nutrient and the logging streaks. The same data as the get_stats tool.",
+                    + "entry, coverage, products, all-time averages, extremes and streaks. The same "
+                    + "data as the get_stats tool.",
             mimeType = "application/json")
     public String stats() {
         log.debug("MCP: reading the stats resource");

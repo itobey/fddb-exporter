@@ -69,8 +69,8 @@ public class FddbSchemaTools {
             name = "get_data_schema",
             description = """
                     Returns the data dictionary for the diary: every field of a day entry and of a \
-                    product, its unit, and the pitfalls of interpreting them. Cheap to call and \
-                    worth calling once before reasoning about the numbers.""",
+                    product, its unit, and the pitfalls of interpreting them. Cheap, and worth \
+                    calling once before reasoning about the numbers.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public String getDataSchema() {

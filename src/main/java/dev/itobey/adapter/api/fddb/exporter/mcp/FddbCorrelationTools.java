@@ -59,19 +59,16 @@ public class FddbCorrelationTools {
             name = "correlate_products_with_dates",
             description = """
                     Counts how often a product was eaten around a set of event dates - the days the \
-                    user reports a migraine, bad sleep, a flare-up. The product is given as \
-                    keywords matched case-insensitively against the FDDB product names; search \
-                    first with search_products to check a keyword catches what the user means. The \
-                    result reports five windows - the event day itself, one and two days before it, \
-                    and the 2- and 3-day windows leading up to it - each with the number of hits, \
-                    the days the product was eaten on, and two ratios. Read the ratios carefully: \
-                    percentageOfProductDays is the share of the days the product was eaten that \
-                    fall into that window, percentageOfEvents is the share of events preceded by \
-                    it, and neither is a statistical correlation coefficient. This is not evidence \
-                    of causation, a handful of events cannot support a conclusion at all, and \
-                    matchedDates are the days the product was eaten, not the event days. Report the \
-                    numbers with those limits stated and leave elimination decisions to the user \
-                    and their doctor.""",
+                    user reports a migraine, bad sleep, a flare-up. The product is given as keywords \
+                    matched case-insensitively against the FDDB product names; check with \
+                    search_products first that a keyword catches what the user means. Five windows \
+                    are reported - the event day, one and two days before it, and the 2- and 3-day \
+                    windows leading up to it - each with the hits, two ratios the response itself \
+                    explains, and matchedDates, which are the days the product was eaten and not the \
+                    event days. Neither ratio is a correlation coefficient: this counts \
+                    co-occurrence, not causation, and a handful of events cannot support a \
+                    conclusion. Report the numbers with those limits stated and leave elimination \
+                    decisions to the user and their doctor.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public CorrelationResultDTO correlateProductsWithDates(
@@ -85,15 +82,14 @@ public class FddbCorrelationTools {
                     + "keyword, e.g. include 'brot' but exclude 'vollkorn'", required = false)
             List<String> exclusionKeywords,
 
-            @McpToolParam(description = "The event dates - the days the symptom or event occurred. "
-                    + "Each one is " + McpDateParser.ACCEPTED_FORMATS + ". At least one, at most 366",
+            @McpToolParam(description = "The days the symptom or event occurred. Each one is "
+                    + McpDateParser.ACCEPTED_FORMATS + ". At least one, at most 366",
                     required = true)
             List<String> occurrenceDates,
 
-            @McpToolParam(description = "Optional earliest day to consider: "
-                    + McpDateParser.ACCEPTED_FORMATS + ". Omit to search the whole diary. Narrowing "
-                    + "it to the period the user actually logged keeps the denominator honest",
-                    required = false)
+            @McpToolParam(description = "Optional earliest day: " + McpDateParser.ACCEPTED_FORMATS
+                    + ". Omit for the whole diary. Narrowing it to the period the user actually "
+                    + "logged keeps the denominator honest", required = false)
             String startDate) {
         List<String> inclusions = requireKeywords(inclusionKeywords);
         List<String> exclusions = exclusionKeywords == null ? List.of() : exclusionKeywords;

@@ -36,12 +36,10 @@ public class FddbServerInfoTools {
     @McpTool(
             name = "get_server_info",
             description = """
-                    Returns what this server is running and what it holds: the application version, \
-                    today's date as the server sees it, which stores are enabled, whether exports \
-                    run on a schedule, and the first and last day the diary has an entry for. Call \
-                    this at the start of a conversation - it is the cheapest way to learn today's \
-                    date, which every relative date parameter is resolved against, and the window \
-                    the data actually covers.""",
+                    Returns what this server runs and what it holds: version, today's date and time \
+                    zone as the server sees them, the enabled stores, the export schedule, and the \
+                    first and last day the diary has an entry for. Every relative date parameter \
+                    resolves against the server's today, not the client's.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public ServerInfoDTO getServerInfo() {

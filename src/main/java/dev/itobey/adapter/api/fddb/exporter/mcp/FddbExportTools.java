@@ -92,27 +92,19 @@ public class FddbExportTools {
     @McpTool(
             name = "export_range",
             description = """
-                    Fetches the diary from fddb.info for a date range and stores it, both bounds \
-                    inclusive. Existing entries are updated rather than duplicated, so re-exporting \
-                    a day is safe. A day that comes back as unsuccessful usually just has nothing \
-                    logged on FDDB - it is not an error, and the stored data for it is left \
-                    untouched. Each day is a separate request to fddb.info and takes roughly a \
-                    second, so a call is about as many seconds long as the range has days: at most \
-                    14 days per call. Anything larger belongs in the app's Web UI or its REST API \
-                    (POST /api/v2/fddbdata), which are not capped - say so instead of splitting a \
-                    backfill across many calls. Only one export runs at a time server-wide: if one \
-                    is already running the call fails immediately, so never start several in \
-                    parallel. Use this only when the user asks for fresh data, not to answer a \
-                    question about data that is already stored.""",
+                    Fetches the diary from fddb.info for a date range and stores it. Existing \
+                    entries are updated rather than duplicated, so re-exporting a day is safe. A day \
+                    that comes back as unsuccessful usually just has nothing logged on FDDB - it is \
+                    not an error, and the stored data for it is left untouched. At most 14 days per \
+                    call - a larger backfill belongs in the app's uncapped Web UI or REST API (POST \
+                    /api/v2/fddbdata), not in repeated calls here.""",
             annotations = @McpTool.McpAnnotations(destructiveHint = false,
                     idempotentHint = true))
     public ExportSummaryDTO exportRange(
-            @McpToolParam(description = "First day to export (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "First day to export: " + McpDateParser.ACCEPTED_FORMATS)
             String fromDate,
 
-            @McpToolParam(description = "Last day to export (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "Last day to export: " + McpDateParser.ACCEPTED_FORMATS)
             String toDate) {
         LocalDate today = LocalDate.now();
         LocalDate from = McpDateParser.parse(fromDate, today);
@@ -130,10 +122,9 @@ public class FddbExportTools {
                     way to catch up without working out dates. Without includeToday the range ends \
                     yesterday, which is usually what is wanted: a day still in progress is \
                     incomplete on FDDB too. Existing entries are updated rather than duplicated. \
-                    Each day is a separate request to fddb.info and takes roughly a second: at least \
-                    1 and at most 14 days per call. Anything larger belongs in the app's Web UI or \
-                    its REST API (GET /api/v2/fddbdata/export), which are not capped - say so \
-                    instead of splitting a backfill across many calls.""",
+                    Between 1 and 14 days per call - a larger backfill belongs in the app's uncapped \
+                    Web UI or REST API (GET /api/v2/fddbdata/export), not in repeated calls \
+                    here.""",
             annotations = @McpTool.McpAnnotations(destructiveHint = false,
                     idempotentHint = true))
     public ExportSummaryDTO exportDaysBack(
@@ -141,8 +132,8 @@ public class FddbExportTools {
                     + "of the range")
             int days,
 
-            @McpToolParam(description = "Whether the range ends today instead of yesterday. "
-                    + "Defaults to false", required = false)
+            @McpToolParam(description = "End the range today instead of yesterday. Defaults to "
+                    + "false", required = false)
             Boolean includeToday) {
         boolean withToday = Boolean.TRUE.equals(includeToday);
         // both bounds are checked here rather than left to the service, whose own message names the
@@ -171,20 +162,17 @@ public class FddbExportTools {
                     Fetches only the days in a range that have no usable entry yet and stores them - \
                     the repair tool for the gaps list_missing_days reports. Days that are already \
                     logged are not touched and not re-fetched. If a day stays missing after this, \
-                    nothing was logged on FDDB for it, and no number of retries will change that. \
-                    Each missing day is a separate request to fddb.info and takes roughly a second: \
-                    at most 14 missing days are exported per call, however long the range itself \
-                    is. A range with more gaps than that belongs in the app's Web UI or its REST \
-                    API (POST /api/v2/fddbdata), which are not capped.""",
+                    nothing was logged on FDDB for it, and no number of retries will change that. At \
+                    most 14 missing days per call, however long the range itself is - more gaps than \
+                    that belong in the app's uncapped Web UI or REST API (POST /api/v2/fddbdata), \
+                    not in repeated calls here.""",
             annotations = @McpTool.McpAnnotations(destructiveHint = false,
                     idempotentHint = true))
     public ExportSummaryDTO exportMissingDays(
-            @McpToolParam(description = "First day to check (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "First day to check: " + McpDateParser.ACCEPTED_FORMATS)
             String fromDate,
 
-            @McpToolParam(description = "Last day to check (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "Last day to check: " + McpDateParser.ACCEPTED_FORMATS)
             String toDate) {
         LocalDate today = LocalDate.now();
         LocalDate from = McpDateParser.parse(fromDate, today);

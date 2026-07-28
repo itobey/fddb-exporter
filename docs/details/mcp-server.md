@@ -101,7 +101,7 @@ default.
 | `get_weekday_breakdown`  | `fromDate?`, `toDate?`                                           | Averages grouped by day of the week — "do my weekends wreck the average?"                      |
 | `get_macro_split`        | `fromDate`, `toDate`                                             | Share of energy from fat, carbs and protein — kcal-weighted, not gram-weighted                 |
 | `compare_periods`        | `periodAFrom`, `periodATo`, `periodBFrom`, `periodBTo`           | Both averages plus the absolute and percentage change per nutrient                              |
-| `check_goals`            | `fromDate`, `toDate`, `targets`, `includeDays?`                  | Hit rate, streaks and a per-target breakdown against your own targets                          |
+| `check_goals`            | `fromDate`, `toDate`, `targets`, `includeDays?`                  | Hit rate, streaks and a per-target breakdown against your own targets. Limited to 366 days      |
 
 ### Correlation
 

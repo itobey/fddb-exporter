@@ -67,12 +67,10 @@ public class FddbStatsTools {
     @McpTool(
             name = "get_stats",
             description = """
-                    Returns the global overview of the whole diary: how many entries exist, the date \
-                    of the first and the last one, how much of that window is actually logged, the \
-                    number of unique and total products, the all-time daily averages, the single \
-                    highest day per nutrient and the current and longest logging streak. Call this \
-                    first when a question needs to be anchored in time - it is the cheapest way to \
-                    learn which period the data actually covers.""",
+                    Returns the global overview of the whole diary: entry count, first and last \
+                    entry, how much of that window is actually logged, product counts, the all-time \
+                    daily averages, the highest day per nutrient and the logging streaks. The \
+                    cheapest way to anchor a question in time.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public StatsDTO getStats() {
@@ -84,21 +82,17 @@ public class FddbStatsTools {
             name = "get_averages",
             description = """
                     Returns the average daily calories, fat, carbs, sugar, protein and fibre over a \
-                    date range, both bounds inclusive. Only days that have an entry are averaged, so \
-                    days the user forgot to log do not drag the average down - loggedDays says how \
-                    many days the averages rest on, and reading it next to daysInRange is what keeps \
-                    an average over three logged days out of thirty from being reported as a month. \
-                    A range with nothing logged in it comes back with found false and no averages, \
-                    which is an answer, not a failure.""",
+                    date range. Read loggedDays next to daysInRange before reporting one: an average \
+                    over three logged days out of thirty is not a month's average.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public AveragesResultDTO getAverages(
-            @McpToolParam(description = "First day of the range (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = true)
+            @McpToolParam(description = "First day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = true)
             String fromDate,
 
-            @McpToolParam(description = "Last day of the range (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = true)
+            @McpToolParam(description = "Last day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = true)
             String toDate) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);
@@ -131,13 +125,11 @@ public class FddbStatsTools {
             name = "get_extreme_days",
             description = """
                     Returns the days with the highest or lowest value of one nutrient, most extreme \
-                    first, optionally restricted to a date range. Use this for "which were my \
-                    heaviest days" or "when did I eat the least protein" instead of pulling the range \
-                    and sorting it. Only the date and the value of that one nutrient come back - call \
-                    get_day for a day found here to see what was actually eaten on it. Check the \
-                    'truncated' flag before calling this list "the" extremes: when it is true, more \
-                    days exist past the cut and the next one may be a hair behind the last one \
-                    returned.""",
+                    first, optionally within a date range - "which were my heaviest days", "when did \
+                    I eat the least protein" - rather than pulling the range and sorting it. Only \
+                    the date and that one nutrient come back; call get_day for what was actually \
+                    eaten on one. When truncated is set, the first day past the cut may be a hair \
+                    behind the last one returned.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public ExtremeDaysResultDTO getExtremeDays(
@@ -153,14 +145,12 @@ public class FddbStatsTools {
                     required = false)
             Integer limit,
 
-            @McpToolParam(description = "Optional first day to consider (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS + ". Omit to search the whole diary",
-                    required = false)
+            @McpToolParam(description = "Optional first day: " + McpDateParser.ACCEPTED_FORMATS
+                    + ". Omit for the whole diary", required = false)
             String fromDate,
 
-            @McpToolParam(description = "Optional last day to consider (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS + ". Omit to search the whole diary",
-                    required = false)
+            @McpToolParam(description = "Optional last day: " + McpDateParser.ACCEPTED_FORMATS
+                    + ". Omit for the whole diary", required = false)
             String toDate) {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
@@ -189,13 +179,12 @@ public class FddbStatsTools {
             name = "get_trend",
             description = """
                     Returns one nutrient over time as a series of buckets, each with the average and \
-                    the summed value of the days inside it. Use WEEK or MONTH granularity to answer \
-                    "am I trending up?" over a long range - DAY granularity on a long range is just \
-                    get_days with extra steps. At most 366 buckets are returned, so a range that would \
-                    produce more is rejected: coarsen the granularity rather than narrowing the range \
-                    when a long trend is what is wanted. Buckets without a single logged day are \
-                    omitted rather than reported as zero, so always read dayCount before comparing two \
-                    buckets: a week with two logged days is not comparable to a full one.""",
+                    the summed value of the days inside it. Use WEEK or MONTH to answer "am I \
+                    trending up?" over a long range - DAY granularity on a long range is just \
+                    get_days with extra steps. At most 366 buckets: a range that would produce more \
+                    is rejected, so coarsen the granularity rather than narrowing the range. Read \
+                    dayCount before comparing two buckets - a week with two logged days is not \
+                    comparable to a full one.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public TrendResultDTO getTrend(
@@ -203,12 +192,12 @@ public class FddbStatsTools {
                     + "or FIBRE")
             NutrientMetric metric,
 
-            @McpToolParam(description = "First day of the range (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = true)
+            @McpToolParam(description = "First day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = true)
             String fromDate,
 
-            @McpToolParam(description = "Last day of the range (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = true)
+            @McpToolParam(description = "Last day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = true)
             String toDate,
 
             @McpToolParam(description = "Bucket size: DAY, WEEK (ISO weeks, Monday to Sunday) or "
@@ -239,17 +228,16 @@ public class FddbStatsTools {
             description = """
                     Returns the average daily nutrition grouped by day of the week - "do my weekends \
                     wreck the average?". Both bounds are optional; without them the whole diary is \
-                    covered. A day of the week with no logged day at all is omitted, and dayCount \
-                    says how many days each average rests on.""",
+                    covered. dayCount says how many days each average rests on.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public WeekdayBreakdownResultDTO getWeekdayBreakdown(
-            @McpToolParam(description = "Optional first day to include (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = false)
+            @McpToolParam(description = "Optional first day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = false)
             String fromDate,
 
-            @McpToolParam(description = "Optional last day to include (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = false)
+            @McpToolParam(description = "Optional last day: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = false)
             String toDate) {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
@@ -270,22 +258,18 @@ public class FddbStatsTools {
             description = """
                     Returns the share of energy coming from fat, carbs and protein over a range. \
                     The split is kcal-weighted, not gram-weighted: grams are converted with the \
-                    Atwater factors (fat 9 kcal/g, carbs and protein 4 kcal/g) before the \
-                    percentages are computed, which is the only way the three shares can be \
-                    compared to each other. macroCalories is derived from the macros and \
-                    averageCalories is what FDDB itself reports; the two normally differ by a few \
-                    kcal, and the percentages are computed against macroCalories. loggedDays says \
-                    how many days the split rests on, and a range with nothing logged in it comes \
-                    back with found false and no split rather than as an error.""",
+                    Atwater factors (fat 9 kcal/g, carbs and protein 4 kcal/g) first, which is the \
+                    only way the three shares can be compared to each other. The percentages are \
+                    computed against macroCalories, which is derived from the macros and normally \
+                    differs by a few kcal from averageCalories, which is what FDDB itself \
+                    reports.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public MacroSplitResultDTO getMacroSplit(
-            @McpToolParam(description = "First day of the range (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "First day: " + McpDateParser.ACCEPTED_FORMATS)
             String fromDate,
 
-            @McpToolParam(description = "Last day of the range (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS)
+            @McpToolParam(description = "Last day: " + McpDateParser.ACCEPTED_FORMATS)
             String toDate) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);
@@ -313,23 +297,21 @@ public class FddbStatsTools {
     @McpTool(
             name = "list_missing_days",
             description = """
-                    Lists the days in a range that were never logged - "when did I forget to log?". A \
-                    day with an entry but no calories at all counts as missing too, since that is \
-                    what an aborted export looks like. Worth calling before drawing conclusions from \
-                    averages over a long range: 20 missing days out of 30 makes any average of that \
-                    month close to meaningless. The range itself is unlimited, but at most 366 dates \
-                    are listed; missingCount and loggedCount always cover the whole range, so answer \
-                    "how many did I miss?" from those and narrow the range if the dates themselves \
-                    are needed.""",
+                    Lists the days in a range that were never logged - "when did I forget to log?". \
+                    A day with an entry but no calories at all counts as missing too, since that is \
+                    what an aborted export looks like. The range itself is unlimited but at most 366 \
+                    dates are listed; missingCount and loggedCount always cover the whole range, so \
+                    answer "how many did I miss?" from those and narrow the range if the dates \
+                    themselves are needed.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public MissingDaysResultDTO listMissingDays(
-            @McpToolParam(description = "First day to check (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = true)
+            @McpToolParam(description = "First day to check: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = true)
             String fromDate,
 
-            @McpToolParam(description = "Last day to check (inclusive): "
-                    + McpDateParser.ACCEPTED_FORMATS, required = true)
+            @McpToolParam(description = "Last day to check: " + McpDateParser.ACCEPTED_FORMATS,
+                    required = true)
             String toDate) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);
