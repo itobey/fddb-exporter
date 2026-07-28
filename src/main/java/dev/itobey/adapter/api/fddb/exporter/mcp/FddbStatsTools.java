@@ -15,7 +15,8 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 
-import static java.time.temporal.ChronoUnit.*;
+import static java.time.temporal.ChronoUnit.MONTHS;
+import static java.time.temporal.ChronoUnit.WEEKS;
 
 /**
  * MCP tools for the aggregated view of the diary.
@@ -98,7 +99,7 @@ public class FddbStatsTools {
         LocalDate to = McpDateParser.parse(toDate);
         log.debug("MCP: retrieving averages for {} to {}", from, to);
 
-        long daysInRange = daysBetween(from, to);
+        long daysInRange = McpRange.of(from, to).days();
         long loggedDays = fddbDataService.countByDateRange(from, to);
         AveragesResultDTO.AveragesResultDTOBuilder result = AveragesResultDTO.builder()
                 .fromDate(from)
@@ -154,6 +155,7 @@ public class FddbStatsTools {
             String toDate) {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
+        McpRange.requireOrdered(from, to);
         ExtremeDirection effectiveDirection = direction == null ? ExtremeDirection.HIGHEST : direction;
         int effectiveLimit = McpPage.boundedLimit(limit, DEFAULT_EXTREME_DAYS_LIMIT, MAX_EXTREME_DAYS_LIMIT);
         log.debug("MCP: retrieving the {} {} days for {} in {} to {}",
@@ -241,6 +243,7 @@ public class FddbStatsTools {
             String toDate) {
         LocalDate from = McpDateParser.parseOptional(fromDate);
         LocalDate to = McpDateParser.parseOptional(toDate);
+        McpRange.requireOrdered(from, to);
         log.debug("MCP: retrieving the weekday breakdown for {} to {}", from, to);
 
         List<WeekdayStatsDTO> weekdays = fddbDataService.getWeekdayBreakdown(from, to);
@@ -275,7 +278,7 @@ public class FddbStatsTools {
         LocalDate to = McpDateParser.parse(toDate);
         log.debug("MCP: retrieving the macro split for {} to {}", from, to);
 
-        long daysInRange = daysBetween(from, to);
+        long daysInRange = McpRange.of(from, to).days();
         long loggedDays = fddbDataService.countByDateRange(from, to);
         MacroSplitResultDTO.MacroSplitResultDTOBuilder result = MacroSplitResultDTO.builder()
                 .fromDate(from)
@@ -315,7 +318,7 @@ public class FddbStatsTools {
             String toDate) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);
-        long daysChecked = daysBetween(from, to);
+        long daysChecked = McpRange.of(from, to).days();
         log.debug("MCP: retrieving the missing days for {} to {}", from, to);
 
         List<LocalDate> missingDays = fddbDataService.getMissingDays(from, to);
@@ -336,18 +339,6 @@ public class FddbStatsTools {
     }
 
     /**
-     * The length of a range in days, rejecting an inverted one before the store is touched. The
-     * aggregations behind these tools would raise their own error for it, but not one worded for
-     * the agent that has to correct the call.
-     */
-    private long daysBetween(LocalDate from, LocalDate to) {
-        if (from.isAfter(to)) {
-            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
-        }
-        return DAYS.between(from, to) + 1;
-    }
-
-    /**
      * Rejects a trend that would come back with more than {@link #MAX_TREND_BUCKETS} buckets, before
      * the store is touched.
      * <p>
@@ -356,9 +347,12 @@ public class FddbStatsTools {
      * computed without loading anything. The message names both ways out, since coarsening the
      * granularity is usually the one the caller wants and narrowing the range is the one it would
      * otherwise guess.
+     * <p>
+     * The cap is on buckets rather than days, so this cannot be {@link McpRange#capped(int)} - only
+     * the inversion check comes from there.
      */
     private void checkBucketCount(LocalDate from, LocalDate to, TrendGranularity granularity) {
-        long days = daysBetween(from, to);
+        long days = McpRange.of(from, to).days();
         long buckets = switch (granularity) {
             case DAY -> days;
             // from the Monday of the first ISO week / the first of the first month, so a range

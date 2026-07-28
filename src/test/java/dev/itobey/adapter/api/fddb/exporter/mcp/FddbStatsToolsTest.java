@@ -190,6 +190,15 @@ class FddbStatsToolsTest {
     }
 
     @Test
+    void getExtremeDays_shouldRejectAnInvertedRangeBeforeTouchingTheStore() {
+        // when / then: both bounds are optional here, but two given the wrong way round is still a
+        // mistake, and one this tool used to hand down to the store to complain about
+        assertThrows(DateTimeException.class, () -> fddbStatsTools.getExtremeDays(
+                NutrientMetric.CALORIES, null, null, "2024-01-31", "2024-01-01"));
+        verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
     void getTrend_shouldDefaultToWeeklyBucketsAndSumTheLoggedDays() {
         // given
         LocalDate from = LocalDate.of(2024, 1, 1);
@@ -288,6 +297,14 @@ class FddbStatsToolsTest {
         assertNull(result.getToDate());
         assertEquals(102, result.getLoggedDays());
         assertEquals(2, result.getWeekdays().size());
+    }
+
+    @Test
+    void getWeekdayBreakdown_shouldRejectAnInvertedRangeBeforeTouchingTheStore() {
+        // when / then
+        assertThrows(DateTimeException.class,
+                () -> fddbStatsTools.getWeekdayBreakdown("2024-01-31", "2024-01-01"));
+        verifyNoInteractions(fddbDataService);
     }
 
     @Test

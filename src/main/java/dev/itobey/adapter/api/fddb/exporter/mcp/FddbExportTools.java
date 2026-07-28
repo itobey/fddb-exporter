@@ -16,8 +16,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.time.temporal.ChronoUnit.DAYS;
-
 /**
  * The MCP tools that write: they log into fddb.info with the configured account, scrape the diary
  * for a set of days and store what they find.
@@ -109,7 +107,9 @@ public class FddbExportTools {
         LocalDate today = LocalDate.now();
         LocalDate from = McpDateParser.parse(fromDate, today);
         LocalDate to = McpDateParser.parse(toDate, today);
-        long days = daysIn(from, to, today);
+        long days = scrapableRange(from, to, today)
+                .capped(MAX_EXPORT_DAYS, this::exportTooLargeMessage)
+                .days();
         log.info("MCP: exporting {} to {}", from, to);
 
         return summarize(from, to, days, exportForTimerange(from, to));
@@ -177,9 +177,9 @@ public class FddbExportTools {
         LocalDate today = LocalDate.now();
         LocalDate from = McpDateParser.parse(fromDate, today);
         LocalDate to = McpDateParser.parse(toDate, today);
-        long daysInRange = validRangeDays(from, to, today);
-
         // the range itself is only read, so it is not capped - what is capped is the scraping below
+        long daysInRange = scrapableRange(from, to, today).days();
+
         List<LocalDate> missingDays = fddbDataService.getMissingDays(from, to);
         if (missingDays.isEmpty()) {
             return ExportSummaryDTO.builder()
@@ -224,37 +224,14 @@ public class FddbExportTools {
     }
 
     /**
-     * The length of a range that may be scraped: not inverted, not reaching into the future.
+     * A range that may be scraped: not inverted, not reaching into the future.
      * <p>
-     * The future check is here rather than in {@link McpDateParser} because it is only wrong for
-     * these tools. A read tool asked about tomorrow answers {@code found=false} and costs nothing;
-     * an export tool asked about tomorrow makes real requests to fddb.info for days that cannot have
-     * data, and spends the per-call budget on them. The message names the server's own today, since
-     * that is the number the agent got its arithmetic wrong against.
+     * The per-call cap is deliberately not part of this - {@code export_missing_days} caps the gaps
+     * it scrapes, not the range it reads them from, so the two callers differ in exactly that one
+     * step and it stays at the call site.
      */
-    private long validRangeDays(LocalDate from, LocalDate to, LocalDate today) {
-        if (from.isAfter(to)) {
-            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
-        }
-        if (to.isAfter(today)) {
-            throw new DateTimeException("The range ends on " + to + ", which is in the future - "
-                    + "today is " + today + " on this server. FDDB cannot have a diary for a day "
-                    + "that has not happened yet, so there is nothing to export; recompute the range "
-                    + "against " + today + " and call again.");
-        }
-        return DAYS.between(from, to) + 1;
-    }
-
-    /**
-     * The same, plus the per-call cap. Separate from {@link #validRangeDays} because
-     * {@code export_missing_days} caps the gaps it scrapes, not the range it reads.
-     */
-    private long daysIn(LocalDate from, LocalDate to, LocalDate today) {
-        long days = validRangeDays(from, to, today);
-        if (days > MAX_EXPORT_DAYS) {
-            throw new DateTimeException(exportTooLargeMessage(days));
-        }
-        return days;
+    private McpRange scrapableRange(LocalDate from, LocalDate to, LocalDate today) {
+        return McpRange.of(from, to).notInFuture(today);
     }
 
     private String exportTooLargeMessage(long days) {

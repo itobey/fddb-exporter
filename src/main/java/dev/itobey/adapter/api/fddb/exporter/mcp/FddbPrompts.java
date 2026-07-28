@@ -237,9 +237,7 @@ public class FddbPrompts {
         LocalDate resolvedFrom = fromDate == null || fromDate.isBlank()
                 ? resolvedTo.minusDays(DEFAULT_HYGIENE_DAYS - 1L)
                 : McpDateParser.parse(fromDate);
-        if (resolvedFrom.isAfter(resolvedTo)) {
-            throw new IllegalArgumentException("The 'from' date cannot be after the 'to' date");
-        }
+        McpRange.requireOrdered(resolvedFrom, resolvedTo);
         log.debug("MCP: logging hygiene prompt for {} to {}", resolvedFrom, resolvedTo);
 
         // the whole point of this workflow is the gap list; whether it ends there or ends with the

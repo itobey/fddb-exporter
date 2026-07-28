@@ -167,7 +167,7 @@ class FddbPromptsTest {
         // then
         LocalDate to = LocalDate.now().minusDays(1);
         assertTrue(textOf(result).contains(LocalDate.now().minusDays(6) + " and " + to));
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(DateTimeException.class, () ->
                 fddbPrompts.loggingHygieneCheck("2024-03-10", "2024-03-01"));
     }
 

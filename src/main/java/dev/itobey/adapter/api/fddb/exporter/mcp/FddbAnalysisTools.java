@@ -15,14 +15,11 @@ import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static java.time.temporal.ChronoUnit.DAYS;
 
 /**
  * The MCP tools that are not a wrapper around a stored query.
@@ -137,11 +134,13 @@ public class FddbAnalysisTools {
             Boolean includeDays) {
         LocalDate from = McpDateParser.parse(fromDate);
         LocalDate to = McpDateParser.parse(toDate);
+        // the same cap findByDateRange would apply below, stated here so the limit the description
+        // promises is one this tool holds rather than one it happens to inherit
+        long daysInRange = McpRange.of(from, to).capped(FddbDataService.MAX_RANGE_DAYS).days();
         validate(targets);
         log.debug("MCP: checking {} goal(s) for {} to {}", targets.size(), from, to);
 
         List<FddbDataDTO> entries = fddbDataService.findByDateRange(from, to, false);
-        long daysInRange = DAYS.between(from, to) + 1;
 
         if (entries.isEmpty()) {
             return GoalCheckResultDTO.builder()
@@ -181,9 +180,14 @@ public class FddbAnalysisTools {
      * averaging" the averaging aggregation would raise. Only the count is needed, so it stays a
      * count - loading the days themselves would move up to 366 documents per period over the wire
      * to have {@code size()} called on them.
+     * <p>
+     * Which is also why the cap is applied here rather than inherited: neither
+     * {@link FddbDataService#countByDateRange} nor {@link FddbDataService#getRollingAverages} bounds
+     * the range the way {@link FddbDataService#findByDateRange} does, so without this the limit the
+     * tool description promises would not exist.
      */
     private PeriodComparisonDTO.Period summarize(LocalDate from, LocalDate to) {
-        long daysInRange = daysIn(from, to);
+        long daysInRange = McpRange.of(from, to).capped(FddbDataService.MAX_RANGE_DAYS).days();
         long loggedDays = fddbDataService.countByDateRange(from, to);
 
         StatsDTO.Averages averages = loggedDays == 0 ? null : averagesFor(from, to);
@@ -195,28 +199,6 @@ public class FddbAnalysisTools {
                 .loggedDays((int) loggedDays)
                 .averages(averages)
                 .build();
-    }
-
-    /**
-     * The number of days in a period, rejecting an inverted range and one longer than
-     * {@link FddbDataService#MAX_RANGE_DAYS} - the limit the tool description promises.
-     * <p>
-     * Enforced here rather than inherited: {@link #summarize} counts and averages a period instead of
-     * loading it, and neither {@link FddbDataService#countByDateRange} nor
-     * {@link FddbDataService#getRollingAverages} caps the range the way
-     * {@link FddbDataService#findByDateRange} does.
-     */
-    private long daysIn(LocalDate from, LocalDate to) {
-        if (from.isAfter(to)) {
-            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
-        }
-
-        long days = DAYS.between(from, to) + 1;
-        if (days > FddbDataService.MAX_RANGE_DAYS) {
-            throw new DateTimeException("A period must not exceed " + FddbDataService.MAX_RANGE_DAYS
-                    + " days, but " + days + " were requested - please narrow the range");
-        }
-        return days;
     }
 
     private StatsDTO.Averages averagesFor(LocalDate from, LocalDate to) {

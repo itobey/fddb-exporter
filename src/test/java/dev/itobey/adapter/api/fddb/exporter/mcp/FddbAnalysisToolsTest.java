@@ -195,6 +195,25 @@ class FddbAnalysisToolsTest {
     }
 
     @Test
+    void checkGoals_shouldRejectARangeLongerThanTheCapItselfRatherThanInheritIt() {
+        // when / then: 367 days, one over the cap the tool description states. findByDateRange would
+        // refuse it too, but the promise is this tool's to keep and it never reaches the store
+        DateTimeException exception = assertThrows(DateTimeException.class,
+                () -> fddbAnalysisTools.checkGoals("2024-01-01", "2025-01-01",
+                        List.of(atLeast(NutrientMetric.PROTEIN, 120)), null));
+        assertTrue(exception.getMessage().contains("366"), exception.getMessage());
+        verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
+    void checkGoals_shouldRejectAnInvertedRange() {
+        // when / then
+        assertThrows(DateTimeException.class, () -> fddbAnalysisTools.checkGoals("2024-01-31", "2024-01-01",
+                List.of(atLeast(NutrientMetric.PROTEIN, 120)), null));
+        verifyNoInteractions(fddbDataService);
+    }
+
+    @Test
     void checkGoals_shouldOmitTheIndividualDaysUnlessTheyWereAskedFor() {
         // given
         LocalDate from = LocalDate.of(2024, 1, 1);
