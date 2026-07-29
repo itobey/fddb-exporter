@@ -30,6 +30,9 @@ The MCP endpoint has **no authentication**, exactly like the REST API, and it se
   `FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED`. Without it they are not registered, so an assistant cannot see them, let
   alone call them.
 
+Whether these two flags are on is included in the anonymous usage ping — as two booleans, never any of the data you
+ask the assistant about. See [Privacy and telemetry](/details/telemetry.md).
+
 ## Enabling it
 
 Set the following environment variable (or the equivalent property `fddb-exporter.mcp.enabled`):

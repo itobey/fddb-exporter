@@ -11,6 +11,8 @@ public class TelemetryDto {
     private long pointCount;
     private boolean mongodbEnabled;
     private boolean influxdbEnabled;
+    private boolean mcpEnabled;
+    private boolean mcpWriteToolsEnabled;
     private ExecutionMode executionMode;
     private String appVersion;
 

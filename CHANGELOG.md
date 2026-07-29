@@ -24,6 +24,11 @@
 
 ### Changed
 
+- **Anonymous usage ping now reports the MCP flags.** The daily telemetry ping additionally sends two booleans:
+  whether the MCP server is enabled and whether its export (write) tools are enabled — so I can see how much the
+  feature is actually used. No diary content, product names, questions or tool calls are sent, and the write flag is
+  reported as `false` while the MCP server itself is off. Everything that is sent is listed in the
+  [privacy and telemetry documentation](https://itobey.github.io/fddb-exporter/details/telemetry).
 - **Exports no longer run in parallel.** Scraping fddb.info is now serialised across the whole application - the
   scheduler, the REST API, the Web UI and the MCP export tools share one lock, so a single account is never logged in
   and scraped twice at the same time. **If you script against the API:** `POST /api/v2/fddbdata` and
