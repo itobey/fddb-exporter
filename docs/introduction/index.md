@@ -1,9 +1,9 @@
 # What is FDDB Exporter?
 
 FDDB Exporter is a tool designed to extract nutritional data from [FDDB.info](https://fddb.info/) and store it in a
-MongoDB / InfluxDB database. It comes with a built-in [Web UI](/visualization/web-ui.html) for easy access to all
+MongoDB / InfluxDB database. It comes with a built-in [Web UI](/visualization/web-ui.md) for easy access to all
 features,
-as well as a comprehensive [REST API](/details/rest-api.html) for programmatic access.
+as well as a comprehensive [REST API](/details/rest-api.md) for programmatic access.
 
 You may want to do this for the following reasons:
 
@@ -19,7 +19,7 @@ You may want to do this for the following reasons:
 - **Mobile Support**: Works great on mobile devices and can be installed as a Progressive Web App (PWA)
 - **Product Search**: Find products with optional day-of-week filtering (e.g., only show products eaten on Mondays)
 - **Correlation Analysis**: Identify potential food sensitivities by correlating products with specific dates
-- **[MCP Server](/details/mcp-server.html)**: Opt-in, read-only by default — let an AI assistant answer questions about
+- **[MCP Server](/details/mcp-server.md)**: Opt-in, read-only by default — let an AI assistant answer questions about
   your diary in natural language
 - **Automatic Updates**: Get notified when a new version is available
 

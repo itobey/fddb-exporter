@@ -1,4 +1,4 @@
-# MCP Server
+# MCP Server <Badge type="tip" text="2.3.0+" />
 
 The application can expose your nutrition data as an [MCP](https://modelcontextprotocol.io/) server, so an AI assistant
 (Claude Desktop, Claude Code, or any other MCP client) can answer questions about your diary in natural language:
@@ -19,19 +19,18 @@ The MCP server is just another consumer of the same data the REST API and the We
 **read-only**: it does not export anything from FDDB and it never writes to the database. The
 [export tools](#export-tools-optional) that change that are behind a second flag of their own.
 
-## ⚠️ Security
+## Security
 
 The MCP endpoint has **no authentication**, exactly like the REST API, and it serves personal health data.
 
 - It is **disabled by default**. Enable it only if you understand the consequence.
-- Do **not** expose it to the internet without a reverse proxy that adds authentication in front of it.
+- Do **not** expose it to the internet without a reverse proxy that adds authentication in front of it — see
+  [Securing your instance](/details/security.md#exposing-the-mcp-endpoint), which also covers what to check about your
+  MCP client before assuming a basic-auth proxy works.
 - It requires MongoDB persistence. With MongoDB disabled, no tools are registered at all.
 - The tools that scrape FDDB and write to your database need a **second** flag,
   `FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED`. Without it they are not registered, so an assistant cannot see them, let
   alone call them.
-
-Whether these two flags are on is included in the anonymous usage ping — as two booleans, never any of the data you
-ask the assistant about. See [Privacy and telemetry](/details/telemetry.md).
 
 ## Enabling it
 
@@ -43,7 +42,7 @@ docker run -e 'FDDB-EXPORTER_MCP_ENABLED=true' ghcr.io/itobey/fddb-exporter
 
 The server is then available at:
 
-```
+```text
 http://localhost:8080/mcp
 ```
 
@@ -70,6 +69,13 @@ For clients configured through a JSON config file (e.g. Claude Desktop):
 }
 ```
 
+**Claude Desktop is not recommended for this server.** Remote MCP connections in Claude Desktop are made from
+Anthropic's servers, not from your machine, so the URL needs to be publicly reachable — `http://localhost:8080/mcp`
+never is. Claude Code, by contrast, connects directly from your own machine, so localhost works there. If you still
+want to use Claude Desktop, you would need to expose the endpoint publicly (with authentication in front of it, per
+[Securing your instance](/details/security.md#exposing-the-mcp-endpoint)), which is a much larger step than running
+it locally for Claude Code.
+
 ## Available tools
 
 Every tool listed here is read-only. The [export tools](#export-tools-optional) are the exception and are off by
@@ -89,7 +95,7 @@ default.
 |----------------------------|-------------------------------------------------------------|--------------------------------------------------------------------------------------------|
 | `search_products`          | `name`, `daysOfWeek?`, `fromDate?`, `toDate?`, `limit?`      | Every occurrence of a product with its date, amount and macros                              |
 | `list_top_products`        | `by?`, `fromDate?`, `toDate?`, `limit?`                      | Products ranked by frequency or by the calories/fat/carbs/protein they added                |
-| `get_product_summary`      | `name`, `fromDate?`, `toDate?`                               | One product rolled up: times eaten, first/last date, totals, average, weekday distribution  |
+| `get_product_summary`      | `name`, `fromDate?`, `toDate?`                               | One product rolled up: times eaten, first/last date, totals, average, weekday distribution — uncapped, so the figures are exact |
 | `list_distinct_products`   | `search?`, `limit?`                                          | The product names your diary actually contains — the vocabulary lookup                      |
 | `find_days_with_products`  | `includeKeywords`, `excludeKeywords?`, `startDate?`, `limit?` | The days a matching product was logged on, grouped by day, plus how many days match in total |
 
@@ -103,8 +109,8 @@ default.
 | `get_trend`              | `metric`, `fromDate`, `toDate`, `granularity?`                   | One nutrient over time, bucketed by day, ISO week or month — at most 366 buckets               |
 | `get_weekday_breakdown`  | `fromDate?`, `toDate?`                                           | Averages grouped by day of the week — "do my weekends wreck the average?"                      |
 | `get_macro_split`        | `fromDate`, `toDate`                                             | Share of energy from fat, carbs and protein — kcal-weighted, not gram-weighted                 |
-| `compare_periods`        | `periodAFrom`, `periodATo`, `periodBFrom`, `periodBTo`           | Both averages plus the absolute and percentage change per nutrient                              |
-| `check_goals`            | `fromDate`, `toDate`, `targets`, `includeDays?`                  | Hit rate, streaks and a per-target breakdown against your own targets. Limited to 366 days      |
+| `compare_periods`        | `periodAFrom`, `periodATo`, `periodBFrom`, `periodBTo`           | Both averages plus the absolute and percentage change per nutrient — "this July vs. last July"  |
+| `check_goals`            | `fromDate`, `toDate`, `targets`, `includeDays?`                  | Hit rate, streaks and a per-target breakdown against your own targets — "did I hit my 120 g protein goal?". Limited to 366 days |
 
 ### Correlation
 
@@ -129,11 +135,6 @@ They are **not registered** unless you enable them explicitly, on top of the MCP
 ```bash
 docker run -e 'FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED=true' ghcr.io/itobey/fddb-exporter
 ```
-
-A POSIX shell will not `export` a name with hyphens in it — in a shell script write
-`FDDB_EXPORTER_MCP_WRITE_TOOLS_ENABLED=true` instead, which binds to the same property. Either way,
-`get_server_info` reports `writeToolsEnabled`, so you can check the flag took effect without
-guessing from the tool list.
 
 The flag is read at startup, so changing it needs a restart. While it is off, the tools do not exist as far as any
 client is concerned.
@@ -233,6 +234,11 @@ MCP results are read by a language model, so the tools are built to keep respons
 - `search_products`, `list_top_products`, `list_distinct_products` and `get_extreme_days` cap their results and report
   a `truncated` flag, so a count derived from a capped result is never mistaken for the full picture — and a top-10
   list is not read as "there were only ten".
+- `get_product_summary` is deliberately **not** capped, since it aggregates rather than lists and its size does not
+  grow with the number of matches. That makes it the one tool that answers "how much" and "how often" about a product
+  exactly: the same figures counted off a capped `search_products` result describe only the newest page of matches.
+  Its tool description says so, so an assistant asked for a year's total should reach for it rather than add up
+  occurrences itself.
 - `find_days_with_products` groups and caps in the database rather than in memory, and reports both numbers:
   `dayCount` is how many days came back, `matchedDayCount` how many exist. "On how many days did I eat X?" is answered
   by the second one, which stays correct when `truncated` is set.

@@ -19,6 +19,23 @@ the username and password for the FDDB connection and the settings for your pref
   the [Docker details](/details/docker.md).
 - For more information about how to configure the Helm Chart, please refer to the [Helm details](/details/helm.md).
 
+### A note on the hyphens
+
+The `FDDB-EXPORTER_*` spelling used on this page works wherever the variable is set as data — a Docker `-e` flag, a
+`docker-compose.yml` `environment:` block, a Kubernetes env var, an IDE run configuration:
+
+```bash
+docker run -e 'FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED=true' ghcr.io/itobey/fddb-exporter
+```
+
+It does **not** work with a POSIX shell's `export`, which rejects hyphens in a variable name. In a shell script use the
+all-underscore form instead — Spring Boot's relaxed binding accepts either, and this applies to every
+`FDDB-EXPORTER_*` variable on this page:
+
+```bash
+export FDDB_EXPORTER_MCP_WRITE_TOOLS_ENABLED=true
+```
+
 ### FDBB Configuration
 
 The application requires a valid FDDB.info account to work. The following environment variables are used to configure
@@ -41,6 +58,22 @@ For more information about the scheduler and how the export works, see [Export d
 | `FDDB-EXPORTER_SCHEDULER_ENABLED`  | true        | Enable/disable the daily export scheduler                     |
 | `FDDB-EXPORTER_SCHEDULER_CRON`     | 0 0 3 * * * | Scheduler cron expression (default: 3 AM daily) (Spring cron) |
 
+The cron expression is a **Spring** expression and has six fields, the first being seconds. A five-field Unix
+expression is rejected at startup. `/actuator/scheduledtasks` lists the schedules actually in use.
+
+### Timezone
+
+FDDB Exporter keys every entry on its diary date and stores it as midnight of that date in the configured timezone, so
+the timezone is semantically relevant rather than cosmetic — see
+[time and date](/details/persistence.md#time-and-date). A container defaults to UTC, so set this to your own timezone.
+
+| Variable | Default | Description                                                                |
+|----------|---------|----------------------------------------------------------------------------|
+| `TZ`     | UTC     | Timezone of the container, e.g. `Europe/Berlin`. The Helm chart calls this value `timezone` |
+
+Changing `TZ` does not rewrite entries that already exist. If days look shifted by one, see
+[Troubleshooting](/details/troubleshooting.md#days-are-shifted-by-one).
+
 ### MongoDB Configuration
 
 MongoDB is used by default as persistence for the application. The following environment variables are used to configure
@@ -57,6 +90,11 @@ the MongoDB connection. You can disable MongoDB persistence by setting `FDDB-EXP
 | `SPRING_MONGODB_USERNAME`                   | mongodb_fddb_user     | MongoDB username           |
 | `SPRING_MONGODB_PASSWORD`                   | mongodb_fddb_password | MongoDB password           |
 
+::: warning Renamed in 2.2.0
+Spring Boot 4 moved these out of Spring Data, so `SPRING_DATA_MONGODB_*` became `SPRING_MONGODB_*`. The old spelling is
+silently ignored, which means the application falls back to `localhost` instead of complaining.
+:::
+
 ### InfluxDB Configuration
 
 InfluxDB is disabled by default. The following environment variables are used to configure the InfluxDB connection. You
@@ -72,7 +110,22 @@ For more information about persistence, see [Persistence details](/details/persi
 | `FDDB-EXPORTER_INFLUXDB_TOKEN`               | token                 | Token for authentication in InfluxDB |
 | `FDDB-EXPORTER_INFLUXDB_BUCKET`              | fddb-exporter         | InfluxDB bucket                      |
 
-### MCP Server Configuration
+At least one of the two persistence layers has to be enabled. With both disabled, the application logs an error and
+stops itself at startup rather than running with nowhere to write.
+
+### Notification Configuration
+
+A Telegram message is sent when the scheduled export cannot parse a day. Notifications are enabled by default but
+nothing is sent until a token and a chat id are configured. See [Notifications](/details/notifications.md) for what
+triggers a message and how to obtain the two values.
+
+| Variable                                    | Default | Description                                                   |
+|---------------------------------------------|---------|---------------------------------------------------------------|
+| `FDDB-EXPORTER_NOTIFICATION_ENABLED`        | true    | Send a Telegram message when a scheduled export fails to parse |
+| `FDDB-EXPORTER_NOTIFICATION_TELEGRAM_TOKEN` | -       | Bot token from BotFather                                       |
+| `FDDB-EXPORTER_NOTIFICATION_TELEGRAM_CHATID`| -       | Id of the chat to send messages to                             |
+
+### MCP Server Configuration <Badge type="tip" text="2.3.0+" />
 
 The MCP server lets an AI assistant query your diary in natural language. It is **disabled by default** and requires
 MongoDB persistence. For what it exposes and how to connect a client, see [MCP Server](/details/mcp-server.md).
@@ -82,21 +135,38 @@ MongoDB persistence. For what it exposes and how to connect a client, see [MCP S
 | `FDDB-EXPORTER_MCP_ENABLED`             | false   | Enable the MCP server endpoint at `/mcp`, with the read-only tools                 |
 | `FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED` | false   | Additionally expose the export tools, which scrape FDDB and write to the database  |
 
-**A note on the hyphens.** The spelling above works wherever the variable is set as data — a Docker
-`-e` flag, a `docker-compose.yml` `environment:` block, a Kubernetes env var, an IDE run
-configuration:
+Both flags are read at startup, so changing either needs a restart. Mind
+[the hyphens](#a-note-on-the-hyphens) if you set them from a shell script.
 
-```bash
-docker run -e 'FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED=true' ghcr.io/itobey/fddb-exporter
-```
+### Web UI Configuration
 
-It does **not** work with a POSIX shell's `export`, which rejects hyphens in a variable name. In a
-shell script use the all-underscore form instead — Spring Boot's relaxed binding accepts either, and
-this applies to every `FDDB-EXPORTER_*` variable on this page:
+| Variable                             | Default           | Description                                                              |
+|--------------------------------------|-------------------|--------------------------------------------------------------------------|
+| `FDDB-EXPORTER_UI_FDDB-LINK-PREFIX`  | https://fddb.info | Base URL the [Web UI](/visualization/web-ui.md) prefixes to product links |
 
-```bash
-export FDDB_EXPORTER_MCP_WRITE_TOOLS_ENABLED=true
-```
+Products are stored with the site-relative link FDDB itself uses, so this is what turns them into a URL you can click.
+
+### Health and Probes
+
+The health endpoint is exposed at `/actuator/health`, with liveness and readiness groups for Kubernetes. The defaults
+are usually fine; they are listed here because they matter to anyone writing probe configuration.
+
+| Variable                                        | Default                  | Description                              |
+|-------------------------------------------------|--------------------------|------------------------------------------|
+| `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE`     | health, scheduledtasks   | Which actuator endpoints are exposed     |
+| `MANAGEMENT_ENDPOINT_HEALTH_SHOW-DETAILS`       | always                   | Whether health details are in the response |
+
+Three custom indicators contribute to the health response: `fddb-login-check` (does the fddb.info login still work —
+it performs a real request), plus `mongodb` and `influxdb` when the respective store is enabled.
+
+::: warning `fddb-login-check` is part of the liveness group
+`/actuator/health/liveness` reports `DOWN` when the FDDB login fails, so on Kubernetes wrong credentials cause a restart
+loop. The readiness group deliberately excludes the check. See
+[Troubleshooting](/details/troubleshooting.md#login-to-fddb-not-successful-please-check-credentials).
+:::
+
+Note that the health endpoint is **not** authenticated, like everything else the application serves — see
+[Securing your instance](/details/security.md).
 
 ### Logging Configuration
 
@@ -104,7 +174,37 @@ export FDDB_EXPORTER_MCP_WRITE_TOOLS_ENABLED=true
 |----------------------|---------|-----------------------|
 | `LOGGING_LEVEL_ROOT` | info    | Application log level |
 
----
+`debug` adds the scheduled run and the health checks, `trace` the individual export steps.
 
-Because environment variables are plain text, it is recommended to use a secure method of storing and passing the
-credentials. If you are using the Helm chart, this is already handled for you.
+## Encrypting credentials
+
+Environment variables are plain text, and this application needs several credentials — your FDDB password above all.
+Rather than passing them in the clear, the application supports [Jasypt](https://github.com/ulisesbocchio/jasypt-spring-boot)
+encrypted properties: any property value written as `ENC(...)` is decrypted at startup.
+
+1. Encrypt a value, using the Maven plugin that ships with the project:
+
+   ```bash
+   mvn jasypt:encrypt-value -Djasypt.encryptor.password=your-master-password -Djasypt.plugin.value=your-fddb-password
+   ```
+
+2. Put the result into your configuration wrapped in `ENC(...)`:
+
+   ```yaml
+   fddb-exporter:
+     fddb:
+       password: ENC(kMS9Zx8u2Fh1...)
+   ```
+
+3. Supply the master password at runtime, and only that one:
+
+   ```bash
+   docker run -e 'JASYPT_ENCRYPTOR_PASSWORD=your-master-password' ghcr.io/itobey/fddb-exporter
+   ```
+
+This moves the problem rather than removing it — the master password still has to reach the application somehow — but it
+means the config file itself, and anything that reads it, no longer carries usable credentials. If you deploy with the
+[Helm chart](/details/helm.md), its `secretRef` support covers the same ground with Kubernetes secrets and is the more
+natural fit there.
+
+For the wider question of who can reach your instance at all, see [Securing your instance](/details/security.md).
