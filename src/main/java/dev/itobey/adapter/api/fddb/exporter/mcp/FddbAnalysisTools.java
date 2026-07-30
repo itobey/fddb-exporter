@@ -54,12 +54,16 @@ public class FddbAnalysisTools {
     @McpTool(
             name = "compare_periods",
             description = """
-                    Compares the average daily nutrition of two date ranges and returns both sets of \
-                    averages plus the absolute and percentage change per nutrient. Period A is the \
-                    one being judged and period B what it is judged against, so for "this month vs. \
-                    last month" period A is this month and a positive change means A is higher. \
-                    loggedDays is reported per period - one with 5 logged days out of 30 does not \
-                    support a conclusion. Each range is at most 366 days.""",
+                    Use this whenever two date ranges are set against each other - "this month vs. \
+                    last month", "this July compared to last July", "was last week better than the \
+                    one before", "how has my protein changed since spring" - rather than calling \
+                    get_averages twice and subtracting. Compares the average daily nutrition of the \
+                    two ranges and returns both sets of averages plus the absolute and percentage \
+                    change per nutrient. Period A is the one being judged and period B what it is \
+                    judged against, so for "this month vs. last month" period A is this month and a \
+                    positive change means A is higher. loggedDays is reported per period - one with \
+                    5 logged days out of 30 does not support a conclusion. Each range is at most \
+                    366 days.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public PeriodComparisonDTO comparePeriods(
@@ -104,7 +108,12 @@ public class FddbAnalysisTools {
     @McpTool(
             name = "check_goals",
             description = """
-                    Checks every logged day of a range against one or more nutritional targets and \
+                    Use this whenever a number is named that a day should reach or stay under - \
+                    "did I hit my protein goal of 120 g this year", "how often did I stay under \
+                    2000 kcal", "how many days did I get enough fibre". Do not answer those from an \
+                    average: an average says nothing about how many individual days cleared the \
+                    line, and a year averaging 125 g of protein can still miss 120 g on half of \
+                    them. Checks every logged day of a range against one or more targets and \
                     returns the hit rate, the longest and current streak, a breakdown per target \
                     and, on request, the individual days. A target is a nutrient, a direction and a \
                     value, e.g. {"metric":"PROTEIN","comparator":"AT_LEAST","value":120}; several \

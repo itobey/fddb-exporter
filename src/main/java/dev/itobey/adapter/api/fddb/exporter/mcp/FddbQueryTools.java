@@ -142,10 +142,14 @@ public class FddbQueryTools {
             name = "search_products",
             description = """
                     Finds every occurrence of a product in the diary, newest first, with the date it \
-                    was logged, the amount and its macros. The name is matched as a case-insensitive \
-                    substring, so 'hafer' also finds 'Haferflocken kernig'. FDDB names are usually \
-                    German and brand-prefixed - if a search comes back empty, try a shorter \
-                    fragment.""",
+                    was logged, the amount and its macros. Returns the occurrences themselves, for \
+                    "when exactly" questions - if the question is only what a product is called, \
+                    call list_distinct_products instead, which returns the names alone. The name is \
+                    matched as a case-insensitive substring; FDDB names are usually German and \
+                    brand-prefixed, so if a search comes back empty, try a shorter fragment. It is \
+                    capped, so when truncated is true the list is only the newest slice of the \
+                    matches: do not add up or count what came back to answer "how much" or "how \
+                    often" - call get_product_summary, which is uncapped and counts them all.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public ProductSearchResultDTO searchProducts(
@@ -237,11 +241,14 @@ public class FddbQueryTools {
             name = "get_product_summary",
             description = """
                     Aggregates every product matching a search term into one figure set: times \
-                    logged, first and last eaten, the totals, the averages and the spread over the \
-                    days of the week. Use it instead of search_products when the question is "how \
-                    much" or "how often" rather than "when exactly". Read matchedProductNames before \
-                    treating the result as one food - a short term folds several brands into one \
-                    number.""",
+                    logged, first and last eaten, the totals, the averages and weekdayDistribution, \
+                    the count of occurrences per day of the week. The only product tool without a \
+                    cap: it folds in every match however many there are, so timesEaten and the \
+                    totals are exact where the same numbers counted off a search_products page are \
+                    only the newest slice. Use it for every "how much", "how often" and "which \
+                    weekday" question, and over a range of months prefer it even when the capped \
+                    tools look sufficient. Read matchedProductNames before treating the result as \
+                    one food - a short term folds several brands into one number.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public ProductSummaryResultDTO getProductSummary(
@@ -277,11 +284,14 @@ public class FddbQueryTools {
     @McpTool(
             name = "list_distinct_products",
             description = """
-                    Lists the distinct product names in the diary, optionally filtered by a \
-                    case-insensitive substring. The vocabulary lookup: FDDB names are long, usually \
-                    German and brand-prefixed, so resolving the user's wording to a real name here \
-                    saves an empty search later. 'flocken' finds 'Haferflocken kernig' - the filter \
-                    matches anywhere in the name, not just at the start.""",
+                    The vocabulary lookup: the deduplicated product names alone - no dates, no \
+                    amounts, no macros - optionally filtered by a case-insensitive substring. Use \
+                    it when the question is what something is called in the diary rather than when \
+                    or how much of it was eaten, and to resolve the user's wording to a real name \
+                    before searching: FDDB names are long, usually German and brand-prefixed, and \
+                    'flocken' finds 'Haferflocken kernig' because the filter matches anywhere in \
+                    the name, not just at the start. For the occurrences behind a name, call \
+                    search_products.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public DistinctProductsResultDTO listDistinctProducts(

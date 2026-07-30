@@ -83,8 +83,13 @@ public class FddbStatsTools {
             name = "get_averages",
             description = """
                     Returns the average daily calories, fat, carbs, sugar, protein and fibre over a \
-                    date range. Read loggedDays next to daysInRange before reporting one: an average \
-                    over three logged days out of thirty is not a month's average.""",
+                    single date range. Read loggedDays next to daysInRange before reporting one: an \
+                    average over three logged days out of thirty is not a month's average. Do not \
+                    call this twice to set two ranges against each other - compare_periods answers \
+                    that in one call and returns the change per nutrient with it. It is also the \
+                    wrong tool for a threshold: "did I hit 120 g of protein" is check_goals, which \
+                    counts the days that actually cleared the line - an average can sit above a \
+                    floor while most of the individual days sat below it.""",
             annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public AveragesResultDTO getAverages(
