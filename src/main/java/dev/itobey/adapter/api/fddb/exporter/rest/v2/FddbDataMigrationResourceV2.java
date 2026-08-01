@@ -44,7 +44,7 @@ public class FddbDataMigrationResourceV2 {
     @Operation(summary = "Migrate data to InfluxDB", description = "Migrate all MongoDB entries to InfluxDB")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Migration completed successfully", content = @Content),
-            @ApiResponse(responseCode = "503", description = "MongoDB or InfluxDB not available", content = @Content)
+            @ApiResponse(responseCode = "400", description = "MongoDB or InfluxDB is disabled", content = @Content)
     })
     @PostMapping("/toInfluxDb")
     @RequiresMongoDb

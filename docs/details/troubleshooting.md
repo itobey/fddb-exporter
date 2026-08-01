@@ -37,10 +37,14 @@ and stops; a REST call answers `500 Internal Server Error`.
 - Watch out for shell quoting if the password contains `$`, `!` or spaces. In a `docker run -e` flag, single-quote the
   whole assignment.
 
-::: warning On Kubernetes, wrong FDDB credentials restart the pod
-`fddb-login-check` is part of the **liveness** probe group, so a failing login makes `/actuator/health/liveness` report
-`DOWN` and Kubernetes restarts the container — repeatedly, since a restart does not fix a wrong password. The readiness
-group deliberately excludes the check. If you see a pod in `CrashLoopBackOff` with nothing obviously wrong, check the
+::: tip On Kubernetes, wrong FDDB credentials do not restart the pod <Badge type="tip" text="2.3.1+" />
+`fddb-login-check` is deliberately part of **neither** probe group, so a failing login leaves
+`/actuator/health/liveness` and `/actuator/health/readiness` reporting `UP`: the application itself is healthy, only
+the credentials are wrong, and neither restarting the container nor taking it out of the Service would fix that. The
+failure is visible on `/actuator/health` and in the Web UI instead.
+
+Up to and including 2.3.0 the check *was* in the liveness group, which turned wrong credentials into a permanent
+`CrashLoopBackOff`. If you are on an older release and see a pod restarting with nothing obviously wrong, check the
 credentials before anything else.
 :::
 

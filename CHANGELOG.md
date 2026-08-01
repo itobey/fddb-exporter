@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Wrong FDDB credentials no longer restart the container on Kubernetes.** `fddb-login-check` is no longer part of
+  the liveness probe group, where an invalid password caused an endless restart loop. The login status is still
+  reported on `/actuator/health` and in the Web UI.
+
+### Fixed
+
+- The OpenAPI specs documented `503` for endpoints requiring MongoDB/InfluxDB, which have always answered `400`.
+  Documentation only — no behaviour changed.
+
 ## 2.3.0
 
 ### Added

@@ -74,10 +74,15 @@ management:
         enabled: true
       show-details: always
       group:
+        # fddb-login-check is deliberately in neither probe group: a failed fddb.info login means the
+        # credentials are wrong, not that this application is unhealthy. Restarting cannot fix a wrong
+        # password (endless CrashLoopBackOff) and taking the pod out of the Service would hide the UI
+        # that reports the problem. The indicator still shows up under /actuator/health.
         liveness:
           include:
-            - fddb-login-check
             - livenessState
+          exclude:
+            - fddb-login-check
         readiness:
           include:
             - readinessState

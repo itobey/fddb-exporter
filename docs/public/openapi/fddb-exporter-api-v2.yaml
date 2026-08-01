@@ -105,8 +105,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/FddbDataDTO'
-        '503':
-          description: MongoDB not available
+        '400':
+          description: MongoDB is disabled
           content:
             application/json:
               schema:
@@ -169,7 +169,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/FddbDataDTO'
         '400':
-          description: Invalid date format
+          description: Invalid date format, or MongoDB is disabled
           content:
             application/json:
               schema:
@@ -177,12 +177,6 @@ paths:
                 example: "Date must be in the format YYYY-MM-DD"
         '404':
           description: No data found for the specified date
-        '503':
-          description: MongoDB not available
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v2/fddbdata/range:
     get:
@@ -228,13 +222,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/FddbDataDTO'
         '400':
-          description: Invalid or too large date range
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: MongoDB not available
+          description: Invalid or too large date range, or MongoDB is disabled
           content:
             application/json:
               schema:
@@ -309,13 +297,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/ProductWithDateDTO'
         '400':
-          description: Invalid date range
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: MongoDB not available
+          description: Invalid date range, or MongoDB is disabled
           content:
             application/json:
               schema:
@@ -357,8 +339,8 @@ paths:
                 type: array
                 items:
                   type: string
-        '503':
-          description: MongoDB not available
+        '400':
+          description: MongoDB is disabled
           content:
             application/json:
               schema:
@@ -405,13 +387,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProductSummaryDTO'
         '400':
-          description: Invalid date range
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: MongoDB not available
+          description: Invalid date range, or MongoDB is disabled
           content:
             application/json:
               schema:
@@ -477,13 +453,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/TopProductDTO'
         '400':
-          description: Invalid date range
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: MongoDB not available
+          description: Invalid date range, or MongoDB is disabled
           content:
             application/json:
               schema:
@@ -565,13 +535,7 @@ paths:
                   When includeProducts=false, the 'id' and 'products' fields will be null.
                   When includeProducts=true, all fields are populated.
         '400':
-          description: Invalid parameters (e.g., fromDate is after toDate)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: MongoDB not available
+          description: Invalid parameters (e.g., fromDate is after toDate), or MongoDB is disabled
           content:
             application/json:
               schema:
@@ -591,8 +555,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StatsDTO'
-        '503':
-          description: MongoDB not available
+        '400':
+          description: MongoDB is disabled
           content:
             application/json:
               schema:
@@ -630,18 +594,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/RollingAveragesDTO'
         '400':
-          description: Invalid date range
+          description: Invalid date range, or MongoDB is disabled
           content:
             application/json:
               schema:
                 type: string
                 example: "Invalid date range"
-        '503':
-          description: MongoDB not available
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v2/stats/trend:
     get:
@@ -706,13 +664,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/TrendPointDTO'
         '400':
-          description: Invalid date range
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: MongoDB not available
+          description: Invalid date range, or MongoDB is disabled
           content:
             application/json:
               schema:
@@ -754,13 +706,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/WeekdayStatsDTO'
         '400':
-          description: Invalid date range
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: MongoDB not available
+          description: Invalid date range, or MongoDB is disabled
           content:
             application/json:
               schema:
@@ -800,13 +746,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MacroSplitDTO'
         '400':
-          description: Invalid date range
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: MongoDB not available
+          description: Invalid date range, or MongoDB is disabled
           content:
             application/json:
               schema:
@@ -849,13 +789,7 @@ paths:
                   type: string
                   format: date
         '400':
-          description: Invalid date range
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: MongoDB not available
+          description: Invalid date range, or MongoDB is disabled
           content:
             application/json:
               schema:
@@ -876,8 +810,8 @@ paths:
               schema:
                 type: string
                 example: "Migrated 365 entries to InfluxDB"
-        '503':
-          description: MongoDB or InfluxDB not available
+        '400':
+          description: MongoDB or InfluxDB is disabled
           content:
             application/json:
               schema:

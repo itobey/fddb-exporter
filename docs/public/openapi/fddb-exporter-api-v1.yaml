@@ -68,8 +68,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/FddbDataDTO'
-        '503':
-          description: MongoDB not available
+        '400':
+          description: MongoDB is disabled
 
     post:
       deprecated: true
@@ -143,11 +143,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/FddbDataDTO'
         '400':
-          description: Invalid date format
+          description: Invalid date format, or MongoDB is disabled
         '404':
           description: No data found for the specified date
-        '503':
-          description: MongoDB not available
 
   /fddbdata/products:
     get:
@@ -186,8 +184,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ProductWithDateDTO'
-        '503':
-          description: MongoDB not available
+        '400':
+          description: MongoDB is disabled
 
   /fddbdata/export:
     get:
@@ -260,8 +258,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StatsDTO'
-        '503':
-          description: MongoDB not available
+        '400':
+          description: MongoDB is disabled
 
   /fddbdata/stats/averages:
     get:
@@ -308,9 +306,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RollingAveragesDTO'
         '400':
-          description: Invalid date range
-        '503':
-          description: MongoDB not available
+          description: Invalid date range, or MongoDB is disabled
 
   /fddbdata/migrateToInfluxDb:
     post:
@@ -340,8 +336,8 @@ paths:
               schema:
                 type: string
                 example: 'Migrated 150 entries to InfluxDB'
-        '503':
-          description: MongoDB or InfluxDB not available
+        '400':
+          description: MongoDB or InfluxDB is disabled
 
   /correlation:
     post:
