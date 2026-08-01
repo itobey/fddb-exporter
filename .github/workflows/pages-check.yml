@@ -1,0 +1,59 @@
+name: Docs build check
+
+# Build-only. This workflow never publishes anything: it has no pages permission, no Pages artifact
+# upload and no deploy job. It exists so a broken docs build fails on the pull request instead of
+# after the merge, since pages.yml only ever runs from a release.
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/pages*.yml'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: ./docs
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build with VitePress
+        # VitePress fails the build on dead markdown page links, which is half of what this job checks.
+        run: npm run docs:build
+
+      - name: Stage the built site under its published base path
+        # GitHub Pages serves the site from /fddb-exporter/ and VitePress emits absolute hrefs that
+        # already carry that prefix. Mirror the prefix locally so lychee's --root-dir resolves them
+        # the same way the live site does.
+        run: |
+          mkdir -p link-check-root/fddb-exporter
+          cp -r .vitepress/dist/. link-check-root/fddb-exporter/
+      - name: Check links in the built output
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # Runs against the built HTML, not the markdown sources: VitePress validates page links
+          # only, so a link to a *file* (an example response, an OpenAPI spec) can 404 on the live
+          # site while the build stays green. --offline keeps external URLs out of a PR check.
+          # --fallback-extensions html is required because cleanUrls is on: every page link in the
+          # built HTML is extensionless (/fddb-exporter/details/docker) while the file on disk is
+          # docker.html, and lychee resolves these against the filesystem, not a web server.
+          args: >-
+            --offline
+            --no-progress
+            --fallback-extensions html
+            --root-dir ${{ github.workspace }}/docs/link-check-root
+            'docs/link-check-root/fddb-exporter/**/*.html'
+          fail: true

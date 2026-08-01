@@ -1,9 +1,3 @@
-<script setup>
-import { useData } from 'vitepress'
-
-const { theme } = useData()
-</script>
-
 # Getting started
 
 This section shortly describes how to get started with the FDDB Exporter.
@@ -27,14 +21,14 @@ want to deploy a Helm Chart.
 More information about the Docker image configuration can be found on this [detail page](/details/docker.md).
 
 1. Pull the pre-built Docker image:
-   ```
+   ```bash
    docker run ghcr.io/itobey/fddb-exporter:latest
    ```
 
 2. Use the provided [docker-compose.yaml](https://github.com/itobey/fddb-exporter/blob/master/docker/docker-compose.yml)
    file to start the FDDB Exporter container along with
    a MongoDB and InfluxDB container.
-   ```
+   ```bash
    docker-compose -f docker/docker-compose.yml up -d
    ```
 
@@ -46,8 +40,8 @@ You may also use the pre-built Helm Chart to deploy the application. More inform
 configuration can be found on this [detail page](/details/helm.md).
 
 - Use the pre-built Helm Chart:
-   ```
-   helm install fddb-exporter oci://ghcr.io/itobey/charts/fddb-exporter --version 2.2.0
+   ```bash
+   helm install fddb-exporter oci://ghcr.io/itobey/charts/fddb-exporter --version __DOCS_VERSION__
    ```
 
 - or checkout the [Fddb-Exporter Chart](https://github.com/itobey/charts/tree/master/fddb-exporter) yourself
@@ -63,17 +57,17 @@ You can also build the application from source yourself. For the following steps
 environment and Maven installed.
 
 1. Clone the repository:
-   ```
+   ```bash
    git clone https://github.com/itobey/fddb-exporter.git
    cd fddb-exporter
    ```
 
 2. Build the application:
-   ```
+   ```bash
    mvn -Pproduction clean install
    ```
 
 3. (optionally) Build the Docker image:
-   ```
+   ```bash
    docker build -f docker/Dockerfile -t fddb-exporter .
    ```

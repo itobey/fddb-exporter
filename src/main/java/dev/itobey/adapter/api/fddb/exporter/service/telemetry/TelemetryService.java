@@ -17,7 +17,8 @@ import java.security.NoSuchAlgorithmException;
 
 /**
  * This service is used to send telemetry data. No personal data is sent.
- * Only the mail hash is sent along with the document count and the execution mode to determine how the exporter is used.
+ * Only the mail hash is sent along with the document count, which optional features are enabled (persistence layers,
+ * MCP server) and the execution mode, to determine how the exporter is used.
  * See README.md for more information.
  */
 @Service
@@ -45,9 +46,13 @@ public class TelemetryService {
             long pointCount = persistenceService.countAllInfluxDbPoints();
             telemetryDto.setPointCount(pointCount);
         }
+        boolean mcpEnabled = properties.getMcp().isEnabled();
         telemetryDto.setMailHash(mailHash);
         telemetryDto.setMongodbEnabled(mongoDbEnabled);
         telemetryDto.setInfluxdbEnabled(influxDbEnabled);
+        telemetryDto.setMcpEnabled(mcpEnabled);
+        // the write-tools flag does nothing while the MCP server itself is off, so report the effective state
+        telemetryDto.setMcpWriteToolsEnabled(mcpEnabled && properties.getMcp().isWriteToolsEnabled());
         telemetryDto.setExecutionMode(executionMode);
         telemetryDto.setAppVersion(buildProperties.getVersion());
         log.debug("sending telemetry data: {}", telemetryDto);

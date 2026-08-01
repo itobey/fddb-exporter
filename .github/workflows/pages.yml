@@ -1,10 +1,29 @@
 name: Deploy documentation to Pages
 
+# Deliberately not triggered by pushes to master. The docs describe a released artifact, so they are
+# published as a step of the release (release.yml calls this workflow) rather than as a side effect of
+# merging. Use the workflow_dispatch below to publish a docs-only fix between releases.
 on:
-  push:
-    branches: [ master ]
-
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Git ref to build the docs from'
+        required: false
+        type: string
+      version:
+        description: 'Version string to render in the docs (default: parsed from pom.xml)'
+        required: false
+        type: string
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to build the docs from (default: the branch this run was started on)'
+        required: false
+        type: string
+      version:
+        description: 'Version string to render in the docs (default: parsed from pom.xml)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -26,7 +45,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0 # Not needed if lastUpdated is not enabled
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0 # required for the "Last updated" git timestamps
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
@@ -38,6 +58,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build with VitePress
+        env:
+          # empty on a manual run without the input; config.js then falls back to the pom version
+          DOCS_VERSION: ${{ inputs.version }}
         run: npm run docs:build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5

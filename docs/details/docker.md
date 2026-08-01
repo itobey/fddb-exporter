@@ -11,7 +11,7 @@ If you want to build your own image, you can use the
 
 Running the image is as simple as:
 
-```
+```bash
 docker run ghcr.io/itobey/fddb-exporter:latest
 ```
 
@@ -22,13 +22,17 @@ The following environment variables are used to configure the Docker image.
 The configuration of the Docker image can be done via environment variables. See the table on the
 [configuration](/details/configuration.md) page for a list of all available options.
 FDDB-Exporter uses the timezone of the environment for persisting data. For this reason, it is recommended to
-configure the timezone of the container with the `TZ` environment variable.
+configure the timezone of the container with the `TZ` environment variable — a container defaults to UTC, and the
+timezone decides which day an entry is stored under. See [timezone](/details/configuration.md#timezone).
+
+The container publishes port 8080 and nothing on it is authenticated, so bind it to an interface deliberately rather
+than to all of them — see [Securing your instance](/details/security.md#binding-to-localhost-only).
 
 ## Docker Compose
 
 The following `docker-compose.yml` file can be used to start the FDDB Exporter container.
 
-```
+```bash
 docker-compose -f docker/docker-compose.yml up -d
 ```
 

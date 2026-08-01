@@ -17,8 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.info.BuildProperties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,6 +50,8 @@ class TelemetryServiceTest {
         when(properties.getFddb().getUsername()).thenReturn("test@example.com");
         when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(true);
         when(properties.getPersistence().getInfluxdb().isEnabled()).thenReturn(true);
+        when(properties.getMcp().isEnabled()).thenReturn(true);
+        when(properties.getMcp().isWriteToolsEnabled()).thenReturn(true);
 
         // when
         telemetryService.sendTelemetryData();
@@ -63,6 +64,30 @@ class TelemetryServiceTest {
         assertNotNull(capturedDto);
         assertEquals(10L, capturedDto.getDocumentCount());
         assertEquals("973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b", capturedDto.getMailHash());
+        assertTrue(capturedDto.isMcpEnabled());
+        assertTrue(capturedDto.isMcpWriteToolsEnabled());
+    }
+
+    @Test
+    void sendTelemetryData_shouldNotReportWriteTools_whenMcpServerIsDisabled() {
+        // given - the write-tools flag is set, but the MCP server itself is off, so no tool is registered
+        when(environmentDetector.getExecutionMode()).thenReturn(ExecutionMode.JAR);
+        when(buildProperties.getVersion()).thenReturn("1.0.0");
+        when(properties.getFddb().getUsername()).thenReturn("test@example.com");
+        when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(false);
+        when(properties.getPersistence().getInfluxdb().isEnabled()).thenReturn(false);
+        when(properties.getMcp().isEnabled()).thenReturn(false);
+
+        // when
+        telemetryService.sendTelemetryData();
+
+        // then
+        ArgumentCaptor<TelemetryDto> telemetryDtoCaptor = ArgumentCaptor.forClass(TelemetryDto.class);
+        verify(telemetryApi, times(1)).sendTelemetryData(telemetryDtoCaptor.capture());
+
+        TelemetryDto capturedDto = telemetryDtoCaptor.getValue();
+        assertFalse(capturedDto.isMcpEnabled());
+        assertFalse(capturedDto.isMcpWriteToolsEnabled());
     }
 
 }

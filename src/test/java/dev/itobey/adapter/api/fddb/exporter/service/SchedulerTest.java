@@ -1,15 +1,18 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
+import dev.itobey.adapter.api.fddb.exporter.exception.ExportInProgressException;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.TelemetryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -74,6 +77,25 @@ class SchedulerTest {
         // then
         verify(taskRegistrar, never()).addCronTask(any(Runnable.class), eq("0 0 1 * * ?"));
         verify(taskRegistrar, times(2)).addCronTask(any(Runnable.class), eq("0 0 2 * * ?"));
+    }
+
+    @Test
+    void scheduledExport_shouldSkipQuietlyWhileAnotherExportIsRunning() {
+        // given: a manual or MCP-triggered export holds the lock when the cron fires
+        schedulerProperties.setEnabled(true);
+        schedulerProperties.setCron("0 0 1 * * ?");
+        telemetryProperties.setCron("0 0 2 * * ?");
+        notificationProperties.setEnabled(true);
+        doThrow(new ExportInProgressException("An export is already running"))
+                .when(fddbDataService).exportForDaysBack(1, false);
+
+        scheduler.configureTasks(taskRegistrar);
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(taskRegistrar).addCronTask(task.capture(), eq("0 0 1 * * ?"));
+
+        // when / then: the run is skipped, and it is not worth waking the user for
+        assertDoesNotThrow(() -> task.getValue().run());
+        verifyNoInteractions(telegramService);
     }
 
     @Test

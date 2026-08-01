@@ -30,6 +30,25 @@ Configuration options:
 For cases where you need data outside the scheduled exports, the [REST API](/details/rest-api.md) provides flexible
 endpoints to export data for specific timeframes or retrieve data from a certain number of days back.
 
+## Only one export at a time
+
+Exporting means logging in to fddb.info with your account and scraping the diary one day at a time. Running two
+exports at once would double the outbound load on a third-party site under a single account and interleave writes to
+the same days for no gain, so exports are serialised across the whole application - the scheduler, the REST API, the
+Web UI and the MCP export tools all share one lock.
+
+A second export requested while one is running is **refused, not queued**:
+
+- The **REST API** answers `409 Conflict` with an `exportError` message. Retry once the running export has finished;
+  how long that takes depends on how many days it covers, since each day is a separate request to fddb.info.
+- The **Web UI** surfaces the same message, since it calls the REST API.
+- The **scheduler** logs a warning and skips that night's run. Yesterday is picked up by the next run, and no
+  notification is sent - a skipped run means an export was already happening, which is not a failure.
+- The **MCP export tools** report the conflict back to the assistant, which can wait and try again.
+
+This is in-process only: FDDB Exporter is a single-instance application, and running two instances against one
+fddb.info account defeats the lock.
+
 ## Data Download
 
 The FDDB Exporter provides a comprehensive data download feature that allows you to export your stored nutritional data

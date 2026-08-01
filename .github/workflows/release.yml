@@ -20,3 +20,19 @@ jobs:
       snapshot_version: ${{ github.event.inputs.snapshot_version }}
       release_version: ${{ github.event.inputs.release_version }}
     secrets: inherit
+
+  # The docs are published from the released commit, not from master, so the site never describes
+  # configuration options the released artifact does not have. github.sha is the commit this run was
+  # dispatched against - the one that gets tagged, before the release template's snapshot bump.
+  # A needs:-job rather than an "on: push: tags:" trigger in pages.yml: a tag pushed from inside a
+  # workflow with the default GITHUB_TOKEN does not trigger further workflows.
+  deploy-docs:
+    needs: run-release-workflow
+    uses: ./.github/workflows/pages.yml
+    with:
+      ref: ${{ github.sha }}
+      version: ${{ github.event.inputs.release_version }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

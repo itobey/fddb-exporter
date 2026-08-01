@@ -14,6 +14,7 @@ public class FddbExporterProperties {
     private Influxdb influxdb;
     private Notification notification;
     private Ui ui;
+    private Mcp mcp;
 
     @Data
     public static class Fddb {
@@ -77,6 +78,23 @@ public class FddbExporterProperties {
     @Data
     public static class Ui {
         private String fddbLinkPrefix;
+    }
+
+    /**
+     * The MCP server exposes the exported nutrition data to MCP clients. It is disabled by default,
+     * since it serves personal health data over an unauthenticated endpoint.
+     */
+    @Data
+    public static class Mcp {
+        private boolean enabled;
+
+        /**
+         * Whether the export tools are registered on top of the read-only ones. They scrape
+         * fddb.info under the configured account and write to the database, so a read-only server
+         * is the default. Evaluated at startup: changing it needs a restart, and while it is off
+         * the tools are not registered at all rather than refusing at call time.
+         */
+        private boolean writeToolsEnabled;
     }
 
 }

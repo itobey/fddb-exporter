@@ -135,7 +135,7 @@ public class ViewUtils {
     public static void showSuccess(String message) {
         Notification notification = Notification.show(message);
         notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-        notification.setDuration(3000);
+        notification.setDuration(1500);
         // Apply custom color styling
         notification.getElement().getThemeList().add("success");
     }
@@ -146,7 +146,7 @@ public class ViewUtils {
     public static void showError(String message) {
         Notification notification = Notification.show(message);
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-        notification.setDuration(5000);
+        notification.setDuration(1500);
         // Apply custom color styling
         notification.getElement().getThemeList().add("error");
     }

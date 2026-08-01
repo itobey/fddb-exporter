@@ -37,7 +37,7 @@ if you do not want to analyze the entire dataset or if you have more data from f
 after a certain date.
 
 Example Input:
-```
+```json
 {
   "inclusionKeywords": ["cherry", "cherries"],
   "occurrenceDates": ["2024-08-22", "2024-09-22", "2024-09-27","2024-10-14", "2024-10-19","2024-10-21"],
@@ -68,7 +68,7 @@ The output of the API is a JSON object containing the following fields:
 | `twoDaysBefore` | Matches two days prior to the occurrence date.                  |
 
 Example Output:
-```
+```json
 {
 	"correlations": {
 		"across3Days": {

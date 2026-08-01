@@ -4,31 +4,38 @@
 
 ### Added
 
-- **Trends View**: A new **Trends** view (and `/api/v2/stats/trend` endpoint) charts a single metric — calories, fat,
-  carbs, sugar, protein or fibre — over a date range, bucketed by day, ISO week or month. Where Rolling Averages tells
-  you your average over a range, Trends shows you whether that average is moving: a column chart with an overall-average
-  line, summary cards (highest/lowest bucket, first-to-last change, days logged) and a per-bucket table. Quick-select
-  buttons preset a sensible range and granularity (e.g. Last 30 Days daily, Last Year weekly). Days with no entry are
-  skipped so they never drag an average down.
-- **Products View**: A new **Products** view brings everything product-centric into one place:
-  - **Explorer** — search any product to see how often you ate it, when you first and last logged it, the average
-    calories per serving and the totals it contributed. Search **autocompletes** with the exact, brand-prefixed names
-    FDDB stores, so you no longer have to remember the precise wording. A weekday bar chart shows how your logging of a
-    product distributes across the week, and you can click a day to filter the occurrences to just that weekday.
-    Clicking any occurrence jumps to that day in the Entries view.
-  - **Top Products** — rank the products you log most, either by how often you ate them or by the calories, fat, carbs
-    or protein they contributed, over an optional date range. Click a product to drill into its full Explorer profile.
-- **Date-range and full-history browsing in Entries**: The former **Data Query** view is now the **Entries** view. In
-  addition to looking up a single day, you can now query a whole date range and browse all stored entries.
-- **Missing Days**: The Entries view can list every day in a range with no entry (or an entry with no calories), making
-  gaps in your logging easy to spot (also available via the `/api/v2/stats/missing-days` endpoint).
-- **Weekday breakdown**: The Rolling Averages view now includes a by-day-of-week table alongside the averages, so you
-  can see at a glance whether weekends differ from weekdays (`/api/v2/stats/weekdays` endpoint).
-- **Logging streaks in the stats API**: The stats endpoint now also reports your **current** and **longest** logging
-  streaks, the date of your most recent entry, and the number of missing days since you started tracking.
+- **MCP Server** (opt-in): expose your diary to an AI assistant (Claude Desktop, Claude Code or any other MCP client),
+  so you can ask things like "how much protein did I average last month?" or "how often do I eat oats, and on which
+  weekdays?" in natural language. Read-only by default, with tools covering diary lookups, product search and
+  ranking, statistics and trends, and correlating foods with events (e.g. migraines) — plus prompts, resources, and
+  optional export tools to trigger a scrape from the assistant itself. Disabled by default and requires MongoDB;
+  enable with `FDDB-EXPORTER_MCP_ENABLED=true`. See the [MCP server documentation](https://itobey.github.io/fddb-exporter/details/mcp-server)
+  for the full tool list and setup.
+- **Trends View**: A new **Trends** view charts a single metric (calories, fat, carbs, sugar, protein or fibre) over a
+  date range, bucketed by day, week or month, with quick-select ranges and a summary of highs/lows and change over
+  time (`/api/v2/stats/trend`).
+- **Products View**: A new **Products** view combines an **Explorer** (per-product history, weekday distribution,
+  autocomplete search) with **Top Products** (rank what you eat most by frequency or by calories/fat/carbs/protein).
+- **Entries view**: The former **Data Query** view is now **Entries**, and can browse a full date range, not just a
+  single day, including a **Missing Days** list for gaps in your logging (`/api/v2/stats/missing-days`).
+- **Weekday breakdown**: Rolling Averages now includes a by-day-of-week table (`/api/v2/stats/weekdays`).
+- **Logging streaks**: The stats endpoint now reports current/longest logging streaks, most recent entry date, and
+  missing days since you started tracking.
 
 ### Changed
 
+- **Anonymous usage ping now reports the MCP flags.** The daily telemetry ping additionally sends two booleans:
+  whether the MCP server is enabled and whether its export (write) tools are enabled — so I can see how much the
+  feature is actually used. No diary content, product names, questions or tool calls are sent, and the write flag is
+  reported as `false` while the MCP server itself is off. Everything that is sent is listed in the
+  [privacy and telemetry documentation](https://itobey.github.io/fddb-exporter/details/telemetry).
+- **Exports no longer run in parallel.** Scraping fddb.info is now serialised across the whole application - the
+  scheduler, the REST API, the Web UI and the MCP export tools share one lock, so a single account is never logged in
+  and scraped twice at the same time. **If you script against the API:** `POST /api/v2/fddbdata` and
+  `GET /api/v2/fddbdata/export` (and their `/api/v1` equivalents) now return **`409 Conflict`** instead of running
+  alongside a request that is already exporting. The request is refused, not queued - retry once the running export
+  has finished. The nightly scheduled export logs a warning and skips its run on a collision rather than sending a
+  notification; the day is picked up by the next run.
 - The **Macro distribution** breakdown on the Rolling Averages view is now kcal-weighted (fat 9 kcal/g, carbs and
   protein 4 kcal/g) for a more accurate picture of where your energy comes from.
 - Navigation menu updated to reflect the new **Entries**, **Products** and **Trends** views.

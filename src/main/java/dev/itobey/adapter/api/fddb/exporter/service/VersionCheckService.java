@@ -126,7 +126,17 @@ public class VersionCheckService {
         }
     }
 
-    private String getCurrentVersion() {
+    /**
+     * The version of the running application, or {@code "dev"} when it was not built by Maven and
+     * therefore has no build information.
+     * <p>
+     * Public rather than private because {@code get_server_info} reports it to MCP clients - a
+     * deliberate widening of this service's API surface, not an oversight, and the only caller
+     * outside this class.
+     *
+     * @return the current version
+     */
+    public String getCurrentVersion() {
         return buildProperties
                 .map(BuildProperties::getVersion)
                 .orElse("dev");

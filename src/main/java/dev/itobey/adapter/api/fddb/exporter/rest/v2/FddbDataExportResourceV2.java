@@ -48,7 +48,8 @@ public class FddbDataExportResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Export completed successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExportResultDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
+            @ApiResponse(responseCode = "409", description = "Another export is already running", content = @Content)
     })
     @PostMapping
     public ResponseEntity<ExportResultDTO> exportForTimerange(@Valid @RequestBody DateRangeDTO dateRangeDTO) {
@@ -72,7 +73,10 @@ public class FddbDataExportResourceV2 {
     @Operation(summary = "Export data for recent days", description = "Export FDDB data for a specified number of days back from today")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Export completed successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExportResultDTO.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ExportResultDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Days outside the configured min/max window",
+                    content = @Content),
+            @ApiResponse(responseCode = "409", description = "Another export is already running", content = @Content)
     })
     @GetMapping("/export")
     public ResponseEntity<ExportResultDTO> exportForDaysBack(

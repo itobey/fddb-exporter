@@ -35,6 +35,11 @@ The following screenshots showcase several pages of the FDDB Exporter web interf
 desktop and mobile versions provide the same features and functionality - the differences shown below are purely visual
 adaptations for optimal display on different screen sizes.
 
+::: info
+The screenshots below were taken with version 2.1.0 and do not show features added since then — for example the
+[Trends](#trends) view introduced in 2.3.0. The current UI may differ in details.
+:::
+
 ### Desktop Views
 
 <table>
@@ -95,7 +100,7 @@ adaptations for optimal display on different screen sizes.
 
 ## Feature Details
 
-### Products
+### Products <Badge type="tip" text="2.3.0+" />
 
 The **Products** view collects everything product-centric into one place, split across two tabs.
 
@@ -142,7 +147,7 @@ The view includes several preset buttons for common time periods:
 - **Last Year** — Averages for the past 365 days
 - **Current Year** — Averages from January 1 to yesterday of the current year
 
-#### Custom Presets
+#### Custom Presets <Badge type="tip" text="2.1.0+" />
 
 You can also create **custom date range presets** that will appear as additional quick-select buttons:
 
@@ -174,7 +179,7 @@ After selecting a date range and clicking **Calculate Averages**, the view displ
 - **By Day of the Week** — A table breaking the same date range down by day of the week, so you can see at a glance
   whether weekends differ from weekdays
 
-### Trends
+### Trends <Badge type="tip" text="2.3.0+" />
 
 The **Trends** view charts one metric — calories, fat, carbs, sugar, protein or fibre — over a date range, bucketed by
 day, ISO week or month. Where Rolling Averages answers "what was my average over this range?", Trends answers "is that
@@ -225,7 +230,7 @@ and an app-like experience.
 
 The web interface is available at the root URL of your FDDB Exporter instance:
 
-```
+```text
 http://localhost:8080/
 ```
 

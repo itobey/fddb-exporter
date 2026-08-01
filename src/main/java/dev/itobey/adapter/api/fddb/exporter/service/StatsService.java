@@ -90,6 +90,32 @@ public class StatsService {
                 .build();
     }
 
+    /**
+     * Returns just the period the diary covers: the number of entries and the dates of the first
+     * and the last one.
+     * <p>
+     * The narrow alternative to {@link #getStats()} for a caller that wants nothing else. Stats
+     * computes per-nutrient extremes, unique-product counts and both streaks over the entire
+     * collection, which is a multi-second aggregation on a diary of several years; this is a count
+     * and two indexed lookups.
+     *
+     * @return the coverage window, with a zero count and null dates when the diary is empty
+     */
+    public CoverageWindowDTO getCoverageWindow() {
+        requireMongoTemplate();
+        long amountEntries = getAmountEntries();
+
+        if (amountEntries == 0) {
+            return CoverageWindowDTO.builder().entryCount(0).build();
+        }
+
+        return CoverageWindowDTO.builder()
+                .entryCount(amountEntries)
+                .firstEntryDate(getFirstEntryDate())
+                .lastEntryDate(getLastEntryDate())
+                .build();
+    }
+
     private long getAmountEntries() {
         return mongoTemplate.count(new Query(), COLLECTION_NAME);
     }
@@ -122,6 +148,26 @@ public class StatsService {
 
         Criteria criteria = Criteria.where("date").gte(fromDate).lte(toDate);
         return roundAverages(getAverages(criteria));
+    }
+
+    /**
+     * Counts the entries in a date range, both bounds inclusive and either of them optional.
+     * <p>
+     * This is the denominator of {@link #getAveragesForDateRange}: how many days its numbers rest
+     * on, and — when it is zero — the cheap way to know beforehand that the averaging aggregation
+     * would have nothing to average.
+     *
+     * @param fromDate the first date to count, or null for no lower bound
+     * @param toDate   the last date to count, or null for no upper bound
+     * @return the number of days in the range that have an entry
+     */
+    public long countByDateRange(LocalDate fromDate, LocalDate toDate) {
+        requireMongoTemplate();
+        validateDateRange(fromDate, toDate);
+
+        Criteria criteria = buildDateCriteria(fromDate, toDate);
+        Query query = criteria == null ? new Query() : new Query(criteria);
+        return mongoTemplate.count(query, COLLECTION_NAME);
     }
 
     /**

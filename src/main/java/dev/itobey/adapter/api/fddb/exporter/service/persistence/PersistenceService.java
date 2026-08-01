@@ -3,9 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.service.persistence;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductRanking;
-import dev.itobey.adapter.api.fddb.exporter.dto.ProductSummaryDTO;
-import dev.itobey.adapter.api.fddb.exporter.dto.TopProductDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -73,6 +71,21 @@ public class PersistenceService {
 
     public List<String> findDistinctProductNames(String search, int limit) {
         return mongoDBService.findDistinctProductNames(search, limit);
+    }
+
+    public List<ProductWithDate> findByProductsWithExclusions(List<String> includeNames, List<String> excludeNames,
+                                                              LocalDate startDate) {
+        return mongoDBService.findByProductsWithExclusions(includeNames, excludeNames, startDate);
+    }
+
+    public List<DayWithProductsDTO> findDaysWithProducts(List<String> includeNames, List<String> excludeNames,
+                                                         LocalDate startDate, int limit) {
+        return mongoDBService.findDaysWithProducts(includeNames, excludeNames, startDate, limit);
+    }
+
+    public ProductDayTotalsDTO countDaysWithProducts(List<String> includeNames, List<String> excludeNames,
+                                                     LocalDate startDate) {
+        return mongoDBService.countDaysWithProducts(includeNames, excludeNames, startDate);
     }
 
     public Optional<FddbData> findByDate(LocalDate date) {
