@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### ⚠️ Breaking Changes
+
+- **Removed the deprecated REST API v1**, as announced for after 2026-06-30. Switch the base path from `/api/v1` to
+  `/api/v2`; two endpoints also moved: `/api/v1/fddbdata/migrateToInfluxDb` → `/api/v2/migration/toInfluxDb` and
+  `/api/v1/fddbdata/stats[/averages]` → `/api/v2/stats[/averages]`. Calls to `/api/v1/*` now return the Web UI's HTML
+  instead of JSON. The Web UI and MCP server are unaffected.
+
 ### Changed
 
 - **Wrong FDDB credentials no longer restart the container on Kubernetes.** `fddb-login-check` is no longer part of

@@ -56,7 +56,6 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
-    groups-order: desc
     tags-sorter: alpha
     operations-sorter: alpha
     display-request-duration: true
