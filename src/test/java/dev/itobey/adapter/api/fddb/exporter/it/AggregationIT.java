@@ -38,7 +38,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 @Testcontainers
 @ActiveProfiles("test")
 @Import(TestConfig.class)
-class AggregationIntegrationTest {
+class AggregationIT {
 
     @Container
     @ServiceConnection

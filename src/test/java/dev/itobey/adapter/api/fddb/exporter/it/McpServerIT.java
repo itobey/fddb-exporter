@@ -41,9 +41,8 @@ import static org.mockito.Mockito.doThrow;
  * the method signatures, and whether the results survive JSON serialization - which is where a
  * date silently turning into an object array would break every client.
  * <p>
- * Named {@code *IntegrationTest} rather than {@code *IT}, so it runs on every {@code mvn test}
- * rather than only when invoked by name - see {@link McpWriteToolsIntegrationTest} for why that
- * build cost is accepted for both of them.
+ * An {@code *IT}: it boots a full context and starts containers, so it runs under {@code mvn verify}
+ * rather than {@code mvn test} - see {@link McpWriteToolsIT} for the companion context.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "fddb-exporter.mcp.enabled=true",
@@ -52,7 +51,7 @@ import static org.mockito.Mockito.doThrow;
 @Testcontainers
 @ActiveProfiles("test")
 @Import(TestConfig.class)
-class McpServerIntegrationTest {
+class McpServerIT {
 
     @Container
     @ServiceConnection
