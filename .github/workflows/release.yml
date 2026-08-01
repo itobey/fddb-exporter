@@ -36,3 +36,56 @@ jobs:
       contents: read
       pages: write
       id-token: write
+
+  # Lives here rather than in the shared release template: that template is used by other projects,
+  # and the notes are built from this repo's CHANGELOG.md. The jar comes from the template's "Package"
+  # artifact - a reusable workflow's jobs run inside this same run, so the artifact is in reach.
+  # Deliberately a draft: VersionCheckService polls the public "latest release" endpoint, so publishing
+  # straight away would announce the update to every running instance before the notes are reviewed.
+  create-release:
+    needs: run-release-workflow
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Same ref as deploy-docs, for the same reason: the CHANGELOG section is read from the commit
+      # that was tagged, not from master after the template's snapshot bump.
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download jar
+        uses: actions/download-artifact@v4
+        with:
+          name: Package
+          path: dist/
+
+      - name: Assemble release notes
+        env:
+          VERSION: ${{ github.event.inputs.release_version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The section body between "## <version>" and the next level-2 heading. Matching on "^## "
+          # keeps the "### Added" subsections, which are part of the entry.
+          awk -v ver="## $VERSION" '$0 == ver {f=1; next} f && /^## / {exit} f {print}' \
+            CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::warning::No '## $VERSION' section found in CHANGELOG.md; notes will only contain the generated PR list."
+          fi
+          # Generated separately and appended rather than relying on `gh release create
+          # --generate-notes` merging with --notes-file, so the resulting body is deterministic.
+          gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$VERSION" --jq .body >> notes.md
+
+      - name: Create draft release
+        env:
+          VERSION: ${{ github.event.inputs.release_version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$VERSION" \
+            --notes-file notes.md \
+            --draft \
+            dist/*.jar
