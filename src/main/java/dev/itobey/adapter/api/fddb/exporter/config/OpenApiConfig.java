@@ -15,15 +15,6 @@ import java.util.List;
 public class OpenApiConfig {
 
     @Bean
-    public GroupedOpenApi v1Api() {
-        return GroupedOpenApi.builder()
-                .group("v1-deprecated")
-                .pathsToMatch("/api/v1/**")
-                .displayName("API v1 (DEPRECATED)")
-                .build();
-    }
-
-    @Bean
     public GroupedOpenApi v2Api() {
         return GroupedOpenApi.builder()
                 .group("v2")
@@ -46,9 +37,6 @@ public class OpenApiConfig {
                                 - Retrieving statistics and rolling averages
                                 - Managing data migrations between storage backends
                                 - Calculating correlations between data series
-                                
-                                **Note:** v1 API is deprecated and will be removed after 2026-06-30.
-                                Please migrate to v2 API. See migration guide: /docs/migration/v1-to-v2.md
                                 """)
                         .version("2.0.0")
                         .contact(new Contact()

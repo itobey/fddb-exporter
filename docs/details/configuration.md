@@ -159,9 +159,11 @@ are usually fine; they are listed here because they matter to anyone writing pro
 Three custom indicators contribute to the health response: `fddb-login-check` (does the fddb.info login still work —
 it performs a real request), plus `mongodb` and `influxdb` when the respective store is enabled.
 
-::: warning `fddb-login-check` is part of the liveness group
-`/actuator/health/liveness` reports `DOWN` when the FDDB login fails, so on Kubernetes wrong credentials cause a restart
-loop. The readiness group deliberately excludes the check. See
+::: tip `fddb-login-check` is in neither probe group <Badge type="tip" text="2.3.1+" />
+Both `liveness` and `readiness` exclude it, so a failed fddb.info login does not restart the container and does not
+take it out of the Service — wrong credentials are a configuration problem, not a lifecycle event, and the check is a
+real request to a third party that should not gate the pod. `/actuator/health` still reports it. Before 2.3.1 the
+check was part of the liveness group and wrong credentials caused a restart loop; see
 [Troubleshooting](/details/troubleshooting.md#login-to-fddb-not-successful-please-check-credentials).
 :::
 

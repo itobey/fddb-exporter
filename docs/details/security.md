@@ -1,9 +1,9 @@
 # Securing your instance
 
-::: danger FDDB Exporter has no authentication of its own
-The Web UI, the REST API, the MCP endpoint and the actuator endpoints are **all unauthenticated**. Anyone who can reach
-the port can read your complete nutrition history, trigger exports against your fddb.info account, and — through the
-MCP endpoint, if you enable it — have an AI assistant do the same.
+::: danger FDDB Exporter has no authentication of its own The Web UI, the REST API, the MCP endpoint and the actuator
+endpoints are **all unauthenticated**. Anyone who can reach the port can read your complete nutrition history, trigger
+exports against your fddb.info account, and — through the MCP endpoint, if you enable it — have an AI assistant do the
+same.
 
 There is no username, no password and no API key to configure. Access control has to come from what you put in front of
 the application.
@@ -14,22 +14,22 @@ mean the deployment decisions below are yours to make.
 
 ## What is exposed
 
-| Path | Serves |
-|---|---|
-| `/` | The [Web UI](/visualization/web-ui.md) — everything, including triggering exports |
-| `/api/v1/**`, `/api/v2/**` | The [REST API](/details/rest-api.md) — read, export, download, migrate |
-| `/mcp` | The [MCP server](/details/mcp-server.md), if enabled |
-| `/swagger-ui.html`, `/api-docs` | Interactive API documentation, with a working "try it out" |
-| `/actuator/health` | Health details, including whether the fddb.info login works |
-| `/actuator/scheduledtasks` | The registered cron schedules |
+| Path                            | Serves                                                                            |
+|---------------------------------|-----------------------------------------------------------------------------------|
+| `/`                             | The [Web UI](/visualization/web-ui.md) — everything, including triggering exports |
+| `/api/v2/**`                    | The [REST API](/details/rest-api.md) — read, export, download, migrate            |
+| `/mcp`                          | The [MCP server](/details/mcp-server.md), if enabled                              |
+| `/swagger-ui.html`, `/api-docs` | Interactive API documentation, with a working "try it out"                        |
+| `/actuator/health`              | Health details, including whether the fddb.info login works                       |
+| `/actuator/scheduledtasks`      | The registered cron schedules                                                     |
 
 The data itself is personal health data. Treat the port as you would treat the database behind it.
 
 ## The short version
 
 **Do not publish the port to the internet.** If you only use FDDB Exporter from your own network or over a VPN
-(WireGuard, Tailscale, your router's VPN), you are done — this is the simplest correct answer and needs no reverse
-proxy at all.
+(WireGuard, Tailscale, your router's VPN), you are done — this is the simplest correct answer and needs no reverse proxy
+at all.
 
 If you do want it reachable from outside, put a reverse proxy with authentication and TLS in front of it, and do not
 expose the application port directly.

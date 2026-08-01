@@ -64,8 +64,7 @@ public class DataDownloadResourceV2 {
                             @Content(mediaType = "text/csv"),
                             @Content(mediaType = "application/json")
                     }),
-            @ApiResponse(responseCode = "400", description = "Invalid parameters", content = @Content),
-            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid parameters, or MongoDB is disabled", content = @Content)
     })
     @GetMapping("/download")
     @RequiresMongoDb

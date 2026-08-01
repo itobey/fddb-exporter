@@ -57,7 +57,7 @@ public class FddbDataQueryResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successful operation",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = FddbDataDTO.class))),
-            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+            @ApiResponse(responseCode = "400", description = "MongoDB is disabled", content = @Content)
     })
     @GetMapping
     @RequiresMongoDb
@@ -79,9 +79,8 @@ public class FddbDataQueryResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Data found for the specified date",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = FddbDataDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid date format", content = @Content),
-            @ApiResponse(responseCode = "404", description = "No data found for the specified date", content = @Content),
-            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid date format, or MongoDB is disabled", content = @Content),
+            @ApiResponse(responseCode = "404", description = "No data found for the specified date", content = @Content)
     })
     @GetMapping("/{date}")
     @RequiresMongoDb
@@ -111,8 +110,7 @@ public class FddbDataQueryResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Entries for the specified range",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = FddbDataDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid or too large date range", content = @Content),
-            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid or too large date range, or MongoDB is disabled", content = @Content)
     })
     @GetMapping("/range")
     @RequiresMongoDb
@@ -140,8 +138,7 @@ public class FddbDataQueryResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Search results",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductWithDateDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
-            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid date range, or MongoDB is disabled", content = @Content)
     })
     @GetMapping("/products")
     @RequiresMongoDb
@@ -175,7 +172,7 @@ public class FddbDataQueryResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Distinct product names",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+            @ApiResponse(responseCode = "400", description = "MongoDB is disabled", content = @Content)
     })
     @GetMapping("/products/distinct")
     @RequiresMongoDb
@@ -202,8 +199,7 @@ public class FddbDataQueryResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Product summary",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductSummaryDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
-            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid date range, or MongoDB is disabled", content = @Content)
     })
     @GetMapping("/products/summary")
     @RequiresMongoDb
@@ -233,8 +229,7 @@ public class FddbDataQueryResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Ranked products",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TopProductDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
-            @ApiResponse(responseCode = "503", description = "MongoDB not available", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid date range, or MongoDB is disabled", content = @Content)
     })
     @GetMapping("/products/top")
     @RequiresMongoDb
