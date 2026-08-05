@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @EnableFeignClients
 @ActiveProfiles("test")
 @Import(TestConfig.class)
-class UpdateEntryIntegrationTest {
+class UpdateEntryIT {
 
     public static final String ADMIN_TOKEN = "token";
     private static final WireMockServer wireMockServer;

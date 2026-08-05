@@ -49,7 +49,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 @EnableFeignClients
 @ActiveProfiles("test")
 @Import(TestConfig.class)
-class ApplicationIntegrationTest {
+class ApplicationIT {
 
     public static final String ADMIN_TOKEN = "token";
     private static final WireMockServer wireMockServer;
