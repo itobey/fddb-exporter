@@ -83,6 +83,67 @@ class FddbParserServiceTest {
         assertEquals("https://fddb.info/db/en/food/durchschnittswert_senf/index.html", senf.getLink());
     }
 
+    /**
+     * A page as fddb.info delivers it since August 2026, captured on 2026-08-12. The note about
+     * recipes saved in their app - and the block above the diary holding it - is gone, which
+     * shifted the position of everything below it and broke the export for every single day.
+     */
+    @Test
+    @SneakyThrows
+    void parseDiary_whenPageHasNoNoticeBlock_shouldParseAccordingly() {
+        // Given
+        Resource resource = new ClassPathResource("valid-response-without-notice-block.html");
+        Path path = resource.getFile().toPath();
+        String content = Files.readString(path, StandardCharsets.UTF_8);
+
+        // When
+        FddbData fddbData = fddbParserService.parseDiary(content);
+
+        // Then
+        assertEquals(2691, fddbData.getTotalCalories());
+        assertEquals(112.5, fddbData.getTotalFat());
+        assertEquals(288.8, fddbData.getTotalCarbs());
+        assertEquals(116, fddbData.getTotalProtein());
+        assertEquals(37.2, fddbData.getTotalSugar());
+        assertEquals(30.8, fddbData.getTotalFibre());
+
+        List<Product> products = fddbData.getProducts();
+        assertEquals(13, products.size());
+
+        Product tourinos = products.getFirst();
+        assertEquals("Tourinos, Meersalz & Pfeffer", tourinos.getName());
+        assertEquals("125 g", tourinos.getAmount());
+        assertEquals(605, tourinos.getCalories());
+        assertEquals(27.5, tourinos.getFat());
+        assertEquals(75, tourinos.getCarbs());
+        assertEquals(12.3, tourinos.getProtein());
+        assertEquals("https://fddb.info/db/en/food/griesson_debeukelaer_tourinos_meersalz_und_pfeffer/index.html",
+                tourinos.getLink());
+
+        Product milk = products.get(12);
+        assertEquals("Vollmilch, 3,5% Fett", milk.getName());
+        assertEquals("20 ml", milk.getAmount());
+        assertEquals(13, milk.getCalories());
+        assertEquals(0.7, milk.getFat());
+        assertEquals(1, milk.getCarbs());
+        assertEquals(0.7, milk.getProtein());
+    }
+
+    @Test
+    @SneakyThrows
+    void parseDiary_whenNutrientSummaryIsMissing_shouldThrowParseException() {
+        // Given
+        Resource resource = new ClassPathResource("valid-response.html");
+        Path path = resource.getFile().toPath();
+        String content = Files.readString(path, StandardCharsets.UTF_8)
+                .replace("thereof Sugar", "something else entirely");
+
+        // When; Then
+        Assertions.assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> fddbParserService.parseDiary(content))
+                .withMessageContaining("sugar");
+    }
+
     @Test
     @SneakyThrows
     void parseDiary_whenNotLoggedIn_shouldThrowException() {

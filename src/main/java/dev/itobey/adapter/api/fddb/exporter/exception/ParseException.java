@@ -11,4 +11,9 @@ public class ParseException extends RuntimeException {
         super(message);
     }
 
+    // Constructor that accepts a message and the failure it originated from
+    public ParseException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
 }

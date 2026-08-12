@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -20,21 +21,44 @@ public class FddbParserService {
 
     private static final String XPATH_AUTH_STATUS = "//div[@class='quicklinks']/a[contains(@class, 'v2hdlnk') and (text()='Anmelden' or text()='Login')]";
     private static final String XPATH_PRODUCT_TABLE = "//table[@class='myday-table-std']/tbody/tr";
-    private static final String XPATH_SUGAR = "//*[@id=\"content\"]/div[3]/div[2]/div[2]/div/table[2]/tbody/tr[4]/td[2]/span";
-    private static final String XPATH_FIBER = "//*[@id=\"content\"]/div[3]/div[2]/div[2]/div/table[2]/tbody/tr[8]/td[2]/b";
+
+    /**
+     * Sugar and fibre are not part of the product table, they only appear in the nutrient summary
+     * below it. That summary is found by its row label rather than by its position in the document:
+     * fddb.info dropped a block from the page in August 2026, which shifted every absolute path and
+     * broke the export for every single day. The labels are English because the diary is always
+     * requested as {@code lang=en}.
+     */
+    private static final Pattern SUGAR_LABEL = Pattern.compile("thereof\\s+sugar", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FIBRE_LABEL = Pattern.compile("dietary\\s+fib(re|er)", Pattern.CASE_INSENSITIVE);
+
+    private static final int COLUMN_CALORIES = 2;
+    private static final int COLUMN_FAT = 3;
+    private static final int COLUMN_CARBS = 4;
+    private static final int COLUMN_PROTEIN = 5;
 
     public FddbData parseDiary(String input) throws AuthenticationException, ParseException {
         Document doc = Jsoup.parse(input, "UTF-8");
         checkAuthentication(doc);
         checkDataAvailable(doc);
 
-        FddbData fddbData = new FddbData();
-        List<Product> products = parseProducts(doc);
-        fddbData.setProducts(products);
+        try {
+            FddbData fddbData = new FddbData();
+            List<Product> products = parseProducts(doc);
+            fddbData.setProducts(products);
 
-        setDayTotals(fddbData, doc);
+            setDayTotals(fddbData, doc);
 
-        return fddbData;
+            return fddbData;
+        } catch (ParseException parseException) {
+            throw parseException;
+        } catch (RuntimeException runtimeException) {
+            // never let an unchecked parser failure escape: the export catches ParseException per
+            // day and reports that day as unsuccessful, anything else aborts the whole run with a
+            // bare HTTP 500
+            throw new ParseException("cannot parse the fddb.info page, its layout has likely changed",
+                    runtimeException);
+        }
     }
 
     public void checkAuthentication(Document doc) throws AuthenticationException {
@@ -81,10 +105,10 @@ public class FddbParserService {
             product.setLink(productLink.attr("href"));
         }
 
-        product.setCalories(extractNumber(columns.get(2).text()));
-        product.setFat(extractNumber(columns.get(3).text()));
-        product.setCarbs(extractNumber(columns.get(4).text()));
-        product.setProtein(extractNumber(columns.get(5).text()));
+        product.setCalories(extractNumber(columns, COLUMN_CALORIES, "calories"));
+        product.setFat(extractNumber(columns, COLUMN_FAT, "fat"));
+        product.setCarbs(extractNumber(columns, COLUMN_CARBS, "carbs"));
+        product.setProtein(extractNumber(columns, COLUMN_PROTEIN, "protein"));
 
         return product;
     }
@@ -102,17 +126,61 @@ public class FddbParserService {
 
     private void setDayTotals(FddbData fddbData, Document doc) {
         Elements lastRow = doc.selectXpath(XPATH_PRODUCT_TABLE + "[last()]/td");
-        fddbData.setTotalCalories(extractNumber(lastRow.get(2).text()));
-        fddbData.setTotalFat(extractNumber(lastRow.get(3).text()));
-        fddbData.setTotalCarbs(extractNumber(lastRow.get(4).text()));
-        fddbData.setTotalProtein(extractNumber(lastRow.get(5).text()));
-        fddbData.setTotalSugar(extractNumber(doc.selectXpath(XPATH_SUGAR).text()));
-        fddbData.setTotalSugar(extractNumber(doc.selectXpath(XPATH_SUGAR).text()));
-        fddbData.setTotalFibre(extractNumber(doc.selectXpath(XPATH_FIBER).text()));
+        fddbData.setTotalCalories(extractNumber(lastRow, COLUMN_CALORIES, "total calories"));
+        fddbData.setTotalFat(extractNumber(lastRow, COLUMN_FAT, "total fat"));
+        fddbData.setTotalCarbs(extractNumber(lastRow, COLUMN_CARBS, "total carbs"));
+        fddbData.setTotalProtein(extractNumber(lastRow, COLUMN_PROTEIN, "total protein"));
+        fddbData.setTotalSugar(extractNumber(findNutrientValue(doc, SUGAR_LABEL, "sugar"), "total sugar"));
+        fddbData.setTotalFibre(extractNumber(findNutrientValue(doc, FIBRE_LABEL, "fibre"), "total fibre"));
     }
 
-    private double extractNumber(String text) {
-        return Double.parseDouble(text.replaceAll("[^0-9.]", ""));
+    /**
+     * Reads a value from the nutrient summary table by the label in its first column.
+     *
+     * @param label the label of the wanted row, matched against the whole cell text
+     * @param name  what is being looked for, for the error message
+     * @return the text of the value cell next to the label
+     * @throws ParseException if no row carries that label
+     */
+    private String findNutrientValue(Document doc, Pattern label, String name) {
+        // the product table has a matching shape but holds no summary, and a product could well be
+        // named "sugar" - excluding it keeps a diary entry from being read as a day total
+        for (Element row : doc.select("table:not(.myday-table-std) tr")) {
+            Elements columns = row.select("td");
+            if (columns.size() >= 2 && label.matcher(columns.get(0).text().trim()).matches()) {
+                return cellValue(columns.get(1));
+            }
+        }
+        throw new ParseException("cannot find the " + name + " row in the nutrient summary, "
+                + "the fddb.info page layout has likely changed");
+    }
+
+    private double extractNumber(Elements columns, int index, String name) {
+        if (columns.size() <= index) {
+            throw new ParseException("cannot read " + name + ": expected at least " + (index + 1)
+                    + " columns but the row has " + columns.size()
+                    + ", the fddb.info page layout has likely changed");
+        }
+        return extractNumber(cellValue(columns.get(index)), name);
+    }
+
+    /**
+     * The value of a table cell, without anything fddb.info appends to it in a separate tag - the
+     * carbs cells carry the bread units in a second span, and "246.2 g (20.5 BE)" is not a number.
+     */
+    private String cellValue(Element column) {
+        Element valueTag = column.selectFirst("span, b");
+        return valueTag != null ? valueTag.text() : column.text();
+    }
+
+    private double extractNumber(String text, String name) {
+        String number = text.replaceAll("[^0-9.]", "");
+        try {
+            return Double.parseDouble(number);
+        } catch (NumberFormatException numberFormatException) {
+            throw new ParseException("cannot read " + name + " as a number from '" + text + "'",
+                    numberFormatException);
+        }
     }
 
     private void checkDataAvailable(Document doc) throws ParseException {

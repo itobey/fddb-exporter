@@ -17,6 +17,13 @@
 
 ### Fixed
 
+- **Every export failed with an empty HTTP 500** after fddb.info stopped rendering a block above the diary. Sugar and
+  fibre were read by their position in the page, which shifted with that block; they are now looked up by their row
+  label instead. A page that cannot be parsed is reported as an unsuccessful day again rather than aborting the whole
+  export.
+- **Unexpected errors are logged and reported.** Failures no other handler covers used to leave nothing in the log and
+  an empty body in the response; they now log a stack trace and answer with the reason, which the Web UI shows instead
+  of the bare status code.
 - The OpenAPI specs documented `503` for endpoints requiring MongoDB/InfluxDB, which have always answered `400`.
   Documentation only — no behaviour changed.
 
