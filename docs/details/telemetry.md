@@ -17,7 +17,7 @@ small anonymous ping. It is sent once on startup and once a day (`fddb-exporter.
 | `mcpEnabled`                         | `false`           | Whether the [MCP server](/details/mcp-server.md) is enabled     |
 | `mcpWriteToolsEnabled`               | `false`           | Whether the MCP **export** (write) tools are enabled            |
 | `executionMode`                      | `CONTAINER`       | `JAR`, `CONTAINER` or `KUBERNETES`                              |
-| `appVersion`                         | `2.3.0`           | The version you are running                                     |
+| `appVersion`                         | `2.4.0`           | The version you are running                                     |
 
 The mail hash is one-way and cannot be turned back into your address. It exists purely so that repeated pings from the
 same installation are not counted as new users.
