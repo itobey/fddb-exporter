@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -57,7 +58,7 @@ public class FddbDataClient {
             return restTemplate.postForObject(getBaseUrl() + FDDBDATA_URL, dateRange, ExportResultDTO.class);
         } catch (RestClientException e) {
             log.error("Failed to export for date range", e);
-            throw new ApiException("Failed to export for date range: " + e.getMessage(), e);
+            throw new ApiException("Failed to export for date range: " + describe(e), e);
         }
     }
 
@@ -75,8 +76,28 @@ public class FddbDataClient {
             return restTemplate.getForObject(url, ExportResultDTO.class, days, includeToday);
         } catch (RestClientException e) {
             log.error("Failed to export for days back", e);
-            throw new ApiException("Failed to export for days back: " + e.getMessage(), e);
+            throw new ApiException("Failed to export for days back: " + describe(e), e);
         }
+    }
+
+    /**
+     * What to show a user about a failed call.
+     * <p>
+     * The message of an error status alone is just "500 on GET request for ...", which says nothing
+     * about what actually went wrong. The API puts that into the response body, so the body is what
+     * belongs on screen whenever there is one.
+     *
+     * @param restClientException the failure of the call
+     * @return the reason reported by the API, or the message of the exception
+     */
+    private String describe(RestClientException restClientException) {
+        if (restClientException instanceof RestClientResponseException responseException) {
+            String body = responseException.getResponseBodyAsString();
+            if (!body.isBlank()) {
+                return body;
+            }
+        }
+        return restClientException.getMessage();
     }
 
     /**
