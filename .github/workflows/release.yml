@@ -87,5 +87,6 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --title "$VERSION" \
             --notes-file notes.md \
+            --target "$GITHUB_SHA" \
             --draft \
             dist/*.jar
