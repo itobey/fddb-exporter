@@ -54,6 +54,17 @@ public class ViewUtils {
     }
 
     public static Component createStatCard(String title, String value, String subtitle) {
+        Span valueSpan = new Span(value);
+        valueSpan.addClassName("card__value");
+        return createStatCard(title, valueSpan, subtitle);
+    }
+
+    /**
+     * Stat card variant that takes a pre-built value component, for values that need internal
+     * structure (e.g. a date range whose two dates must stay unbroken when the card is narrow).
+     * The component is expected to carry the {@code card__value} class itself.
+     */
+    public static Component createStatCard(String title, Component value, String subtitle) {
         Div card = createCard(
                 LumoUtility.Display.FLEX,
                 LumoUtility.FlexDirection.COLUMN,
@@ -63,13 +74,10 @@ public class ViewUtils {
         Span titleSpan = new Span(title);
         titleSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
 
-        Span valueSpan = new Span(value);
-        valueSpan.addClassNames(LumoUtility.FontSize.XXLARGE, LumoUtility.FontWeight.BOLD);
-
         Span subtitleSpan = new Span(subtitle);
         subtitleSpan.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
 
-        card.add(titleSpan, valueSpan, subtitleSpan);
+        card.add(titleSpan, value, subtitleSpan);
         return card;
     }
 
@@ -118,9 +126,11 @@ public class ViewUtils {
         grid.setWidthFull();
         grid.addClassNames(LumoUtility.Gap.MEDIUM);
         grid.addClassName("cards-grid");
+        // min(<width>, 100%) keeps the track from demanding more than the container on narrow
+        // viewports - without it a 320px screen gets a column wider than the screen itself.
         grid.getStyle()
                 .set("display", "grid")
-                .set("grid-template-columns", "repeat(auto-fit, minmax(" + minCardWidth + ", 1fr))")
+                .set("grid-template-columns", "repeat(auto-fit, minmax(min(" + minCardWidth + ", 100%), 1fr))")
                 .set("gap", "0.75rem");
         return grid;
     }

@@ -445,6 +445,98 @@ vaadin-side-nav-item[selected]::part(link) {
     color: var(--accent-hover);
 }
 
+/* Stat card value. Fluid between narrow cards and the desktop size - the upper bound is the
+   Lumo XXLARGE step the values used before, so desktop rendering is unchanged. */
+.card__value {
+    display: block;
+    max-width: 100%;
+    font-size: clamp(1.125rem, 0.9rem + 2.4vw, 1.75rem);
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+/* Date range value: wraps between the two dates, never inside one. */
+.card__value--range {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    column-gap: 0.4em;
+    overflow-wrap: normal;
+}
+
+.card__value--range > span {
+    white-space: nowrap;
+}
+
+.card__value-separator {
+    color: var(--lumo-secondary-text-color);
+}
+
+/* Weekday distribution bars (Products > Explorer) */
+.weekday-chart {
+    box-sizing: border-box;
+}
+
+.weekday-chart__hint::before {
+    content: " — ";
+}
+
+.weekday-row {
+    margin-top: 0.25rem;
+    border-radius: 4px;
+}
+
+.weekday-row--clickable {
+    cursor: pointer;
+}
+
+.weekday-row--empty {
+    opacity: 0.5;
+}
+
+.weekday-row__day {
+    flex: 0 0 3rem;
+    font-size: var(--lumo-font-size-s);
+}
+
+/* min-width: 0 lets the track actually shrink inside the flex row instead of being sized by
+   its own content - without it the percentage-width bar and the track size each other in a
+   loop and the track collapses. */
+.weekday-row__track {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+}
+
+.weekday-row__bar {
+    height: 0.9rem;
+    min-width: 2px;
+    border-radius: 3px;
+    transition: opacity var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.weekday-row--empty .weekday-row__bar {
+    min-width: 0;
+}
+
+.weekday-row__count {
+    flex: 0 0 2.5rem;
+    text-align: right;
+    font-size: var(--lumo-font-size-s);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Touch input needs a real target height; the 0.9rem bar alone is far below it. */
+@media (pointer: coarse) {
+    .weekday-row {
+        min-height: 40px;
+    }
+}
+
 /* Buttons */
 vaadin-button[theme~="primary"] {
     background: var(--button-color);
@@ -892,7 +984,7 @@ vaadin-tab-sheet::part(tabs) {
         --mobile-horizontal-padding: 0.5rem;
     }
 
-    .card, .cards-grid, .cards-container, .health-cards-container {
+    .cards-grid, .cards-container, .health-cards-container {
         padding-left: var(--mobile-horizontal-padding);
         padding-right: var(--mobile-horizontal-padding);
         box-sizing: border-box;
@@ -901,7 +993,20 @@ vaadin-tab-sheet::part(tabs) {
         min-height: 120px;
     }
 
-    vaadin-vertical-layout:not([theme~="padding-false"]) {
+    /* Cards keep their own padding on mobile - the gutter above belongs to the grid around them.
+       Applying it here too left cards with 16px top/bottom against 4px sides. */
+    .card {
+        padding: 12px;
+        box-sizing: border-box;
+        max-width: 100%;
+        max-height: none !important;
+        min-height: 120px;
+    }
+
+    /* Only layouts that opted into padding. The previous :not([theme~="padding-false"]) form also
+       matched layouts built with setPadding(false), force-padding them on top of their parent
+       card's padding. */
+    vaadin-vertical-layout[theme~="padding"] {
         padding-left: max(var(--mobile-horizontal-padding), env(safe-area-inset-left, 0)) !important;
         padding-right: max(var(--mobile-horizontal-padding), env(safe-area-inset-right, 0)) !important;
         padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem)) !important;
@@ -994,6 +1099,36 @@ vaadin-tab-sheet::part(tabs) {
         flex-direction: column !important;
     }
 
+    /* Weekday distribution rows must stay horizontal - stacking them turns each bar into a
+       content-width sliver that no longer encodes its value. */
+    vaadin-horizontal-layout.weekday-row {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+
+    .weekday-row__day {
+        flex-basis: 2.5rem;
+    }
+
+    .weekday-row__count {
+        flex-basis: 2.25rem;
+    }
+
+    /* The chart is a card, not a view container: keep readable padding rather than the 4px
+       edge gutter the generic mobile rule applies. */
+    vaadin-vertical-layout.weekday-chart {
+        padding: 12px !important;
+    }
+
+    .weekday-chart__hint {
+        display: block;
+    }
+
+    .weekday-chart__hint::before {
+        content: none;
+    }
+
     /* Keep keyword input rows horizontal on mobile */
     vaadin-horizontal-layout.keyword-input-row {
         flex-direction: row !important;
@@ -1046,7 +1181,9 @@ vaadin-tab-sheet::part(tabs) {
         margin: 0 !important;
     }
 
-    [class*="card"] {
+    /* Card containers only - the substring match would otherwise force a 100px floor on the
+       card's own value element and push it out of a narrow card. */
+    [class*="card"]:not([class*="card__"]) {
         min-width: 100px !important;
         font-size: 0.875rem;
     }

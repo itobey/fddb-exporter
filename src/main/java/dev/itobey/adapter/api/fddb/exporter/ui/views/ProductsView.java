@@ -332,12 +332,9 @@ public class ProductsView extends VerticalLayout {
         }
 
         Div statCards = createCardsGrid("150px");
-        String range = summary.getFirstDate() != null && summary.getLastDate() != null
-                ? summary.getFirstDate() + " ⮕ " + summary.getLastDate()
-                : "—";
         statCards.add(
                 createStatCard("Times eaten", String.valueOf(summary.getTimesEaten()), "logged occurrences"),
-                createStatCard("Date range", range, "first ⮕ last logged"),
+                createStatCard("Date range", createDateRangeValue(summary), "first ⮕ last logged"),
                 createStatCard("Ø Calories", formatNumber(summary.getAverageCalories()) + " kcal", "per occurrence")
         );
 
@@ -373,6 +370,27 @@ public class ProductsView extends VerticalLayout {
     }
 
     /**
+     * Builds the date-range stat value as three atomic parts rather than one string. A single
+     * {@code "2023-01-14 ⮕ 2026-08-12"} run breaks at its own hyphens when the card is narrow,
+     * shredding both dates; keeping each date in its own nowrap span means a narrow card wraps
+     * between the dates instead of inside them.
+     */
+    private Component createDateRangeValue(ProductSummaryDTO summary) {
+        Div value = new Div();
+        value.addClassNames("card__value", "card__value--range");
+        if (summary.getFirstDate() == null || summary.getLastDate() == null) {
+            value.setText("—");
+            return value;
+        }
+        Span from = new Span(String.valueOf(summary.getFirstDate()));
+        Span arrow = new Span("⮕");
+        arrow.addClassName("card__value-separator");
+        Span to = new Span(String.valueOf(summary.getLastDate()));
+        value.add(from, arrow, to);
+        return value;
+    }
+
+    /**
      * Renders the weekday distribution as horizontal CSS bars - the project ships no charting
      * library, so each bar is a plain div sized relative to the busiest weekday. Days with at least
      * one occurrence are clickable and toggle a weekday filter on the occurrences grid below.
@@ -387,57 +405,58 @@ public class ProductsView extends VerticalLayout {
         }
 
         VerticalLayout container = new VerticalLayout();
+        container.addClassName("weekday-chart");
         container.addClassNames(LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
         container.setWidthFull();
         container.setPadding(true);
         container.setSpacing(false);
-        container.getStyle().set("box-sizing", "border-box");
 
         Span title = new Span("By day of the week");
         title.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD, LumoUtility.TextColor.SECONDARY);
-        Span titleHint = new Span("  — click a day to filter the occurrences below");
+        Span titleHint = new Span("select a day to filter the occurrences below");
         titleHint.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.TERTIARY);
-        container.add(new Div(title, titleHint));
+        titleHint.addClassName("weekday-chart__hint");
+        Div header = new Div(title, titleHint);
+        header.addClassName("weekday-chart__header");
+        container.add(header);
 
         for (DayOfWeek day : DayOfWeek.values()) {
             long count = distribution.getOrDefault(day, 0L);
             boolean clickable = count > 0;
 
             Span dayLabel = new Span(shortDay(day));
-            dayLabel.getStyle().set("width", "3rem").set("flex", "0 0 3rem").set("font-size", "var(--lumo-font-size-s)");
+            dayLabel.addClassName("weekday-row__day");
 
+            // Only the data-driven width stays inline; every layout property lives in the theme so
+            // the mobile rules can adjust the row without fighting inline specificity.
             Div bar = new Div();
             double widthPct = max > 0 ? (count * 100.0 / max) : 0;
+            bar.addClassName("weekday-row__bar");
             bar.getStyle()
-                    .set("height", "0.9rem")
                     .set("width", String.format(Locale.ENGLISH, "%.1f%%", widthPct))
-                    .set("min-width", count > 0 ? "2px" : "0")
-                    .set("background", BAR_COLOR)
-                    .set("border-radius", "3px")
-                    .set("transition", "opacity 0.15s ease");
+                    .set("background", BAR_COLOR);
             if (clickable) {
                 weekdayBars.put(day, bar);
             }
 
             Div track = new Div(bar);
-            track.getStyle().set("flex", "1 1 auto");
+            track.addClassName("weekday-row__track");
 
             Span countLabel = new Span(String.valueOf(count));
-            countLabel.getStyle().set("width", "2.5rem").set("flex", "0 0 2.5rem").set("text-align", "right")
-                    .set("font-size", "var(--lumo-font-size-s)");
+            countLabel.addClassName("weekday-row__count");
 
             HorizontalLayout row = new HorizontalLayout(dayLabel, track, countLabel);
+            row.addClassName("weekday-row");
             row.setWidthFull();
             row.setSpacing(true);
             row.setPadding(false);
             row.setAlignItems(FlexComponent.Alignment.CENTER);
-            row.getStyle().set("margin-top", "0.25rem").set("border-radius", "4px");
             if (clickable) {
-                row.getStyle().set("cursor", "pointer");
+                row.addClassName("weekday-row--clickable");
                 row.getElement().setAttribute("title", "Filter occurrences to " + day.getDisplayName(TextStyle.FULL, Locale.ENGLISH));
                 row.addClickListener(e -> toggleWeekday(day));
             } else {
-                row.getStyle().set("opacity", "0.5");
+                row.addClassName("weekday-row--empty");
             }
             container.add(row);
         }
