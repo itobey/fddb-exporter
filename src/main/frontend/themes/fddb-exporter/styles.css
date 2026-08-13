@@ -1244,3 +1244,198 @@ vaadin-progress-bar::part(indeterminate) {
     padding-left: 0;
     padding-right: 1.5rem;
 }
+
+/* ==========================================================================
+   Data Export view
+   ========================================================================== */
+
+.export-sections-layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.export-card {
+    flex: 1 1 320px;
+    min-width: 260px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 20px;
+    background: var(--card-surface);
+    border: 1px solid var(--card-border);
+    border-radius: var(--lumo-border-radius-l);
+    box-shadow: var(--lumo-box-shadow-xs);
+}
+
+.export-card__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.export-card__icon {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    color: var(--button-color-hover);
+}
+
+.export-card__heading-text {
+    min-width: 0;
+}
+
+.export-card__title {
+    margin: 0;
+    font-size: 1.0625rem;
+    letter-spacing: -0.01em;
+}
+
+/* Tight to its heading, generous below - the description belongs to the title, not to the form. */
+.export-card__desc {
+    margin: 0.25rem 0 0;
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+
+.export-card__action {
+    width: 100%;
+    margin-top: auto;
+}
+
+/* --- Result ledger ------------------------------------------------------- */
+
+.export-result {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--card-border);
+    animation: exportResultIn 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes exportResultIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* A second status line (failures under successes) needs air above it. */
+.export-result__chips + .export-result__status {
+    margin-top: 0.375rem;
+}
+
+.export-result__status {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.export-result__dot {
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    transform: translateY(-1px);
+}
+
+.export-result__dot--ok {
+    background: var(--green-accent);
+    box-shadow: 0 0 0 3px rgba(63, 144, 140, 0.18);
+}
+
+.export-result__dot--failed {
+    background: var(--red-accent);
+    box-shadow: 0 0 0 3px rgba(154, 75, 85, 0.18);
+}
+
+.export-result__dot--neutral {
+    background: var(--lumo-tertiary-text-color);
+}
+
+.export-result__label {
+    font-size: var(--lumo-font-size-s);
+    font-weight: 600;
+    color: var(--lumo-body-text-color);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Deliberately not --lumo-secondary-text-color: at 12px that token lands under 4:1 on the card
+   surface. 0.72 stays quieter than the status label and still clears AA. */
+.export-result__time {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.72);
+    font-variant-numeric: tabular-nums;
+}
+
+.export-result__chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+
+.export-chip {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: 0.1px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.export-chip--ok {
+    background: rgba(63, 144, 140, 0.16);
+    border: 1px solid rgba(63, 144, 140, 0.3);
+    color: #9ad6d1;
+}
+
+.export-chip--failed {
+    background: rgba(154, 75, 85, 0.18);
+    border: 1px solid rgba(154, 75, 85, 0.35);
+    color: #f2c4c9;
+}
+
+.export-result__more {
+    font-size: 0.75rem;
+    color: var(--button-color-hover);
+    padding: 0 4px;
+    min-height: 0;
+}
+
+.export-result__more:hover {
+    color: var(--highlight);
+}
+
+@media (max-width: 576px) {
+    .export-card {
+        padding: 14px;
+    }
+
+    /* Opt out of the blanket full-width button rule - this is an inline text toggle. */
+    vaadin-button.export-result__more {
+        width: auto !important;
+        margin: 0 !important;
+        min-width: 0;
+    }
+}
+
+/* The toggle stays a text link visually; on touch it still needs a real target. */
+@media (pointer: coarse) {
+    vaadin-button.export-result__more {
+        min-height: 44px;
+        padding: 0 8px;
+    }
+}

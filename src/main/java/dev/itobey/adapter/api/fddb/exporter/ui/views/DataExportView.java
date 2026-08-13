@@ -1,16 +1,18 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.views;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
@@ -18,7 +20,11 @@ import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Locale;
 
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 
@@ -27,6 +33,16 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 public class DataExportView extends VerticalLayout {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter CHIP_FORMAT = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH);
+    private static final DateTimeFormatter CHIP_FORMAT_WITH_YEAR = DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.ENGLISH);
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+
+    /**
+     * How many date chips a result shows before the rest collapse behind a toggle. A 365-day
+     * export must not turn its card into a wall that shoves the neighbouring cards off the row.
+     */
+    private static final int CHIP_PREVIEW_COUNT = 10;
+
     private final FddbDataClient fddbDataClient;
 
     private DatePicker fromDate;
@@ -53,33 +69,15 @@ public class DataExportView extends VerticalLayout {
         Div sectionsLayout = new Div();
         sectionsLayout.setWidthFull();
         sectionsLayout.addClassName("export-sections-layout");
-        sectionsLayout.addClassNames(LumoUtility.Gap.MEDIUM);
-        sectionsLayout.getStyle()
-                .set("display", "flex")
-                .set("flex-wrap", "wrap")
-                .set("gap", "1rem")
-                .set("align-items", "flex-start");
 
-        VerticalLayout yesterdaySection = createYesterdaySection();
-        VerticalLayout daysBackSection = createDaysBackSection();
-        VerticalLayout dateRangeSection = createDateRangeSection();
-
-        String boxFlex = "1 1 320px";
-        yesterdaySection.getStyle().set("flex", boxFlex).set("min-width", "260px").set("box-sizing", "border-box");
-        daysBackSection.getStyle().set("flex", boxFlex).set("min-width", "260px").set("box-sizing", "border-box");
-        dateRangeSection.getStyle().set("flex", boxFlex).set("min-width", "260px").set("box-sizing", "border-box");
-        yesterdaySection.setWidthFull();
-        daysBackSection.setWidthFull();
-        dateRangeSection.setWidthFull();
-
-        sectionsLayout.add(yesterdaySection, daysBackSection, dateRangeSection);
+        sectionsLayout.add(createYesterdaySection(), createDaysBackSection(), createDateRangeSection());
         add(sectionsLayout);
     }
 
-    private VerticalLayout createDateRangeSection() {
-        VerticalLayout section = createSection(null);
-        section.add(new H3("Export by Date Range"));
-        section.add(new Paragraph("Export all data within a specified date range."));
+    private Div createDateRangeSection() {
+        Div section = createExportCard(VaadinIcon.CALENDAR,
+                "Export by Date Range",
+                "Export all data within a specified date range.");
 
         FormLayout form = new FormLayout();
 
@@ -99,22 +97,18 @@ public class DataExportView extends VerticalLayout {
                 new FormLayout.ResponsiveStep("500px", 2)
         );
 
-        Button exportButton = new Button("Export Date Range");
-        exportButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        exportButton.addClickListener(e -> exportDateRange());
-        exportButton.setWidthFull();
+        dateRangeResult = createResultContainer();
 
-        dateRangeResult = new Div();
-        dateRangeResult.setVisible(false);
+        Button exportButton = createExportButton("Export Date Range", this::exportDateRange);
 
         section.add(form, exportButton, dateRangeResult);
         return section;
     }
 
-    private VerticalLayout createDaysBackSection() {
-        VerticalLayout section = createSection(null);
-        section.add(new H3("Export Recent Days"));
-        section.add(new Paragraph("Export data for a number of recent days."));
+    private Div createDaysBackSection() {
+        Div section = createExportCard(VaadinIcon.CALENDAR_CLOCK,
+                "Export Recent Days",
+                "Export data for a number of recent days.");
 
         FormLayout form = new FormLayout();
 
@@ -133,43 +127,82 @@ public class DataExportView extends VerticalLayout {
                 new FormLayout.ResponsiveStep("500px", 2)
         );
 
-        Button exportButton = new Button("Export Recent Days");
-        exportButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        exportButton.addClickListener(e -> exportDaysBack());
-        exportButton.setWidthFull();
+        daysBackResult = createResultContainer();
 
-        daysBackResult = new Div();
-        daysBackResult.setVisible(false);
+        Button exportButton = createExportButton("Export Recent Days", this::exportDaysBack);
 
         section.add(form, exportButton, daysBackResult);
         return section;
     }
 
-    private VerticalLayout createYesterdaySection() {
-        VerticalLayout section = createSection(null);
-        section.add(new H3("Export Yesterday"));
-        section.add(new Paragraph("Quickly export data for yesterday only."));
+    private Div createYesterdaySection() {
+        Div section = createExportCard(VaadinIcon.CLOCK,
+                "Export Yesterday",
+                "Quickly export data for yesterday only.");
 
-        Button exportButton = new Button("Export Yesterday");
-        exportButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        exportButton.addClickListener(e -> exportYesterday());
-        exportButton.setWidthFull();
+        yesterdayResult = createResultContainer();
 
-        yesterdayResult = new Div();
-        yesterdayResult.setVisible(false);
+        Button exportButton = createExportButton("Export Yesterday", this::exportYesterday);
 
         section.add(exportButton, yesterdayResult);
         return section;
     }
 
+    private Div createExportCard(VaadinIcon icon, String title, String description) {
+        Div card = new Div();
+        card.addClassName("export-card");
+
+        Icon cardIcon = new Icon(icon);
+        cardIcon.addClassName("export-card__icon");
+
+        H3 heading = new H3(title);
+        heading.addClassName("export-card__title");
+
+        Paragraph desc = new Paragraph(description);
+        desc.addClassName("export-card__desc");
+
+        Div headingText = new Div(heading, desc);
+        headingText.addClassName("export-card__heading-text");
+
+        Div head = new Div(cardIcon, headingText);
+        head.addClassName("export-card__head");
+
+        card.add(head);
+        return card;
+    }
+
+    private Button createExportButton(String label, Runnable action) {
+        Button button = new Button(label);
+        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        button.addClassName("export-card__action");
+        // Greys the button out client-side the moment it is pressed, so the seconds the scrape
+        // spends blocking the request read as "working" rather than "nothing happened".
+        button.setDisableOnClick(true);
+        button.addClickListener(e -> {
+            try {
+                action.run();
+            } finally {
+                button.setEnabled(true);
+            }
+        });
+        return button;
+    }
+
+    private Div createResultContainer() {
+        Div result = new Div();
+        result.addClassName("export-result");
+        result.setVisible(false);
+        return result;
+    }
+
     private void exportDateRange() {
         if (fromDate.getValue() == null || toDate.getValue() == null) {
-            showError("Please select both from and to dates");
+            showError("Select both a from and a to date");
             return;
         }
 
         if (fromDate.getValue().isAfter(toDate.getValue())) {
-            showError("From date must be before or equal to to date");
+            showError("The from date must be on or before the to date");
             return;
         }
 
@@ -179,9 +212,7 @@ public class DataExportView extends VerticalLayout {
                     .toDate(toDate.getValue().format(DATE_FORMAT))
                     .build();
 
-            ExportResultDTO result = fddbDataClient.exportForDateRange(dateRange);
-            displayResult(dateRangeResult, result);
-            showSuccess("Export completed successfully");
+            displayResult(dateRangeResult, fddbDataClient.exportForDateRange(dateRange));
         } catch (ApiException e) {
             showError(e.getMessage());
         }
@@ -189,17 +220,15 @@ public class DataExportView extends VerticalLayout {
 
     private void exportDaysBack() {
         if (daysBackField.getValue() == null || daysBackField.getValue() < 1) {
-            showError("Please enter a valid number of days");
+            showError("Enter how many days to export");
             return;
         }
 
         try {
-            ExportResultDTO result = fddbDataClient.exportForDaysBack(
+            displayResult(daysBackResult, fddbDataClient.exportForDaysBack(
                     daysBackField.getValue(),
                     includeTodayCheckbox.getValue()
-            );
-            displayResult(daysBackResult, result);
-            showSuccess("Export completed successfully");
+            ));
         } catch (ApiException e) {
             showError(e.getMessage());
         }
@@ -207,58 +236,127 @@ public class DataExportView extends VerticalLayout {
 
     private void exportYesterday() {
         try {
-            ExportResultDTO result = fddbDataClient.exportForDaysBack(1, false);
-            displayResult(yesterdayResult, result);
-
-            if (result.getSuccessfulDays() != null && !result.getSuccessfulDays().isEmpty()) {
-                showSuccess("Yesterday exported successfully: " + result.getSuccessfulDays().get(0));
-            } else if (result.getUnsuccessfulDays() != null && !result.getUnsuccessfulDays().isEmpty()) {
-                showError("Failed to export yesterday: " + result.getUnsuccessfulDays().get(0));
-            } else {
-                showSuccess("Export completed");
-            }
+            displayResult(yesterdayResult, fddbDataClient.exportForDaysBack(1, false));
         } catch (ApiException e) {
-            showError("Failed to export yesterday: " + e.getMessage());
+            showError("Could not export yesterday: " + e.getMessage());
         }
     }
 
+    /**
+     * Renders one export run as a ledger inside the card that triggered it: a status line stating
+     * what happened and when, then the dates themselves as chips. Replaces any previous run.
+     */
     private void displayResult(Div resultDiv, ExportResultDTO result) {
         resultDiv.removeAll();
         resultDiv.setVisible(true);
-        resultDiv.addClassNames(LumoUtility.Padding.MEDIUM, LumoUtility.Margin.Top.MEDIUM);
 
-        VerticalLayout content = new VerticalLayout();
-        content.setPadding(false);
-        content.setSpacing(true);
+        List<String> successful = result.getSuccessfulDays();
+        List<String> unsuccessful = result.getUnsuccessfulDays();
 
-        if (result.getSuccessfulDays() != null && !result.getSuccessfulDays().isEmpty()) {
-            Div successSection = new Div();
-            successSection.addClassNames(LumoUtility.Padding.SMALL, LumoUtility.Background.SUCCESS_10, LumoUtility.BorderRadius.SMALL);
+        boolean hasSuccess = successful != null && !successful.isEmpty();
+        boolean hasFailures = unsuccessful != null && !unsuccessful.isEmpty();
 
-            Span successTitle = new Span("Successful: " + result.getSuccessfulDays().size() + " day(s)");
-            successTitle.addClassNames(LumoUtility.FontWeight.BOLD, LumoUtility.TextColor.SUCCESS);
+        String finishedAt = LocalTime.now().format(TIME_FORMAT);
 
-            UnorderedList successList = new UnorderedList();
-            result.getSuccessfulDays().forEach(day -> successList.add(new ListItem(day)));
-
-            successSection.add(successTitle, successList);
-            content.add(successSection);
+        if (!hasSuccess && !hasFailures) {
+            resultDiv.add(createStatusLine("neutral", "No days returned", finishedAt));
+            showSuccess("Export finished — no days returned");
+            return;
         }
 
-        if (result.getUnsuccessfulDays() != null && !result.getUnsuccessfulDays().isEmpty()) {
-            Div failSection = new Div();
-            failSection.addClassNames(LumoUtility.Padding.SMALL, LumoUtility.Background.ERROR_10, LumoUtility.BorderRadius.SMALL);
-
-            Span failTitle = new Span("Unsuccessful: " + result.getUnsuccessfulDays().size() + " day(s)");
-            failTitle.addClassNames(LumoUtility.FontWeight.BOLD, LumoUtility.TextColor.ERROR);
-
-            UnorderedList failList = new UnorderedList();
-            result.getUnsuccessfulDays().forEach(day -> failList.add(new ListItem(day)));
-
-            failSection.add(failTitle, failList);
-            content.add(failSection);
+        if (hasSuccess) {
+            resultDiv.add(createStatusLine("ok", dayCount(successful.size()) + " exported", finishedAt));
+            resultDiv.add(createChipList(successful, "export-chip--ok"));
         }
 
-        resultDiv.add(content);
+        if (hasFailures) {
+            resultDiv.add(createStatusLine("failed", dayCount(unsuccessful.size()) + " failed",
+                    hasSuccess ? null : finishedAt));
+            resultDiv.add(createChipList(unsuccessful, "export-chip--failed"));
+        }
+
+        if (hasFailures) {
+            showError(dayCount(unsuccessful.size()) + " could not be exported");
+        } else {
+            showSuccess(dayCount(successful.size()) + " exported");
+        }
+    }
+
+    private String dayCount(int count) {
+        return count + (count == 1 ? " day" : " days");
+    }
+
+    private Component createStatusLine(String state, String label, String timestamp) {
+        Span dot = new Span();
+        dot.addClassNames("export-result__dot", "export-result__dot--" + state);
+
+        Span text = new Span(label);
+        text.addClassName("export-result__label");
+
+        Div line = new Div(dot, text);
+        line.addClassName("export-result__status");
+
+        if (timestamp != null) {
+            Span time = new Span(timestamp);
+            time.addClassName("export-result__time");
+            line.add(time);
+        }
+        return line;
+    }
+
+    private Component createChipList(List<String> days, String chipModifier) {
+        Div chips = new Div();
+        chips.addClassName("export-result__chips");
+
+        for (int i = 0; i < days.size(); i++) {
+            Span chip = createChip(days.get(i), chipModifier);
+            if (i >= CHIP_PREVIEW_COUNT) {
+                chip.addClassName("export-chip--overflow");
+                chip.setVisible(false);
+            }
+            chips.add(chip);
+        }
+
+        int hidden = days.size() - CHIP_PREVIEW_COUNT;
+        if (hidden > 0) {
+            Button toggle = new Button("Show " + hidden + " more");
+            toggle.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
+            toggle.addClassName("export-result__more");
+            toggle.addClickListener(e -> {
+                boolean expanding = !chips.hasClassName("export-result__chips--expanded");
+                chips.getChildren()
+                        .filter(c -> c.getElement().getClassList().contains("export-chip--overflow"))
+                        .forEach(c -> c.setVisible(expanding));
+                chips.getElement().getClassList().set("export-result__chips--expanded", expanding);
+                toggle.setText(expanding ? "Show fewer" : "Show " + hidden + " more");
+            });
+            chips.add(toggle);
+        }
+
+        return chips;
+    }
+
+    private Span createChip(String isoDate, String chipModifier) {
+        Span chip = new Span(formatChipLabel(isoDate));
+        chip.addClassNames("export-chip", chipModifier);
+        chip.getElement().setAttribute("title", isoDate);
+        return chip;
+    }
+
+    /**
+     * "2026-08-06" reads as a key, not a day. The weekday is what makes a diary export scannable;
+     * the year only earns its space once the date leaves the current one. The ISO string stays
+     * available as the chip's tooltip.
+     */
+    private String formatChipLabel(String isoDate) {
+        try {
+            LocalDate date = LocalDate.parse(isoDate, DATE_FORMAT);
+            DateTimeFormatter formatter = date.getYear() == LocalDate.now().getYear()
+                    ? CHIP_FORMAT
+                    : CHIP_FORMAT_WITH_YEAR;
+            return date.format(formatter);
+        } catch (DateTimeParseException e) {
+            return isoDate;
+        }
     }
 }
