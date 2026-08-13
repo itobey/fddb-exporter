@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **Products Explorer stat cards no longer overflow on mobile.** Values (and date ranges) now shrink to fit narrow
+  screens instead of spilling out of their cards.
+
+### Changed
+
+- **Data Export view** now uses reusable card components for its export sections, for a more consistent layout.
+
 ## 2.4.0
 
 ### ⚠️ Breaking Changes
