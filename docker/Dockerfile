@@ -17,8 +17,10 @@ USER appuser:appgroup
 
 EXPOSE 8080
 
+# deliberately the liveness group, not the aggregate /actuator/health: the aggregate includes
+# fddb-login-check, which scrapes fddb.info - polling that every 30s would hammer a third-party site
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health/liveness || exit 1
 
 # Use dumb-init to handle signals properly and run as non-root
 ENTRYPOINT ["dumb-init", "--"]
