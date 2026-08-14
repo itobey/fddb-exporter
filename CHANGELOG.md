@@ -11,6 +11,10 @@
 ### Changed
 
 - **Data Export view** now uses reusable card components for its export sections, for a more consistent layout.
+- **The container healthcheck no longer scrapes fddb.info.** The Docker `HEALTHCHECK` now calls
+  `/actuator/health/liveness` instead of the aggregate `/actuator/health`, which included `fddb-login-check` and
+  therefore fetched a full diary day from fddb.info every 30 seconds. The login check itself is now cached for
+  30 minutes and can no longer fail the whole health endpoint when fddb.info is unreachable.
 
 ## 2.4.0
 
