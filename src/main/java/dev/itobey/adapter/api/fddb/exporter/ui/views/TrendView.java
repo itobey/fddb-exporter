@@ -200,11 +200,7 @@ public class TrendView extends VerticalLayout {
                     granularity);
 
             displayResult(points, metric, granularity);
-            // prefers-reduced-motion cannot be applied to a script-initiated scroll from CSS, so the
-            // theme's Reduced Motion Rule has to be honoured here explicitly.
-            resultDiv.getElement().executeJs("this.scrollIntoView({"
-                    + "behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches"
-                    + " ? 'auto' : 'smooth', block: 'start'})");
+            scrollIntoViewWhenSettled(resultDiv);
 
             if (points == null || points.isEmpty()) {
                 showError("No entries found for the selected range");

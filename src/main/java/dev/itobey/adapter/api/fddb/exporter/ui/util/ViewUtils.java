@@ -22,6 +22,45 @@ public class ViewUtils {
     private ViewUtils() {
     }
 
+    /**
+     * Bring a freshly rendered result block to the top of the viewport, once it has stopped growing.
+     * <p>
+     * Calling {@code scrollIntoView} straight after the server pushes the result lands short of the
+     * block: a Vaadin Grid sizes itself a frame or more after its rows arrive, and a smooth scroll
+     * fixes its destination the moment it starts, so it aims into a document that is still hundreds
+     * of pixels shorter than the final one and never corrects afterwards. On Rolling Averages that
+     * left the page parked on the preset buttons instead of on the averages. Waiting for the
+     * block's own height to hold still for a few frames removes the race; the frame budget is the
+     * escape hatch for a block that never settles, so the scroll still happens.
+     */
+    public static void scrollIntoViewWhenSettled(Component target) {
+        target.getElement().executeJs("""
+                const block = this;
+                // prefers-reduced-motion cannot be applied to a script-initiated scroll from CSS,
+                // so the theme's Reduced Motion Rule has to be honoured here explicitly.
+                const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                    ? 'auto' : 'smooth';
+                let lastHeight = -1;
+                let stableFrames = 0;
+                let framesLeft = 60;
+                const settle = () => {
+                    const height = block.scrollHeight;
+                    if (height === lastHeight) {
+                        stableFrames++;
+                    } else {
+                        stableFrames = 0;
+                        lastHeight = height;
+                    }
+                    if (stableFrames < 3 && framesLeft-- > 0) {
+                        requestAnimationFrame(settle);
+                        return;
+                    }
+                    block.scrollIntoView({behavior: behavior, block: 'start'});
+                };
+                requestAnimationFrame(settle);
+                """);
+    }
+
     public static VerticalLayout createSection(String backgroundColor) {
         VerticalLayout section = new VerticalLayout();
         section.addClassNames(

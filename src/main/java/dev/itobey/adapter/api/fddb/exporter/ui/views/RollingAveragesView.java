@@ -212,11 +212,7 @@ public class RollingAveragesView extends VerticalLayout {
             MacroSplitDTO macroSplit = statsClient.getMacroSplit(fromDate, toDate);
             List<WeekdayStatsDTO> weekdayBreakdown = statsClient.getWeekdayBreakdown(fromDate, toDate);
             displayResult(result, macroSplit, weekdayBreakdown);
-            // prefers-reduced-motion cannot be applied to a script-initiated scroll from CSS, so the
-            // theme's Reduced Motion Rule has to be honoured here explicitly.
-            resultDiv.getElement().executeJs("this.scrollIntoView({"
-                    + "behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches"
-                    + " ? 'auto' : 'smooth', block: 'start'})");
+            scrollIntoViewWhenSettled(resultDiv);
             showSuccess("Averages calculated successfully");
         } catch (ApiException apiException) {
             showError(apiException.getMessage());

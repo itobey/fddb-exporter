@@ -6,6 +6,7 @@
 
 - **Products Explorer stat cards no longer overflow on mobile.** Values (and date ranges) now shrink to fit narrow
   screens instead of spilling out of their cards.
+- **Rolling Averages and Trends now jump to the results.** A bug prevented the scrolling down to work in some cases.
 
 ### Changed
 
