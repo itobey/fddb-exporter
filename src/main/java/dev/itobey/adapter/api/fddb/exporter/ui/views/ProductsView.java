@@ -49,7 +49,8 @@ public class ProductsView extends VerticalLayout {
     private static final int OCCURRENCE_LIMIT = 500;
     private static final int DEFAULT_TOP_PRODUCTS_LIMIT = 20;
     private static final int MAX_TOP_PRODUCTS_LIMIT = 500;
-    private static final String BAR_COLOR = "#ae9357";
+    // A bar fill, so the fill token is correct here.
+    private static final String BAR_COLOR = "var(--highlight)";
 
     private final FddbDataClient fddbDataClient;
     private final String fddbLinkPrefix;
@@ -67,6 +68,9 @@ public class ProductsView extends VerticalLayout {
     // filtered client-side when weekday distribution bars are toggled, so no refetch is needed.
     private final Set<DayOfWeek> selectedWeekdays = EnumSet.noneOf(DayOfWeek.class);
     private final Map<DayOfWeek, Div> weekdayBars = new EnumMap<>(DayOfWeek.class);
+    // Kept alongside the bars so aria-pressed can follow the selection: the bar's opacity and ring
+    // announce the filter state visually, and this is the same information for assistive technology.
+    private final Map<DayOfWeek, HorizontalLayout> weekdayRows = new EnumMap<>(DayOfWeek.class);
     private List<ProductWithDateDTO> allOccurrences = List.of();
 
     private ComboBox<ProductRanking> topProductsRanking;
@@ -326,6 +330,7 @@ public class ProductsView extends VerticalLayout {
     private void renderSummary(ProductSummaryDTO summary) {
         summarySection.removeAll();
         weekdayBars.clear();
+        weekdayRows.clear();
         if (summary == null || summary.getTimesEaten() <= 0) {
             summarySection.setVisible(false);
             return;
@@ -414,7 +419,9 @@ public class ProductsView extends VerticalLayout {
         Span title = new Span("By day of the week");
         title.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD, LumoUtility.TextColor.SECONDARY);
         Span titleHint = new Span("select a day to filter the occurrences below");
-        titleHint.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.TERTIARY);
+        // Secondary, not tertiary: this line is the only thing that says the rows below are
+        // interactive, and the tertiary step is reserved for text that carries no information.
+        titleHint.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
         titleHint.addClassName("weekday-chart__hint");
         Div header = new Div(title, titleHint);
         header.addClassName("weekday-chart__header");
@@ -453,8 +460,15 @@ public class ProductsView extends VerticalLayout {
             row.setAlignItems(FlexComponent.Alignment.CENTER);
             if (clickable) {
                 row.addClassName("weekday-row--clickable");
-                row.getElement().setAttribute("title", "Filter occurrences to " + day.getDisplayName(TextStyle.FULL, Locale.ENGLISH));
+                String fullDay = day.getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+                row.getElement().setAttribute("title", "Filter occurrences to " + fullDay);
                 row.addClickListener(e -> toggleWeekday(day));
+                // The row is a toggle filter built from a layout, so it needs the semantics of one:
+                // the abbreviated label and bare count alone do not say that activating it filters.
+                makeAccessibleButton(row,
+                        "Filter occurrences to " + fullDay + ", " + count + " logged",
+                        () -> toggleWeekday(day));
+                weekdayRows.put(day, row);
             } else {
                 row.addClassName("weekday-row--empty");
             }
@@ -484,6 +498,8 @@ public class ProductsView extends VerticalLayout {
             bar.getStyle().set("box-shadow",
                     selectedWeekdays.contains(day) ? "0 0 0 2px var(--lumo-contrast-50pct)" : "none");
         });
+        weekdayRows.forEach((day, row) ->
+                row.getElement().setAttribute("aria-pressed", String.valueOf(selectedWeekdays.contains(day))));
     }
 
     // ---------------------------------------------------------------------------------------------

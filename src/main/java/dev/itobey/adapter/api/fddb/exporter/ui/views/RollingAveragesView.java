@@ -37,8 +37,12 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 public class RollingAveragesView extends VerticalLayout {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final String BG_COLOR = "rgba(78, 97, 155, 0.08)";
-    private static final String HIGHLIGHT_COLOR = "#ae9357";
+    /** Below these shares of the bar a segment is too narrow to hold the text; the legend takes over. */
+    private static final double NAME_MIN_PERCENT = 15;
+    private static final double VALUE_MIN_PERCENT = 8;
+    private static final String BG_COLOR = "var(--accent-surface)";
+    // Only ever used as a text color in this view.
+    private static final String HIGHLIGHT_COLOR = "var(--highlight-text)";
 
     private final StatsClient statsClient;
     private final FddbExporterProperties properties;
@@ -208,7 +212,7 @@ public class RollingAveragesView extends VerticalLayout {
             MacroSplitDTO macroSplit = statsClient.getMacroSplit(fromDate, toDate);
             List<WeekdayStatsDTO> weekdayBreakdown = statsClient.getWeekdayBreakdown(fromDate, toDate);
             displayResult(result, macroSplit, weekdayBreakdown);
-            resultDiv.getElement().executeJs("this.scrollIntoView({behavior: 'smooth', block: 'start'})");
+            scrollIntoViewWhenSettled(resultDiv);
             showSuccess("Averages calculated successfully");
         } catch (ApiException apiException) {
             showError(apiException.getMessage());
@@ -300,49 +304,79 @@ public class RollingAveragesView extends VerticalLayout {
         }
 
         Div stackedBar = new Div();
-        stackedBar.setWidthFull();
-        stackedBar.setHeight("60px");  // Increased height for two-line labels
-        stackedBar.addClassNames(LumoUtility.BorderRadius.MEDIUM);
-        stackedBar.getStyle().set("display", "flex");
-        stackedBar.getStyle().set("flex-direction", "row");
-        stackedBar.getStyle().set("flex-wrap", "nowrap");
-        stackedBar.getStyle().set("overflow", "hidden");
+        stackedBar.addClassName("macro-bar");
 
-        stackedBar.add(
-                createMacroSection("Fat", macroSplit.getFatPercentage(), "#FFE66D"),
-                createMacroSection("Carbs", macroSplit.getCarbsPercentage(), "#4ECDC4"),
-                createMacroSection("Protein", macroSplit.getProteinPercentage(), "#e5769f")
+        // The macro split uses the nutrient identity colors, so a macro reads the same here as it
+        // does in a card, a chart or a table. Because the palette is lightness-matched, one ink is
+        // readable on all three fills (7.4:1, 8.0:1, 7.4:1) - the ink still travels with each
+        // segment rather than being assumed, so a future palette change surfaces here.
+        List<MacroSegment> segments = List.of(
+                new MacroSegment("Fat", macroSplit.getFatPercentage(), "var(--nutrient-fat)"),
+                new MacroSegment("Carbs", macroSplit.getCarbsPercentage(), "var(--nutrient-carbs)"),
+                new MacroSegment("Protein", macroSplit.getProteinPercentage(), "var(--nutrient-protein)")
         );
 
+        segments.forEach(segment -> stackedBar.add(createMacroSection(segment)));
         container.add(stackedBar);
+
+        // Anything too narrow to name itself is named underneath instead, so a low-protein day
+        // still reports its protein rather than showing a sliver with the label clipped off.
+        List<MacroSegment> unnamed = segments.stream()
+                .filter(segment -> segment.percentage() < NAME_MIN_PERCENT)
+                .toList();
+        if (!unnamed.isEmpty()) {
+            container.add(createMacroLegend(unnamed));
+        }
         return container;
     }
 
-    private Div createMacroSection(String name, double percentage, String backgroundColor) {
-        Div section = new Div();
-        section.setWidth(percentage + "%");
-        section.setHeight("100%");
-        section.getStyle().set("flex", "0 0 " + percentage + "%");
-        section.getStyle().set("min-width", "0 !important");
-        section.getStyle().set("box-sizing", "border-box");
-        section.getStyle().set("background-color", backgroundColor);
-        section.getStyle().set("display", "flex").set("justify-content", "center").set("align-items", "center");
-        section.getStyle().set("flex-direction", "column");
-        section.getStyle().set("padding", "0.25rem");
+    private record MacroSegment(String name, double percentage, String fill) {
+    }
 
-        section.add(createMacroLabel(name), createMacroLabel(formatNumber(percentage) + "%"));
+    private Div createMacroSection(MacroSegment segment) {
+        Div section = new Div();
+        section.addClassName("macro-bar__segment");
+        section.getStyle()
+                .set("flex", "0 0 " + segment.percentage() + "%")
+                .set("background-color", segment.fill());
+
+        // Below the thresholds the text cannot fit the segment at any realistic bar width, so it
+        // is dropped here rather than clipped, and the legend picks it up.
+        if (segment.percentage() >= NAME_MIN_PERCENT) {
+            section.add(createMacroLabel(segment.name()));
+        }
+        if (segment.percentage() >= VALUE_MIN_PERCENT) {
+            section.add(createMacroLabel(formatNumber(segment.percentage()) + "%"));
+        }
+        // A segment with no room for a label still needs a name for assistive technology.
+        section.getElement().setAttribute("aria-label",
+                segment.name() + " " + formatNumber(segment.percentage()) + "%");
         return section;
     }
 
     private Span createMacroLabel(String text) {
         Span label = new Span(text);
-        label.getStyle()
-                .set("width", "100%")
-                .set("text-align", "center")
-                .set("color", "var(--accent-active)")
-                .set("font-weight", "600")
-                .set("font-size", "0.85rem")
-                .set("line-height", "1.2");
+        label.addClassName("macro-bar__label");
+        // The ink travels with the segment rather than being assumed globally.
+        label.getStyle().set("color", "var(--button-color-contrast)");
         return label;
+    }
+
+    private Div createMacroLegend(List<MacroSegment> segments) {
+        Div legend = new Div();
+        legend.addClassName("macro-legend");
+        for (MacroSegment segment : segments) {
+            Span swatch = new Span();
+            swatch.addClassName("macro-legend__swatch");
+            swatch.getStyle().set("background-color", segment.fill());
+
+            Span value = new Span(formatNumber(segment.percentage()) + "%");
+            value.addClassName("macro-legend__value");
+
+            Div item = new Div(swatch, new Span(segment.name()), value);
+            item.addClassName("macro-legend__item");
+            legend.add(item);
+        }
+        return legend;
     }
 }

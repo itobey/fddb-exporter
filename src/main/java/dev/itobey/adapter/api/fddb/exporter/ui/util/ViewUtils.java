@@ -12,12 +12,53 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.function.SerializableRunnable;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 
 public class ViewUtils {
 
     private ViewUtils() {
+    }
+
+    /**
+     * Bring a freshly rendered result block to the top of the viewport, once it has stopped growing.
+     * <p>
+     * Calling {@code scrollIntoView} straight after the server pushes the result lands short of the
+     * block: a Vaadin Grid sizes itself a frame or more after its rows arrive, and a smooth scroll
+     * fixes its destination the moment it starts, so it aims into a document that is still hundreds
+     * of pixels shorter than the final one and never corrects afterwards. On Rolling Averages that
+     * left the page parked on the preset buttons instead of on the averages. Waiting for the
+     * block's own height to hold still for a few frames removes the race; the frame budget is the
+     * escape hatch for a block that never settles, so the scroll still happens.
+     */
+    public static void scrollIntoViewWhenSettled(Component target) {
+        target.getElement().executeJs("""
+                const block = this;
+                // prefers-reduced-motion cannot be applied to a script-initiated scroll from CSS,
+                // so the theme's Reduced Motion Rule has to be honoured here explicitly.
+                const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                    ? 'auto' : 'smooth';
+                let lastHeight = -1;
+                let stableFrames = 0;
+                let framesLeft = 60;
+                const settle = () => {
+                    const height = block.scrollHeight;
+                    if (height === lastHeight) {
+                        stableFrames++;
+                    } else {
+                        stableFrames = 0;
+                        lastHeight = height;
+                    }
+                    if (stableFrames < 3 && framesLeft-- > 0) {
+                        requestAnimationFrame(settle);
+                        return;
+                    }
+                    block.scrollIntoView({behavior: behavior, block: 'start'});
+                };
+                requestAnimationFrame(settle);
+                """);
     }
 
     public static VerticalLayout createSection(String backgroundColor) {
@@ -91,8 +132,11 @@ public class ViewUtils {
             card.getStyle().set("background-color", backgroundColor);
         }
 
+        // Decorative. Without this a screen reader reads the emoji's own name before the label -
+        // "butter, Fat, 62.4 g" - on every card of the dashboard.
         Span emojiSpan = new Span(emoji);
         emojiSpan.addClassNames(LumoUtility.FontSize.XXLARGE);
+        emojiSpan.getElement().setAttribute("aria-hidden", "true");
 
         Span nutrientSpan = new Span(nutrient);
         nutrientSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
@@ -140,6 +184,36 @@ public class ViewUtils {
     }
 
     /**
+     * Give a plain container (Div, HorizontalLayout, ...) that is only wired up with a click listener
+     * the semantics and keyboard behaviour of a button: assistive technology announces it as a
+     * control, Tab reaches it, and Enter/Space activate it just like a native button would.
+     * The caller keeps its own click listener and passes the very same action here, so mouse and
+     * keyboard run identical code.
+     *
+     * @param accessibleName announced label, or {@code null} when the component's own visible text
+     *                       already describes it completely (a visible label beats a redundant
+     *                       aria-label, which would silence the text for screen reader users)
+     */
+    public static void makeAccessibleButton(Component component, String accessibleName, SerializableRunnable action) {
+        Element element = component.getElement();
+        element.setAttribute("role", "button");
+        element.setAttribute("tabindex", "0");
+        // These containers are data first and activatable second - a peak figure with its date, a
+        // weekday with its count. The theme switches text selection off for [role="button"] and
+        // for anything tabbable, which is right for real controls but would make this content
+        // uncopyable; the class opts it back in. See styles.css.
+        element.getClassList().add("activatable-data");
+        if (accessibleName != null) {
+            element.setAttribute("aria-label", accessibleName);
+        }
+        // "Spacebar" is the legacy key name older browsers still report. preventDefault stops Space
+        // from scrolling the page, which is what makes a focused role=button feel native.
+        element.addEventListener("keydown", event -> action.run())
+                .setFilter("event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar'")
+                .preventDefault();
+    }
+
+    /**
      * Show a success notification with custom green accent color
      */
     public static void showSuccess(String message) {
@@ -180,17 +254,19 @@ public class ViewUtils {
         errorContainer.addClassNames(LumoUtility.Padding.LARGE, LumoUtility.BorderRadius.MEDIUM);
         errorContainer.setSpacing(true);
         errorContainer.getStyle()
-                .set("background", "rgba(154, 75, 85, 0.1)")
-                .set("border", "2px solid rgba(154, 75, 85, 0.3)")
+                .set("background", "var(--red-accent-surface)")
+                .set("border", "2px solid var(--red-accent-surface-border)")
                 .set("max-width", "600px")
                 .set("margin", "0 auto");
 
         Icon errorIcon = new Icon(VaadinIcon.EXCLAMATION_CIRCLE_O);
         errorIcon.setSize("48px");
-        errorIcon.getStyle().set("color", "#9a4b55");
+        // The theme's text variant, not the raw fill: --red-accent measures only 1.31:1 as text
+        // here, on the one screen a blocked user has to read.
+        errorIcon.getStyle().set("color", "var(--red-accent-text)");
 
         H3 errorTitle = new H3("MongoDB Not Enabled");
-        errorTitle.getStyle().set("color", "#9a4b55").set("margin", "0.5rem 0");
+        errorTitle.getStyle().set("color", "var(--red-accent-text)").set("margin", "0.5rem 0");
 
         Paragraph errorMessage = new Paragraph(
                 "The " + featureName + " feature requires MongoDB to be enabled. " +
@@ -202,9 +278,11 @@ public class ViewUtils {
                 "Set the environment variable FDDB-EXPORTER_PERSISTENCE_MONGODB_ENABLED to true " +
                         "or update the application.yml configuration."
         );
-        configHint.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.TERTIARY);
+        // Secondary, not tertiary: this hint is the recovery instruction, and the tertiary step is
+        // deliberately below AA for decorative text only.
+        configHint.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         configHint.getStyle()
-                .set("background", "rgba(0, 0, 0, 0.05)")
+                .set("background", "var(--code-surface)")
                 .set("padding", "0.75rem")
                 .set("border-radius", "4px")
                 .set("font-family", "monospace");
