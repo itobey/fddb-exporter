@@ -4,15 +4,27 @@
 html {
     --lumo-base-color: #4e619b;
 
+    /* The -color tokens are fills, for borders, dots and tinted grounds. The -text-color tokens
+       have to be the lifted variants: Vaadin reads --lumo-error-text-color directly for a field's
+       ::part(error-message) and its required indicator, and the raw fill measures 1.31:1 on a
+       card, which fails contrast for a "field is required" message. */
     --lumo-success-color: #3f908c;
     --lumo-success-color-50pct: rgba(63, 144, 140, 0.5);
     --lumo-success-color-10pct: rgba(63, 144, 140, 0.1);
-    --lumo-success-text-color: #3f908c;
+    --lumo-success-text-color: var(--green-accent-text, #bad7d6);
     --lumo-success-contrast-color: #ffffff;
 
     --lumo-error-color: #9a4b55;
     --lumo-error-color-50pct: rgba(154, 75, 85, 0.5);
     --lumo-error-color-10pct: rgba(154, 75, 85, 0.1);
-    --lumo-error-text-color: #9a4b55;
+    --lumo-error-text-color: var(--red-accent-text, #e3cdcf);
     --lumo-error-contrast-color: #ffffff;
+
+    /* The warning family maps to the fat nutrient amber, whose text variant clears 4.5:1 contrast
+       (LumoUtility.TextColor.WARNING resolves to --lumo-warning-text-color). */
+    --lumo-warning-color: #dca564;
+    --lumo-warning-color-50pct: rgba(220, 165, 100, 0.5);
+    --lumo-warning-color-10pct: rgba(220, 165, 100, 0.1);
+    --lumo-warning-text-color: #ebcda8;
+    --lumo-warning-contrast-color: #241f12;
 }

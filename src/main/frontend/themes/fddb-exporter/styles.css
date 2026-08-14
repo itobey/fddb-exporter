@@ -1,6 +1,10 @@
 /* FDDB Exporter - Modern Dark Theme */
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+/* No webfont import. This app is self-hosted specifically so that nothing about a user's diary
+   leaves their instance, and a stylesheet that fetches from fonts.googleapis.com on every load
+   contradicts that for no benefit: the body stack resolves to -apple-system or Segoe UI on every
+   platform this ships to, so the imported Roboto was a render-blocking request for a face that
+   almost never painted. Roboto remains in the stack below as a local fallback. */
 
 html {
     /* Enable dark mode for Vaadin 25 */
@@ -22,19 +26,64 @@ html {
     --green-accent: #3f908c;
     --red-accent: #9a4b55;
 
+    /* Tinted surfaces. Named so views stop writing raw rgba() into inline styles. */
+    --accent-surface: rgba(78, 97, 155, 0.08);
+    --accent-surface-border: rgba(78, 97, 155, 0.2);
+    --red-accent-surface: rgba(154, 75, 85, 0.1);
+    --red-accent-surface-border: rgba(154, 75, 85, 0.3);
+    /* A recess, not a raised surface: this is the one place the system goes darker than its
+       ground rather than lighter, because the block is quoting machine text rather than
+       presenting a plane. */
+    --code-surface: rgba(0, 0, 0, 0.25);
+    /* Tint of the themed warning amber. */
+    --warning-surface: rgba(220, 165, 100, 0.15);
+
+    /* A fill that carries white text. --green-accent itself only reaches 3.76:1 under white,
+       so any filled pill or badge with a white label uses this darkened step instead.
+       --red-accent needs no equivalent: white already clears 5.98:1 on it. */
+    --green-accent-pill: #39827e;
+
     /* Button colors */
     --button-color: #ae9357;
     --button-color-hover: #bfa979;
     --button-color-active: #a98e52;
-    --button-color-contrast: #ffffff;
+    /* Dark ink, not white: white on the gold fill measures 2.95:1 and fails WCAG 1.4.3.
+       This ink clears 5.5:1 on the base fill and 7.2:1 on hover, so the gold identity is
+       kept exactly and the label becomes readable instead. */
+    --button-color-contrast: #241f12;
 
-    /* Nutrient colors */
-    --nutrient-calories: #ef5350;
-    --nutrient-fat: #ffa726;
-    --nutrient-carbs: #66bb6a;
-    --nutrient-sugar: #ec407a;
-    --nutrient-protein: #ab47bc;
-    --nutrient-fibre: #26c6da;
+    /* Fill colors above are for backgrounds and strokes. Where the same identity has to be
+       TEXT, use the -text variants below: each is the fill lifted toward white until it
+       clears 4.5:1 on the worst ground in the app (a card at the top of the canvas
+       gradient). Never set a raw fill color as a text color. */
+    --highlight-text: #dcd1b7;
+    --accent-text: #cbd2e7;
+    --green-accent-text: #bad7d6;
+    --red-accent-text: #e3cdcf;
+
+    /* Keyboard focus ring. Pale gold: focus is "you are here", which is the accent's job,
+       and this step clears the 3:1 non-text threshold at 4.8:1. */
+    --focus-ring: #e6d6ab;
+
+    /* Nutrient colors - fills (bars, charts, dots, backgrounds).
+       Generated in OKLCH at one fixed lightness (0.76) and one fixed chroma (0.105), so the six
+       read as a family rather than as six unrelated primaries. Every fill below clears 3:1 as a
+       mark on the lightest card. */
+    --nutrient-calories: #ec968f;
+    --nutrient-fat: #dca564;
+    --nutrient-carbs: #86c387;
+    --nutrient-sugar: #de97c6;
+    --nutrient-protein: #c0a0e7;
+    --nutrient-fibre: #4fc4d1;
+
+    /* Nutrient colors - text. The fills above are tuned to carry a mark at 3:1, which is still
+       short of the 4.5:1 text needs; these lift each one toward white without changing its hue. */
+    --nutrient-calories-text: #f5c6c3;
+    --nutrient-fat-text: #ebcda8;
+    --nutrient-carbs-text: #b6dbb7;
+    --nutrient-sugar-text: #edc6e0;
+    --nutrient-protein-text: #dccaf2;
+    --nutrient-fibre-text: #99dde4;
 
     /* Lumo overrides */
     --lumo-primary-color: var(--accent);
@@ -68,8 +117,12 @@ html {
     --lumo-contrast: #ffffff;
 
     --lumo-body-text-color: rgba(255, 255, 255, 0.87);
-    --lumo-secondary-text-color: rgba(255, 255, 255, 0.6);
-    --lumo-tertiary-text-color: rgba(255, 255, 255, 0.4);
+    /* Secondary carries every field label and stat-card title, so 0.75 is the alpha step that
+       clears AA on every ground in the app. */
+    --lumo-secondary-text-color: rgba(255, 255, 255, 0.75);
+    /* Quiet step for genuinely decorative text only. Still below 4.5:1 by design - anything a
+       user must read belongs at secondary or above. */
+    --lumo-tertiary-text-color: rgba(255, 255, 255, 0.62);
     --lumo-disabled-text-color: rgba(255, 255, 255, 0.35);
     --lumo-header-text-color: rgba(255, 255, 255, 0.95);
 
@@ -93,6 +146,13 @@ html {
     --card-surface: rgba(255, 255, 255, 0.06);
     --card-border: rgba(255, 255, 255, 0.1);
     --card-hover-surface: rgba(255, 255, 255, 0.08);
+
+    /* Control boundaries are deliberately stronger than --card-border. A card's hairline is
+       decoration and may sit at 1.3:1, but an input's border is the only thing that identifies
+       it as a control - the fill differs from the card behind it by 0.02 alpha - so WCAG 1.4.11
+       asks 3:1 of it. 0.5 measures 3.04:1 on the lightest card. */
+    --control-border: rgba(255, 255, 255, 0.5);
+    --control-border-hover: rgba(255, 255, 255, 0.65);
 
     /* Transitions */
     --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -118,14 +178,19 @@ body {
     -webkit-touch-callout: none;
 }
 
-/* Remove focus outlines globally but maintain accessibility for keyboard navigation */
-*:focus {
-    outline: none !important;
-}
+/* Focus policy
+   ------------
+   There is deliberately NO global `*:focus { outline: none }` here. Focus indication is
+   required by WCAG 2.4.7.
 
-/* Chrome Android specific - force remove focus on touch devices */
+   The goal is not "no focus rings" - it is "no ring when the user tapped it". That is exactly
+   what :focus-visible means, so :focus is suppressed on touch only, and :focus-visible is let
+   through everywhere. */
+
+/* Touch: a tap must not leave a ring behind. :focus-visible is intentionally NOT suppressed -
+   browsers do not set it for touch input, and a keyboard attached to a tablet still needs it. */
 @media (hover: none) and (pointer: coarse) {
-    *:focus,
+    *:focus:not(:focus-visible),
     *:active,
     *[focus-ring],
     *[focused] {
@@ -133,19 +198,13 @@ body {
         box-shadow: none !important;
         -webkit-tap-highlight-color: transparent !important;
     }
-
-    /* Disable focus-visible on touch devices to prevent blue outline */
-    *:focus-visible {
-        outline: none !important;
-    }
 }
 
-/* Provide subtle focus styles for keyboard navigation on desktop only */
-@media (hover: hover) and (pointer: fine) {
-    *:focus-visible {
-        outline: 2px solid rgba(78, 97, 155, 0.5);
-        outline-offset: 2px;
-    }
+/* Keyboard focus, everywhere and on every device. */
+*:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--lumo-border-radius-s);
 }
 
 /* Remove tap highlight from all interactive elements */
@@ -176,6 +235,20 @@ vaadin-tab,
     user-select: none;
 }
 
+/* Containers that ViewUtils.makeAccessibleButton turned into controls are still data: the
+   dashboard's highest-value cards carry a figure and a date, the weekday rows carry a count.
+   The [role="button"] and [tabindex] entries above would otherwise make that text uncopyable,
+   which for this product is the wrong trade - the record is the thing the user came for. The
+   descendants are listed explicitly because user-select is inherited, so restoring it on the
+   container alone is enough, but being explicit keeps it true if a child ever opts out. */
+.activatable-data,
+.activatable-data * {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
 /* Allow text selection in text inputs */
 input[type="text"],
 input[type="email"],
@@ -187,14 +260,16 @@ input[type="number"],
 textarea,
 vaadin-text-field input,
 vaadin-text-area textarea,
-vaadin-integer-field input {
+vaadin-integer-field input,
+[contenteditable] {
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
     user-select: text;
 }
 
-/* Remove outlines from Vaadin components */
+/* Suppress Lumo's default focus decoration on the shadow parts. `*:focus-visible` above cannot
+   reach into shadow DOM, so each part that needs a keyboard ring gets one explicitly below. */
 vaadin-button::part(button),
 vaadin-text-field::part(input-field),
 vaadin-text-area::part(input-field),
@@ -206,19 +281,29 @@ vaadin-side-nav-item::part(link) {
     outline: none;
 }
 
-/* Remove focus rings but keep them for keyboard navigation */
-vaadin-button:focus::part(button),
-vaadin-text-field:focus::part(input-field),
-vaadin-text-area:focus::part(input-field),
-vaadin-date-picker:focus::part(input-field),
-vaadin-integer-field:focus::part(input-field) {
+/* Pointer focus stays undecorated - :focus-visible below restores it for keyboard users. */
+vaadin-button:focus:not(:focus-visible)::part(button),
+vaadin-text-field:focus:not(:focus-visible)::part(input-field),
+vaadin-text-area:focus:not(:focus-visible)::part(input-field),
+vaadin-date-picker:focus:not(:focus-visible)::part(input-field),
+vaadin-integer-field:focus:not(:focus-visible)::part(input-field) {
     outline: none;
     box-shadow: none;
 }
 
-/* Provide focus-visible styles only for keyboard users */
-vaadin-button:focus-visible::part(button) {
-    outline: 2px solid rgba(78, 97, 155, 0.5);
+/* Keyboard focus ring on every interactive Vaadin part, including the side-nav link and the
+   drawer toggle. */
+vaadin-button:focus-visible::part(button),
+vaadin-text-field:focus-visible::part(input-field),
+vaadin-text-area:focus-visible::part(input-field),
+vaadin-date-picker:focus-visible::part(input-field),
+vaadin-integer-field:focus-visible::part(input-field),
+vaadin-checkbox:focus-visible::part(checkbox),
+vaadin-drawer-toggle:focus-visible::part(button),
+vaadin-side-nav-item:focus-visible::part(link),
+vaadin-tab:focus-visible,
+vaadin-grid:focus-visible::part(cell) {
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
 }
 
@@ -236,8 +321,11 @@ h1, h2, h3, h4, h5, h6 {
     backdrop-filter: blur(10px);
 }
 
+/* Pale gold, not the fill: on the header band the fill measured 2.61:1, under the 3:1 that
+   1.4.11 asks of a control's icon - and below 769px this toggle is the only way to reach
+   navigation at all. */
 .app-header vaadin-drawer-toggle {
-    color: var(--button-color-hover);
+    color: var(--highlight-text);
     transition: color var(--transition-fast), transform var(--transition-fast);
     -webkit-tap-highlight-color: transparent !important;
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
@@ -245,54 +333,46 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .app-header vaadin-drawer-toggle:hover {
-    color: var(--button-color-hover);
+    color: var(--focus-ring);
     transform: translateY(-1px);
 }
 
 .app-header vaadin-drawer-toggle:active {
-    color: var(--button-color-active);
+    color: var(--highlight-text);
     transform: translateY(0);
 }
 
-/* Extremely aggressive focus outline removal for Chrome Android */
-.app-header vaadin-drawer-toggle:focus,
+/* Suppress the toggle's pointer focus decoration. Every selector here is scoped with
+   :not(:focus-visible) so it cannot swallow the keyboard ring. */
+.app-header vaadin-drawer-toggle:focus:not(:focus-visible),
 .app-header vaadin-drawer-toggle:active,
-.app-header vaadin-drawer-toggle:focus-within,
-.app-header vaadin-drawer-toggle[focus-ring],
-.app-header vaadin-drawer-toggle[focused] {
+.app-header vaadin-drawer-toggle:focus-within:not(:has(:focus-visible)),
+.app-header vaadin-drawer-toggle[focus-ring]:not(:focus-visible),
+.app-header vaadin-drawer-toggle[focused]:not(:focus-visible) {
     outline: none !important;
     box-shadow: none !important;
     border: none !important;
     -webkit-tap-highlight-color: transparent !important;
 }
 
-/* Force override on shadow DOM button part */
-.app-header vaadin-drawer-toggle::part(button) {
+.app-header vaadin-drawer-toggle:not(:focus-visible)::part(button) {
     outline: none !important;
     box-shadow: none !important;
 }
 
-/* Chrome Android specific - touch devices only */
+.app-header vaadin-drawer-toggle:focus-visible::part(button) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+/* Touch: no ring from a tap. :focus-visible deliberately left alone. */
 @media (hover: none) and (pointer: coarse) {
-    .app-header vaadin-drawer-toggle:focus,
-    .app-header vaadin-drawer-toggle[focus-ring],
-    .app-header vaadin-drawer-toggle[focused] {
+    .app-header vaadin-drawer-toggle:focus:not(:focus-visible),
+    .app-header vaadin-drawer-toggle[focus-ring]:not(:focus-visible),
+    .app-header vaadin-drawer-toggle[focused]:not(:focus-visible) {
         outline: none !important;
         box-shadow: none !important;
         -webkit-tap-highlight-color: transparent !important;
-    }
-
-    /* Disable focus-visible on touch devices */
-    .app-header vaadin-drawer-toggle:focus-visible {
-        outline: none !important;
-    }
-}
-
-/* Only show focus for keyboard navigation on desktop */
-@media (hover: hover) and (pointer: fine) {
-    .app-header vaadin-drawer-toggle:focus-visible {
-        outline: 2px solid rgba(78, 97, 155, 0.5);
-        outline-offset: 2px;
     }
 }
 
@@ -408,8 +488,11 @@ vaadin-side-nav-item[selected] {
     padding-left: 8px;
 }
 
+/* This rule is document-level and the component theme's :host([selected])::part(link) lives in the
+   shadow tree, so for a non-!important declaration this one wins. Both therefore have to agree on
+   the ink, or the component file's contrast fix would simply be overridden from here. */
 vaadin-side-nav-item[selected]::part(link) {
-    color: var(--accent-contrast);
+    color: var(--button-color-contrast);
     font-weight: 500;
 }
 
@@ -441,8 +524,11 @@ vaadin-side-nav-item[selected]::part(link) {
     box-shadow: 0 6px 16px rgba(78, 97, 155, 0.3), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
+/* The figure is the whole point of the card, so it gets the readable indigo. The fill
+   (--accent-hover) measured 1.48:1 here - the worst contrast anywhere in the app, on the
+   dashboard's headline number. */
 .card--highlight .card__value {
-    color: var(--accent-hover);
+    color: var(--accent-text);
 }
 
 /* Stat card value. Fluid between narrow cards and the desktop size - the upper bound is the
@@ -561,7 +647,13 @@ vaadin-button[theme~="primary"]:active {
 
 vaadin-button {
     border-radius: var(--lumo-border-radius-m);
-    transition: all var(--transition-fast);
+    /* Enumerated rather than `all`: `all` also animates layout properties, so any width, padding
+       or font change on a button state would animate through a reflow. */
+    transition: background-color var(--transition-fast),
+                color var(--transition-fast),
+                border-color var(--transition-fast),
+                box-shadow var(--transition-fast),
+                transform var(--transition-fast);
 }
 
 /* Date Badges */
@@ -590,7 +682,7 @@ vaadin-text-area::part(input-field),
 vaadin-date-picker::part(input-field),
 vaadin-integer-field::part(input-field) {
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--control-border);
     border-radius: var(--lumo-border-radius-m);
     transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
@@ -600,7 +692,7 @@ vaadin-text-area:hover::part(input-field),
 vaadin-date-picker:hover::part(input-field),
 vaadin-integer-field:hover::part(input-field) {
     background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--control-border-hover);
 }
 
 /* Use highlight color for focused/selected input fields */
@@ -662,7 +754,7 @@ vaadin-checkbox::part(checkbox) {
     min-width: 18px;
     min-height: 18px;
     border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--control-border);
     background: transparent;
     transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -687,9 +779,8 @@ vaadin-checkbox[disabled]::part(checkbox) {
     border-color: rgba(255, 255, 255, 0.04);
 }
 
-/* Override focused state for checkbox group labels to maintain secondary text color */
-vaadin-checkbox-group[focused]::part(label),
-:host([focused]):not([readonly]) [part="label"] {
+/* Override focused state for checkbox group labels to maintain secondary text color. */
+vaadin-checkbox-group[focused]::part(label) {
     color: var(--lumo-secondary-text-color) !important;
 }
 
@@ -720,7 +811,7 @@ vaadin-overlay[theme~="date-picker-overlay"] {
 vaadin-date-picker-overlay vaadin-button,
 vaadin-overlay[theme~="date-picker-overlay"] vaadin-button,
 vaadin-date-picker-overlay ::slotted(vaadin-button) {
-    color: var(--button-color-hover);
+    color: var(--highlight-text);
     font-weight: 600;
     border-radius: var(--lumo-border-radius-m);
     border: none;
@@ -755,7 +846,7 @@ vaadin-notification-card {
 }
 
 vaadin-notification-card[theme~="warning"] {
-    background: rgba(255, 152, 0, 0.15);
+    background: var(--warning-surface);
 }
 
 /* Charts */
@@ -767,43 +858,72 @@ vaadin-notification-card[theme~="warning"] {
     box-shadow: var(--lumo-box-shadow-xs);
 }
 
-/* Highcharts - ensure text shown on bar charts (data labels and inside SVG text) uses the accent-active color */
-.highcharts-data-label, /* container */
-.highcharts-data-label text, /* svg text element */
-.highcharts-data-label tspan, /* svg tspan inside text */
-.highcharts-point-label, /* legacy point label class */
-.highcharts-data-labels .highcharts-data-label-box + text,
-.highcharts-data-labels .highcharts-data-label-box + tspan {
-    fill: var(--accent-active) !important; /* SVG text color */
-    color: var(--accent-active) !important; /* fallback for non-SVG text */
-    stroke: none !important;
+/* --- Macro split bar (Rolling Averages) ---------------------------------- */
+
+.macro-bar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: 100%;
+    height: 60px;
+    border-radius: var(--lumo-border-radius-m);
+    overflow: hidden;
 }
 
-/* Also apply to stacked/column/bar data labels rendered with class names starting with highcharts- */
-.highcharts-series .highcharts-data-label,
-.highcharts-series .highcharts-data-label text {
-    fill: var(--accent-active) !important;
-    color: var(--accent-active) !important;
+/* min-width: 0 is what actually lets a segment shrink to its flex basis. */
+.macro-bar__segment {
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0.25rem;
 }
 
-/* Axis labels, tick labels, legend and titles */
-.highcharts-axis-labels text,
-.highcharts-axis-title text,
-.highcharts-xaxis-labels text,
-.highcharts-yaxis-labels text,
-.highcharts-legend text,
-.highcharts-title text,
-.highcharts-subtitle text,
-.highcharts-tooltip text,
-.highcharts-label text {
-    fill: var(--accent-active) !important;
-    color: var(--accent-active) !important;
+.macro-bar__label {
+    max-width: 100%;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
 }
 
-/* Also ensure exported SVGs include the color */
-svg .highcharts-label, svg .highcharts-data-label, svg .highcharts-legend {
-    color: var(--accent-active) !important;
-    fill: var(--accent-active) !important;
+/* Shown only when a segment is too narrow to name itself, so nothing the bar cannot say is lost. */
+.macro-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem 1rem;
+    margin-top: 0.625rem;
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+
+.macro-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+.macro-legend__swatch {
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    /* The 3px step, same as the weekday bars - the smallest rung on the radius ladder, and the
+       right one for a mark this size. */
+    border-radius: 3px;
+}
+
+.macro-legend__value {
+    color: var(--lumo-body-text-color);
+    font-variant-numeric: tabular-nums;
 }
 
 /* Grid */
@@ -854,7 +974,9 @@ vaadin-tab {
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast),
+                border-color var(--transition-fast);
     color: var(--lumo-secondary-text-color);
     background-color: transparent !important;
 }
@@ -865,11 +987,12 @@ vaadin-tab::after {
 }
 
 vaadin-tab:hover {
-    color: var(--button-color-hover);
+    color: var(--highlight-text);
 }
 
 vaadin-tab[selected] {
-    color: var(--highlight);
+    /* Text variant; the 2px rule below keeps the full-strength gold as a fill. */
+    color: var(--highlight-text);
     background-color: transparent !important;
     border-bottom: 2px solid var(--highlight);
 }
@@ -883,34 +1006,39 @@ vaadin-tab-sheet::part(tabs) {
     background-color: transparent;
 }
 
-/* Nutrient-specific colors */
+/* Nutrient-specific colors.
+   These utilities set TEXT color, so they use the -text variants. The raw fills stay available
+   as --nutrient-* for bars, chart series and dots, where the 3:1 non-text threshold applies. */
 .nutrient-calories {
-    color: var(--nutrient-calories);
+    color: var(--nutrient-calories-text);
 }
 
 .nutrient-fat {
-    color: var(--nutrient-fat);
+    color: var(--nutrient-fat-text);
 }
 
 .nutrient-carbs {
-    color: var(--nutrient-carbs);
+    color: var(--nutrient-carbs-text);
 }
 
 .nutrient-sugar {
-    color: var(--nutrient-sugar);
+    color: var(--nutrient-sugar-text);
 }
 
 .nutrient-protein {
-    color: var(--nutrient-protein);
+    color: var(--nutrient-protein-text);
 }
 
 .nutrient-fibre {
-    color: var(--nutrient-fibre);
+    color: var(--nutrient-fibre-text);
 }
 
-/* Utility Classes */
+/* Utility Classes.
+   The two text utilities resolve to the -text variants: as raw fills they measured 1.3:1 and
+   2.3:1, so any future use of them would have shipped unreadable text. bg-accent keeps the
+   fill, because that is what a background is. */
 .text-accent {
-    color: var(--accent) !important;
+    color: var(--accent-text) !important;
 }
 
 .bg-accent {
@@ -918,16 +1046,18 @@ vaadin-tab-sheet::part(tabs) {
 }
 
 .text-highlight {
-    color: var(--highlight) !important;
+    color: var(--highlight-text) !important;
 }
 
-/* Override Lumo text color utilities */
+/* Override Lumo text color utilities. Text variants, not the raw fills: #3f908c measures
+   2.09:1 and #9a4b55 measures 1.31:1 as text on a card - the error state was the least
+   readable text in the app. */
 .text-success {
-    color: #3f908c !important;
+    color: var(--green-accent-text) !important;
 }
 
 .text-error {
-    color: #9a4b55 !important;
+    color: var(--red-accent-text) !important;
 }
 
 /* For Layout Padding */
@@ -948,7 +1078,7 @@ vaadin-tab-sheet::part(tabs) {
 
 ::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.15);
-    border-radius: 5px;
+    border-radius: var(--lumo-border-radius-s);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -984,7 +1114,8 @@ vaadin-tab-sheet::part(tabs) {
         --mobile-horizontal-padding: 0.5rem;
     }
 
-    .cards-grid, .cards-container, .health-cards-container {
+    /* .cards-container was also listed here; no Java view ever applied that class. */
+    .cards-grid {
         padding-left: var(--mobile-horizontal-padding);
         padding-right: var(--mobile-horizontal-padding);
         box-sizing: border-box;
@@ -1085,7 +1216,6 @@ vaadin-tab-sheet::part(tabs) {
     .trend-view,
     .data-export-view,
     .correlation-view,
-    .migration-view,
     .settings-view {
         padding: var(--mobile-horizontal-padding) !important;
     }
@@ -1095,14 +1225,17 @@ vaadin-tab-sheet::part(tabs) {
         overflow-x: hidden;
     }
 
-    vaadin-horizontal-layout {
+    /* Stacking is opt-in: a row stays a row unless it asks to stack. `.query-filter-row` asks by
+       name: a row of date pickers and a load button genuinely belongs in a column on a phone. */
+    vaadin-horizontal-layout.query-filter-row,
+    vaadin-horizontal-layout.stacks-on-mobile,
+    .stacks-on-mobile {
         flex-direction: column !important;
     }
 
     /* Weekday distribution rows must stay horizontal - stacking them turns each bar into a
        content-width sliver that no longer encodes its value. */
     vaadin-horizontal-layout.weekday-row {
-        flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
     }
@@ -1129,9 +1262,7 @@ vaadin-tab-sheet::part(tabs) {
         content: none;
     }
 
-    /* Keep keyword input rows horizontal on mobile */
     vaadin-horizontal-layout.keyword-input-row {
-        flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
     }
@@ -1154,20 +1285,11 @@ vaadin-tab-sheet::part(tabs) {
         box-sizing: border-box;
     }
 
-    /* Keep preset buttons in 2-column layout even on mobile */
+    /* Preset buttons wrap into a grid rather than running off the edge. */
     vaadin-horizontal-layout.preset-buttons-container {
-        flex-direction: row !important;
         flex-wrap: wrap !important;
         justify-content: flex-start !important;
         align-items: stretch !important;
-    }
-
-    vaadin-horizontal-layout.amount-date-row {
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        justify-content: flex-start !important;
-        align-items: center !important;
-        white-space: nowrap !important;
     }
 
     vaadin-button {
@@ -1221,6 +1343,23 @@ vaadin-tab-sheet::part(tabs) {
     .card--highlight:hover,
     vaadin-button:hover {
         transform: none !important;
+    }
+
+    /* Reduced motion means no vestibular movement, not no feedback: the export ledger's entrance
+       is the app telling the user their export finished, so it keeps a fade while dropping the
+       4px slide. The selector is a class, so it outranks the universal rule above even though
+       both are !important. */
+    .export-result {
+        animation: exportResultInReduced 120ms ease-out !important;
+    }
+}
+
+@keyframes exportResultInReduced {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
     }
 }
 
@@ -1328,6 +1467,58 @@ vaadin-progress-bar::part(indeterminate) {
     }
 }
 
+/* Pending state, added client-side on click so it paints during the blocking request rather than
+   after it. The ledger's own children are hidden and a single line takes their place, so a re-run
+   does not show the previous result while the new one is being fetched. */
+.export-result--pending > * {
+    display: none;
+}
+
+.export-result--pending::before {
+    content: "Exporting…";
+    display: block;
+    font-size: var(--lumo-font-size-s);
+    font-weight: 600;
+    color: var(--lumo-secondary-text-color);
+    font-variant-numeric: tabular-nums;
+}
+
+/* A single indeterminate sweep rather than a spinner: the server cannot report progress during
+   the request, so anything implying a percentage would be inventing one. */
+.export-result--pending::after {
+    content: "";
+    display: block;
+    height: 2px;
+    margin-top: 0.5rem;
+    border-radius: var(--lumo-border-radius-s);
+    background: linear-gradient(90deg,
+        transparent 0%,
+        var(--button-color) 50%,
+        transparent 100%);
+    background-size: 40% 100%;
+    background-repeat: no-repeat;
+    animation: exportPendingSweep 1.1s ease-in-out infinite;
+}
+
+@keyframes exportPendingSweep {
+    from {
+        background-position: -40% 0;
+    }
+    to {
+        background-position: 140% 0;
+    }
+}
+
+/* The sweep is the one thing on screen saying the app is still working, so under reduced motion
+   it holds still and stays visible rather than being animated to a stop mid-sweep. */
+@media (prefers-reduced-motion: reduce) {
+    .export-result--pending::after {
+        animation: none !important;
+        background-size: 100% 100%;
+        opacity: 0.5;
+    }
+}
+
 /* A second status line (failures under successes) needs air above it. */
 .export-result__chips + .export-result__status {
     margin-top: 0.375rem;
@@ -1368,12 +1559,12 @@ vaadin-progress-bar::part(indeterminate) {
     font-variant-numeric: tabular-nums;
 }
 
-/* Deliberately not --lumo-secondary-text-color: at 12px that token lands under 4:1 on the card
-   surface. 0.72 stays quieter than the status label and still clears AA. */
+/* Quieter than the status label, and independent of the secondary token so it cannot drift.
+   0.75 clears AA against both the top and bottom of the canvas gradient. */
 .export-result__time {
     margin-left: auto;
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.72);
+    color: rgba(255, 255, 255, 0.75);
     font-variant-numeric: tabular-nums;
 }
 
@@ -1396,27 +1587,28 @@ vaadin-progress-bar::part(indeterminate) {
     white-space: nowrap;
 }
 
+/* Chip text is measured against the chip's own tinted background, not the card. */
 .export-chip--ok {
     background: rgba(63, 144, 140, 0.16);
     border: 1px solid rgba(63, 144, 140, 0.3);
-    color: #9ad6d1;
+    color: #b4e4df;
 }
 
 .export-chip--failed {
     background: rgba(154, 75, 85, 0.18);
     border: 1px solid rgba(154, 75, 85, 0.35);
-    color: #f2c4c9;
+    color: #f5d0d4;
 }
 
 .export-result__more {
     font-size: 0.75rem;
-    color: var(--button-color-hover);
+    color: var(--highlight-text);
     padding: 0 4px;
     min-height: 0;
 }
 
 .export-result__more:hover {
-    color: var(--highlight);
+    color: var(--focus-ring);
 }
 
 @media (max-width: 576px) {
@@ -1438,4 +1630,282 @@ vaadin-progress-bar::part(indeterminate) {
         min-height: 44px;
         padding: 0 8px;
     }
+}
+
+/* --- Keyword pills (Correlation Analysis) --------------------------------
+   Interactive filter tokens: a keyword plus a control to drop it. Same silhouette as
+   .export-chip; they stay a step larger because unlike a status chip they contain a button. */
+.keyword-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--lumo-border-radius-pill, 999px);
+    font-size: 0.875rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    /* Both fills below are chosen to carry white: --green-accent-pill is the darkened step that
+       exists precisely for a white label, and --red-accent clears 5.98:1 unaided. */
+    color: var(--accent-contrast);
+}
+
+.keyword-pill--include {
+    background-color: var(--green-accent-pill);
+}
+
+.keyword-pill--exclude {
+    background-color: var(--red-accent);
+}
+
+.keyword-pill__label {
+    line-height: 1.2;
+}
+
+/* The glyph stays 18px - it sits inside a pill and cannot grow - so the touch target is extended
+   past the button's own box rather than by resizing it. Sizing lives here rather than inline so
+   the mobile `vaadin-button { width: 100% }` rule loses to it on specificity instead of on the
+   inline-style escape hatch. */
+.keyword-pill__remove {
+    position: relative;
+    min-width: 0;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin: 0 0 0 -0.125rem;
+    color: inherit;
+    cursor: pointer;
+    --lumo-button-size: 18px;
+}
+
+@media (pointer: coarse) {
+    .keyword-pill__remove::after {
+        content: "";
+        position: absolute;
+        /* 18px glyph + 13px on each side = a 44px target. */
+        inset: -13px;
+    }
+}
+
+/* ==========================================================================
+   Header, drawer and dashboard layout overrides
+   --------------------------------------------------------------------------
+   Several declarations below carry !important though source order alone would resolve the
+   cascade; each remaining !important is a candidate for removal once someone can verify the
+   rendered result is unaffected.
+   ========================================================================== */
+
+/* Selection is allowed by default and switched off only on the controls that should never be
+   selectable - see the button/link/tab rule in the Focus policy section. A diary you cannot
+   copy out of is the wrong default for this product. */
+body,
+#outlet {
+    height: 100vh;
+    width: 100%;
+    margin: 0;
+    /* iOS momentum scrolling. */
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+}
+
+/* A global 44px floor, wider than the 576px-scoped rule earlier in this file: this one
+   applies on desktop too. */
+button,
+vaadin-button,
+a {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* 16px is the threshold below which iOS Safari zooms the viewport on input focus. */
+input,
+select,
+textarea {
+    font-size: 16px;
+}
+
+/* ViewUtils.createCardsGrid sets display, gap and grid-template-columns as inline styles,
+   which outrank this stylesheet. align-items is not set inline, so it is the one property
+   this rule can still affect.
+
+   Cards stretch to the row height (the grid default, restated here because it is the
+   load-bearing half of the pair below): a row of stat cards is a set of equivalent readings,
+   so one card wrapping to a second line - a long date, MongoDB's extra detail row - must not
+   leave its neighbours as short boxes hanging from the top rule. */
+.dashboard-view .cards-grid {
+    align-items: stretch;
+    /* align-items equalises a card against its own row; grid-auto-rows equalises the rows against
+       each other, so a section still reads as one block of equal tiles after auto-fit wraps it -
+       on a phone that is three health cards over two rows, and six stat cards over three. 1fr on
+       an implicit row resolves to minmax(auto, 1fr): the tallest content still sets the height,
+       it is only shared out from there. */
+    grid-auto-rows: 1fr;
+}
+
+/* System Health card. The default is the stacked card the other dashboard sections use - glyph
+   over label over status - and these three rules reproduce exactly what the inline styles they
+   replaced did, so the wide layout is unchanged. The phone breakpoint further down is the reason
+   they are classes at all. */
+.health-card__glyph {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.health-card__text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.health-card__status,
+.health-card__detail {
+    width: 100%;
+    text-align: center;
+}
+
+/* Below the phone breakpoint the auto-fit grid gives System Health two columns, and the section
+   renders an odd number of cards more often than not - the three components are added
+   conditionally, so it is 1, 2 or 3 depending on what the actuator reports. An odd count left the
+   last card alone on its row beside an empty half slot.
+
+   So on a phone the section stops being a grid of tiles and becomes a list of ledger lines, one
+   per row: glyph, then the label with its status pushed to the far right and the detail beneath
+   them. That is the Export Result Ledger silhouette applied to health, it closes the hole for any
+   card count rather than for three specifically, and it costs less height than the two-column form
+   it replaces - 222px against 354px, measured on a 375px viewport - which matters most on the
+   surface with the least vertical room. */
+@media (max-width: 576px) {
+    /* createCardsGrid writes grid-template-columns inline, hence the override. */
+    .dashboard-view .health-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* The 120px floor further up this file keeps a *tile* from collapsing to nothing. A ledger
+       line is a different silhouette and would be all air at that height, so it opts out and is
+       sized by its content - which is what takes the section from 384px to 222px. */
+    .dashboard-view .health-grid .card {
+        min-height: 0;
+        padding: 12px 14px;
+    }
+
+    /* VerticalLayout sets its column direction and its centring inline. */
+    .health-card__body {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0.875rem;
+        width: 100%;
+    }
+
+    .health-card__glyph {
+        margin-bottom: 0;
+        flex: 0 0 auto;
+    }
+
+    /* Name and status share the first line, details take their own full-width lines below. */
+    .health-card__text {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: baseline;
+        column-gap: 0.75rem;
+        row-gap: 0.125rem;
+        flex: 1;
+        min-width: 0; /* the details wrap instead of forcing the row wider than the card */
+    }
+
+    .health-card__text > .label-small {
+        flex: 1 1 auto; /* takes the slack, which is what pushes the status to the right edge */
+    }
+
+    .health-card__status {
+        flex: 0 0 auto;
+        width: auto;
+        text-align: right;
+    }
+
+    .health-card__detail {
+        flex: 0 0 100%;
+        text-align: left;
+    }
+}
+
+.dashboard-view .card {
+    min-width: 0; /* lets the grid shrink cards below their content width */
+    max-width: 100%;
+    box-sizing: border-box;
+    /* The other half: once a card is taller than its own content, that content is centred in
+       the slack rather than pinned to the top. Applies to both card shapes on this view - the
+       stat cards, whose title/figure/subtitle are direct children, and the health and peak
+       cards, which wrap their contents in a single VerticalLayout child. */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* MainLayout writes its own grid-template-columns inline (2.5rem 1fr 2.5rem), so the
+   track sizing below is inert except inside the portrait query further down, which
+   carries !important. */
+.app-header {
+    display: grid;
+    grid-template-columns: 3rem 1fr 3rem;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* NOTE: `transform: none !important` here outranks the drawer toggle's hover lift
+   defined earlier in this file, so that hover animation currently never plays. */
+.app-header vaadin-drawer-toggle {
+    position: relative !important;
+    justify-self: start !important;
+    align-self: center !important;
+    left: unset !important;
+    transform: none !important;
+    width: auto !important;
+    margin-left: 0.25rem !important;
+    z-index: 10;
+}
+
+.app-header .app-title {
+    justify-self: center;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 6rem); /* reserves the left and right header columns */
+}
+
+/* Note the space before ::part(navbar): this matches a part of a nested shadow host rather
+   than vaadin-app-layout's own navbar, which is probably not what was intended, but closing
+   the space would make an inert rule live - so it stays until someone can check the rendered
+   header. */
+vaadin-app-layout ::part(navbar) {
+    display: block;
+}
+
+@media (max-width: 640px) {
+    .dashboard-view .card {
+        padding: 0.5rem !important;
+    }
+
+    .dashboard-view h2 {
+        font-size: 1.15rem;
+    }
+}
+
+@media (orientation: portrait) and (max-width: 640px) {
+    .app-header {
+        grid-template-columns: 3rem 1fr 3rem !important;
+    }
+
+    .app-header .app-title {
+        max-width: calc(100% - 6rem);
+    }
+}
+
+.preset-btn {
+    flex: 1 1 calc(50% - 0.25rem) !important;
+    min-width: calc(50% - 0.25rem) !important;
+    max-width: calc(50% - 0.25rem) !important;
+    box-sizing: border-box !important;
 }

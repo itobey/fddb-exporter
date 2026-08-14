@@ -21,7 +21,11 @@ public class MainLayout extends AppLayout {
 
     private static final String ICON_SIZE = "32px";
     private static final String TOGGLE_WIDTH = "2.5rem";
-    private static final String ICON_PATH = "/icons/icon.png";
+    // The 192px variant, not icon.png: both render into a 32px box, but icon.png is 114 KB
+    // against 24 KB here, and 192 still oversamples a 32px slot at 3x device pixel ratio.
+    // AppShell keeps pointing @PWA at icon.png, which is the installable icon and a
+    // different job from this one.
+    private static final String ICON_PATH = "/icons/icon-192x192.png";
 
     private final String appVersion;
     private final VersionCheckService versionCheckService;
@@ -43,7 +47,9 @@ public class MainLayout extends AppLayout {
         logo.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);
         logo.addClassName("app-title");
 
-        Image headerIcon = new Image(ICON_PATH, "FDDB Exporter");
+        // Decorative: the logo sits directly beside the visible "FDDB Exporter" title, so a
+        // matching alt would make a screen reader announce the name twice.
+        Image headerIcon = new Image(ICON_PATH, "");
         headerIcon.setHeight(ICON_SIZE);
         headerIcon.setWidth(ICON_SIZE);
         headerIcon.getStyle().set("object-fit", "contain");
@@ -89,7 +95,8 @@ public class MainLayout extends AppLayout {
                 .set("font-size", "1.25rem")
                 .set("font-weight", "600");
 
-        Image appIcon = new Image(ICON_PATH, "FDDB Exporter");
+        // Decorative, same reason as the header icon: the drawer title carries the name.
+        Image appIcon = new Image(ICON_PATH, "");
         appIcon.setHeight(ICON_SIZE);
         appIcon.setWidth(ICON_SIZE);
         appIcon.getStyle().set("object-fit", "contain").set("margin-right", "0.5rem");
@@ -130,7 +137,7 @@ public class MainLayout extends AppLayout {
         if (latestVersion.isPresent()) {
             Icon updateIcon = VaadinIcon.ARROW_CIRCLE_UP.create();
             updateIcon.setSize("14px");
-            updateIcon.getStyle().set("color", "#3f908c");
+            updateIcon.getStyle().set("color", "var(--green-accent-text)");
 
             Optional<String> releaseUrl = versionCheckService.getReleaseUrl();
             if (releaseUrl.isPresent()) {
@@ -138,7 +145,7 @@ public class MainLayout extends AppLayout {
                 updateLink.setTarget("_blank");
                 updateLink.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
                 updateLink.getStyle()
-                        .set("color", "#3f908c")
+                        .set("color", "var(--green-accent-text)")
                         .set("text-decoration", "none")
                         .set("display", "flex")
                         .set("align-items", "center")
@@ -155,7 +162,7 @@ public class MainLayout extends AppLayout {
                 updateLayout.setAlignItems(FlexComponent.Alignment.CENTER);
                 updateLayout.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
                 updateLayout.getStyle()
-                        .set("color", "#3f908c")
+                        .set("color", "var(--green-accent-text)")
                         .set("gap", "0.25rem")
                         .set("white-space", "nowrap")
                         .set("margin-left", "0.5rem");

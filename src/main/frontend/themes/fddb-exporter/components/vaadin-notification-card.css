@@ -7,13 +7,14 @@
     --lumo-success-color: #3f908c;
     --lumo-success-color-50pct: rgba(63, 144, 140, 0.5);
     --lumo-success-color-10pct: rgba(63, 144, 140, 0.1);
-    --lumo-success-text-color: #3f908c;
+    /* Lifted variant, matching document.css - the raw fill is a background colour, not a text one. */
+    --lumo-success-text-color: var(--green-accent-text, #bad7d6);
     --lumo-success-contrast-color: #ffffff;
 
     --lumo-error-color: #9a4b55;
     --lumo-error-color-50pct: rgba(154, 75, 85, 0.5);
     --lumo-error-color-10pct: rgba(154, 75, 85, 0.1);
-    --lumo-error-text-color: #9a4b55;
+    --lumo-error-text-color: var(--red-accent-text, #e3cdcf);
     --lumo-error-contrast-color: #ffffff;
 }
 
@@ -30,5 +31,7 @@
 }
 
 :host([theme~="warning"]) {
-    background-color: rgba(255, 152, 0, 0.15);
+    background-color: var(--warning-surface, rgba(220, 165, 100, 0.15));
+    border: 1px solid var(--lumo-warning-color, #dca564) !important;
+    color: #ffffff;
 }

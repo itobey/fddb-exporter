@@ -121,8 +121,8 @@ public class CorrelationView extends VerticalLayout {
         datesSection.getStyle()
                 .set("padding", "0.75rem")
                 .set("border-radius", "8px")
-                .set("background", "rgba(78, 97, 155, 0.08)")
-                .set("border", "1px solid rgba(78, 97, 155, 0.2)");
+                .set("background", "var(--accent-surface)")
+                .set("border", "1px solid var(--accent-surface-border)");
 
         H4 datesTitle = new H4("📅 Occurrence Dates");
         datesTitle.getStyle().set("margin", "0");
@@ -171,8 +171,8 @@ public class CorrelationView extends VerticalLayout {
         section.getStyle()
                 .set("padding", "0.75rem")
                 .set("border-radius", "8px")
-                .set("background", "rgba(78, 97, 155, 0.08)")
-                .set("border", "1px solid rgba(78, 97, 155, 0.2)");
+                .set("background", "var(--accent-surface)")
+                .set("border", "1px solid var(--accent-surface-border)");
 
         H4 sectionTitle = new H4(title);
         sectionTitle.getStyle().set("margin", "0");
@@ -266,47 +266,23 @@ public class CorrelationView extends VerticalLayout {
         }
     }
 
+    /**
+     * A keyword token with a control to drop it. Everything visual lives in the theme under
+     * {@code .keyword-pill}; only the include/exclude variant is decided here.
+     */
     private Div createPill(String text, Runnable onRemove, boolean isInclusion) {
         Div pill = new Div();
-        pill.addClassNames(LumoUtility.Display.FLEX, LumoUtility.AlignItems.CENTER);
-
-        if (isInclusion) {
-            pill.getStyle()
-                    .set("background-color", "#3f908c")
-                    .set("color", "#ffffff");
-        } else {
-            pill.getStyle()
-                    .set("background-color", "#9a4b55")
-                    .set("color", "#ffffff");
-        }
-
-        pill.getStyle()
-                .set("padding", "0.25rem 0.625rem")
-                .set("border-radius", "16px")
-                .set("gap", "0.375rem")
-                .set("font-size", "0.875rem")
-                .set("white-space", "nowrap")
-                .set("height", "auto")
-                .set("line-height", "1.2")
-                .set("display", "inline-flex")
-                .set("align-items", "center");
+        pill.addClassNames("keyword-pill", isInclusion ? "keyword-pill--include" : "keyword-pill--exclude");
 
         Span label = new Span(text);
-        label.getStyle()
-                .set("line-height", "1.2")
-                .set("padding", "0");
+        label.addClassName("keyword-pill__label");
 
         Button removeBtn = new Button(new Icon(VaadinIcon.CLOSE_SMALL));
         removeBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_CONTRAST, ButtonVariant.LUMO_SMALL);
-        removeBtn.getStyle()
-                .set("min-width", "0")
-                .set("padding", "0")
-                .set("margin", "0 0 0 -0.125rem")
-                .set("color", "inherit")
-                .set("height", "18px")
-                .set("width", "18px")
-                .set("cursor", "pointer");
-        removeBtn.getElement().getStyle().set("--lumo-button-size", "18px");
+        removeBtn.addClassName("keyword-pill__remove");
+        // The icon carries no text, so the button needs a name of its own; without it a screen
+        // reader announces only "button" for every pill in the row.
+        removeBtn.setAriaLabel("Remove " + text);
         removeBtn.addClickListener(e -> onRemove.run());
 
         pill.add(label, removeBtn);
@@ -445,7 +421,7 @@ public class CorrelationView extends VerticalLayout {
         percentageSpan.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
 
         if (detail.getPercentage() >= 70) {
-            percentageSpan.getStyle().set("color", "#3f908c");
+            percentageSpan.getStyle().set("color", "var(--green-accent-text)");
         } else if (detail.getPercentage() >= 40) {
             percentageSpan.addClassNames(LumoUtility.TextColor.WARNING);
         }
@@ -493,8 +469,12 @@ public class CorrelationView extends VerticalLayout {
     }
 
     private Button createCopyButton() {
-        Button copyButton = new Button("📋");
+        // A drawn icon, not an emoji: every other icon control in the app comes from VaadinIcon.
+        // The accessible name is set explicitly below; the tooltip supplies aria-describedby,
+        // which supplements a name but cannot be one.
+        Button copyButton = new Button(new Icon(VaadinIcon.COPY));
         copyButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        copyButton.setAriaLabel("Copy results as JSON");
         copyButton.setTooltipText("Copy results as JSON");
         copyButton.addClickListener(e -> copyResultsToClipboard());
         copyButton.getStyle().set("cursor", "pointer");

@@ -7,7 +7,11 @@
 :host([aria-current="true"])::part(link),
 :host([aria-selected="true"])::part(link) {
     background: rgba(174, 147, 87, 0.85);
-    color: #ffffff;
+    /* Dark ink, not white. White on this fill blends to 3.48:1 over the drawer gradient, and at
+       600 weight / 16px this is not large text, so it failed 1.4.3 - on the label naming the page
+       the user is currently on. Same fix the theme already applies to the primary button: move the
+       ink rather than dull the gold. This step measures 4.72:1 on the blended fill. */
+    color: var(--button-color-contrast, #241f12);
     font-weight: 600 !important;
     padding-left: 8px !important;
     border-top-right-radius: var(--lumo-border-radius-m) !important;

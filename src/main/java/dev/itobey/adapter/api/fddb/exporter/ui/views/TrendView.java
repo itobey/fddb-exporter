@@ -37,7 +37,9 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 public class TrendView extends VerticalLayout {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final String HIGHLIGHT_COLOR = "#ae9357";
+    // Two steps of the same identity: the fill draws the average line, the text variant labels it.
+    private static final String HIGHLIGHT_FILL = "var(--highlight)";
+    private static final String HIGHLIGHT_TEXT = "var(--highlight-text)";
     private static final String CHART_HEIGHT = "260px";
     private static final int INLINE_GRID_ROWS = 15;
 
@@ -158,7 +160,7 @@ public class TrendView extends VerticalLayout {
         button.getStyle()
                 .set("flex", "1 1 calc(50% - 0.25rem)")
                 .set("min-width", "calc(50% - 0.25rem)")
-                .set("color", HIGHLIGHT_COLOR);
+                .set("color", HIGHLIGHT_TEXT);
         return button;
     }
 
@@ -198,7 +200,11 @@ public class TrendView extends VerticalLayout {
                     granularity);
 
             displayResult(points, metric, granularity);
-            resultDiv.getElement().executeJs("this.scrollIntoView({behavior: 'smooth', block: 'start'})");
+            // prefers-reduced-motion cannot be applied to a script-initiated scroll from CSS, so the
+            // theme's Reduced Motion Rule has to be honoured here explicitly.
+            resultDiv.getElement().executeJs("this.scrollIntoView({"
+                    + "behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches"
+                    + " ? 'auto' : 'smooth', block: 'start'})");
 
             if (points == null || points.isEmpty()) {
                 showError("No entries found for the selected range");
@@ -305,7 +311,7 @@ public class TrendView extends VerticalLayout {
                 .set("box-sizing", "border-box");
 
         for (TrendPointDTO point : points) {
-            plotArea.add(createBar(point, max, unit));
+            plotArea.add(createBar(point, max, unit, fillOf(metric)));
         }
 
         if (max > 0) {
@@ -325,13 +331,13 @@ public class TrendView extends VerticalLayout {
 
         Span legend = new Span("┈ Average " + formatNumber(average) + " " + unit + " per logged day");
         legend.addClassNames(LumoUtility.FontSize.SMALL);
-        legend.getStyle().set("color", HIGHLIGHT_COLOR).set("margin-top", "0.5rem");
+        legend.getStyle().set("color", HIGHLIGHT_TEXT).set("margin-top", "0.5rem");
         container.add(legend);
 
         return container;
     }
 
-    private Div createBar(TrendPointDTO point, double max, String unit) {
+    private Div createBar(TrendPointDTO point, double max, String unit, String fill) {
         Div column = new Div();
         column.getStyle()
                 .set("flex", "1 1 0")
@@ -346,7 +352,7 @@ public class TrendView extends VerticalLayout {
         bar.setWidthFull();
         bar.getStyle()
                 .set("height", Math.max(heightPercentage, 1) + "%")
-                .set("background-color", "var(--accent)")
+                .set("background-color", fill)
                 .set("border-radius", "2px 2px 0 0");
         bar.getElement().setAttribute("title", point.getBucket()
                 + ": " + formatNumber(point.getAverage()) + " " + unit
@@ -363,7 +369,7 @@ public class TrendView extends VerticalLayout {
                 .set("left", "0")
                 .set("right", "0")
                 .set("bottom", ((average / max) * 100) + "%")
-                .set("border-top", "1px dashed " + HIGHLIGHT_COLOR)
+                .set("border-top", "1px dashed " + HIGHLIGHT_FILL)
                 .set("pointer-events", "none");
         return line;
     }
@@ -421,5 +427,20 @@ public class TrendView extends VerticalLayout {
 
     private static String unitOf(NutrientMetric metric) {
         return metric == NutrientMetric.CALORIES ? "kcal" : "g";
+    }
+
+    /**
+     * The nutrient identity fill of the charted metric - a bar is a mark, never text,
+     * so this consumes the fill token rather than its {@code -text} counterpart.
+     */
+    private static String fillOf(NutrientMetric metric) {
+        return switch (metric) {
+            case CALORIES -> "var(--nutrient-calories)";
+            case FAT -> "var(--nutrient-fat)";
+            case CARBS -> "var(--nutrient-carbs)";
+            case SUGAR -> "var(--nutrient-sugar)";
+            case PROTEIN -> "var(--nutrient-protein)";
+            case FIBRE -> "var(--nutrient-fibre)";
+        };
     }
 }

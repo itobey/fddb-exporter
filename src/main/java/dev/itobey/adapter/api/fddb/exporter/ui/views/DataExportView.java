@@ -99,7 +99,7 @@ public class DataExportView extends VerticalLayout {
 
         dateRangeResult = createResultContainer();
 
-        Button exportButton = createExportButton("Export Date Range", this::exportDateRange);
+        Button exportButton = createExportButton("Export Date Range", this::exportDateRange, dateRangeResult);
 
         section.add(form, exportButton, dateRangeResult);
         return section;
@@ -129,7 +129,7 @@ public class DataExportView extends VerticalLayout {
 
         daysBackResult = createResultContainer();
 
-        Button exportButton = createExportButton("Export Recent Days", this::exportDaysBack);
+        Button exportButton = createExportButton("Export Recent Days", this::exportDaysBack, daysBackResult);
 
         section.add(form, exportButton, daysBackResult);
         return section;
@@ -142,7 +142,7 @@ public class DataExportView extends VerticalLayout {
 
         yesterdayResult = createResultContainer();
 
-        Button exportButton = createExportButton("Export Yesterday", this::exportYesterday);
+        Button exportButton = createExportButton("Export Yesterday", this::exportYesterday, yesterdayResult);
 
         section.add(exportButton, yesterdayResult);
         return section;
@@ -171,26 +171,50 @@ public class DataExportView extends VerticalLayout {
         return card;
     }
 
-    private Button createExportButton(String label, Runnable action) {
+    /**
+     * The export runs on the request thread: the scrape takes roughly a second per day, and the
+     * view is blocked for the whole of it. Without server push there is no way to report progress
+     * while that happens, so the honest thing is to make the wait legible rather than to imply a
+     * granularity that does not exist. Two things fire client-side, before the round trip even
+     * starts: the button disables itself, and the card's ledger switches to a pending line.
+     *
+     * @param result the ledger belonging to this card, put into its pending state on click
+     */
+    private Button createExportButton(String label, Runnable action, Div result) {
         Button button = new Button(label);
         button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         button.addClassName("export-card__action");
-        // Greys the button out client-side the moment it is pressed, so the seconds the scrape
-        // spends blocking the request read as "working" rather than "nothing happened".
         button.setDisableOnClick(true);
         button.addClickListener(e -> {
             try {
                 action.run();
             } finally {
                 button.setEnabled(true);
+                // displayResult replaces the contents on every path, but an exception thrown
+                // before it runs would otherwise strand the pending line on screen.
+                result.getElement().getClassList().remove("export-result--pending");
             }
         });
+        // A native listener, so this paints during the request rather than after it. Attached to
+        // the result element so it can reach both nodes without a server round trip.
+        result.getElement().executeJs(
+                "const ledger = this;"
+                        + "$0.addEventListener('click', () => {"
+                        + "  ledger.classList.add('export-result--pending');"
+                        + "  ledger.hidden = false;"
+                        + "  ledger.style.display = '';"
+                        + "});",
+                button.getElement());
         return button;
     }
 
     private Div createResultContainer() {
         Div result = new Div();
         result.addClassName("export-result");
+        // The ledger is the export's actual output and it appears without moving focus, so it has
+        // to announce itself. "polite" rather than "assertive": the run has already finished, and
+        // the accompanying notification is the urgent channel.
+        result.getElement().setAttribute("aria-live", "polite");
         result.setVisible(false);
         return result;
     }
@@ -248,6 +272,7 @@ public class DataExportView extends VerticalLayout {
      */
     private void displayResult(Div resultDiv, ExportResultDTO result) {
         resultDiv.removeAll();
+        resultDiv.getElement().getClassList().remove("export-result--pending");
         resultDiv.setVisible(true);
 
         List<String> successful = result.getSuccessfulDays();
