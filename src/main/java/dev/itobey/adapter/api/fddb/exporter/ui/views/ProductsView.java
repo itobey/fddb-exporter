@@ -251,6 +251,7 @@ public class ProductsView extends VerticalLayout {
 
             int count = allOccurrences.size();
             if (count > 0) {
+                scrollIntoViewWhenSettled(summarySection);
                 showSuccess("Found " + count + " occurrences for \"" + term + "\"");
             } else {
                 summarySection.setVisible(false);
@@ -336,10 +337,22 @@ public class ProductsView extends VerticalLayout {
             return;
         }
 
+        VerticalLayout content = new VerticalLayout();
+        content.setPadding(false);
+        content.setSpacing(true);
+        content.setWidthFull();
+
+        // A heading, not a third stat card: Rolling Averages shows its range the same way, and it
+        // gives the two dates room to sit on one line instead of wrapping across three inside a
+        // 150px-wide card. It also keeps the stat-card grid at two cards, which pair up evenly on a
+        // two-column mobile row instead of leaving an odd one stranded on its own.
+        if (summary.getFirstDate() != null && summary.getLastDate() != null) {
+            content.add(createDateRangeHeading(summary));
+        }
+
         Div statCards = createCardsGrid("150px");
         statCards.add(
                 createStatCard("Times eaten", String.valueOf(summary.getTimesEaten()), "logged occurrences"),
-                createStatCard("Date range", createDateRangeValue(summary), "first ⮕ last logged"),
                 createStatCard("Ø Calories", formatNumber(summary.getAverageCalories()) + " kcal", "per occurrence")
         );
 
@@ -351,10 +364,7 @@ public class ProductsView extends VerticalLayout {
                 createNutrientCard("Protein", formatNumber(summary.getTotalProtein()), "g", "🥩", null)
         );
 
-        VerticalLayout content = new VerticalLayout(statCards, nutrientCards);
-        content.setPadding(false);
-        content.setSpacing(true);
-        content.setWidthFull();
+        content.add(statCards, nutrientCards);
 
         // Build the distribution from the loaded occurrences (the exact list the bars filter), so a
         // visible, clickable bar is always guaranteed to have matching rows.
@@ -375,24 +385,25 @@ public class ProductsView extends VerticalLayout {
     }
 
     /**
-     * Builds the date-range stat value as three atomic parts rather than one string. A single
-     * {@code "2023-01-14 ⮕ 2026-08-12"} run breaks at its own hyphens when the card is narrow,
-     * shredding both dates; keeping each date in its own nowrap span means a narrow card wraps
-     * between the dates instead of inside them.
+     * Renders the first/last logged dates as a heading, in the same "date ⮕ date" shape Rolling
+     * Averages uses for its own range. Each date stays in its own nowrap span rather than one text
+     * run, so a narrow viewport wraps between the dates instead of shredding one at its hyphens.
      */
-    private Component createDateRangeValue(ProductSummaryDTO summary) {
-        Div value = new Div();
-        value.addClassNames("card__value", "card__value--range");
-        if (summary.getFirstDate() == null || summary.getLastDate() == null) {
-            value.setText("—");
-            return value;
-        }
+    private Component createDateRangeHeading(ProductSummaryDTO summary) {
+        H3 heading = new H3();
+        heading.addClassName("date-range-heading");
         Span from = new Span(String.valueOf(summary.getFirstDate()));
         Span arrow = new Span("⮕");
         arrow.addClassName("card__value-separator");
         Span to = new Span(String.valueOf(summary.getLastDate()));
-        value.add(from, arrow, to);
-        return value;
+        heading.add(from, arrow, to);
+
+        Paragraph caption = new Paragraph("First ⮕ last logged");
+        caption.addClassNames(LumoUtility.TextColor.SECONDARY);
+        caption.getStyle().set("margin-top", "0").set("margin-bottom", "0.25rem");
+
+        Div wrapper = new Div(heading, caption);
+        return wrapper;
     }
 
     /**
