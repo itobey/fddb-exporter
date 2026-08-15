@@ -1,15 +1,16 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ExportInProgressException;
-import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.TelemetryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+import org.springframework.util.CollectionUtils;
 
 /**
  * This class is used to schedule the export of FDDb data and telemetry data.
@@ -47,19 +48,26 @@ public class Scheduler implements SchedulingConfigurer {
     private void runFddbExportForYesterday() {
         log.trace("starting scheduled export");
         try {
-            fddbDataService.exportForDaysBack(1, false);
+            ExportResultDTO result = fddbDataService.exportForDaysBack(1, false);
+            notifyAboutUnsuccessfulDays(result);
         } catch (AuthenticationException authenticationException) {
             log.error("not logged in - skipping job execution");
         } catch (ExportInProgressException exportInProgressException) {
             // a manual or MCP-triggered export is running; yesterday will be picked up tomorrow, and
             // this is not worth a notification
             log.warn("an export is already running - skipping the scheduled export for yesterday");
-        } catch (ParseException parseException) {
-            String errorMessage = "data for yesterday cannot be parsed, skipping this day";
-            log.warn(errorMessage, parseException);
-            if (properties.getNotification().isEnabled()) {
-                telegramService.sendMessage(errorMessage);
-            }
+        }
+    }
+
+    private void notifyAboutUnsuccessfulDays(ExportResultDTO result) {
+        if (result == null || CollectionUtils.isEmpty(result.getUnsuccessfulDays())) {
+            return;
+        }
+        String errorMessage = "data for " + String.join(", ", result.getUnsuccessfulDays())
+                + " cannot be parsed, skipping this day";
+        log.warn(errorMessage);
+        if (properties.getNotification().isEnabled()) {
+            telegramService.sendMessage(errorMessage);
         }
     }
 }

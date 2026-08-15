@@ -1,6 +1,8 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
+import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ExportInProgressException;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.TelemetryService;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,7 +14,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -96,6 +101,76 @@ class SchedulerTest {
         // when / then: the run is skipped, and it is not worth waking the user for
         assertDoesNotThrow(() -> task.getValue().run());
         verifyNoInteractions(telegramService);
+    }
+
+    @Test
+    void scheduledExport_shouldNotifyAboutDaysThatCouldNotBeParsed() {
+        // given: exportForTimerange collects a ParseException as an unsuccessful day rather than throwing,
+        // so the result is the only place the failure shows up
+        notificationProperties.setEnabled(true);
+        when(fddbDataService.exportForDaysBack(1, false))
+                .thenReturn(new ExportResultDTO(List.of(), List.of("2024-09-06")));
+
+        // when
+        captureScheduledExport().run();
+
+        // then
+        ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+        verify(telegramService).sendMessage(message.capture());
+        assertTrue(message.getValue().contains("2024-09-06"));
+    }
+
+    @Test
+    void scheduledExport_shouldNotNotify_whenNotificationsAreDisabled() {
+        // given
+        notificationProperties.setEnabled(false);
+        when(fddbDataService.exportForDaysBack(1, false))
+                .thenReturn(new ExportResultDTO(List.of(), List.of("2024-09-06")));
+
+        // when
+        captureScheduledExport().run();
+
+        // then
+        verifyNoInteractions(telegramService);
+    }
+
+    @Test
+    void scheduledExport_shouldNotNotify_whenEveryDayWasExported() {
+        // given
+        when(fddbDataService.exportForDaysBack(1, false))
+                .thenReturn(new ExportResultDTO(List.of("2024-09-06"), List.of()));
+
+        // when
+        captureScheduledExport().run();
+
+        // then
+        verifyNoInteractions(telegramService);
+    }
+
+    @Test
+    void scheduledExport_shouldSwallowAnAuthenticationFailure() {
+        // given: wrong credentials halt the run, but must not propagate out of the scheduled task
+        doThrow(new AuthenticationException("not logged in"))
+                .when(fddbDataService).exportForDaysBack(1, false);
+
+        // when / then
+        assertDoesNotThrow(() -> captureScheduledExport().run());
+        verifyNoInteractions(telegramService);
+    }
+
+    /**
+     * Registers the tasks and hands back the one bound to the export cron, so the failure paths of the
+     * scheduled run can be driven directly.
+     */
+    private Runnable captureScheduledExport() {
+        schedulerProperties.setEnabled(true);
+        schedulerProperties.setCron("0 0 1 * * ?");
+        telemetryProperties.setCron("0 0 2 * * ?");
+
+        scheduler.configureTasks(taskRegistrar);
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(taskRegistrar).addCronTask(task.capture(), eq("0 0 1 * * ?"));
+        return task.getValue();
     }
 
     @Test
