@@ -19,6 +19,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -96,7 +97,9 @@ class McpWriteToolsIT {
 
     @BeforeEach
     void setUp() {
-        mongoTemplate.dropCollection(FddbData.class);
+        // deletes the documents rather than the collection: dropping it would take the declared indexes
+        // with it, and the unique index on date is part of what these tests exercise
+        mongoTemplate.remove(new Query(), FddbData.class);
         // the WireMock server is static, so its request journal outlives a single test
         wireMockServer.resetRequests();
         stubFddb(DAY_WITH_DATA, "data-available-2024-08-27.html");
