@@ -13,7 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -27,6 +29,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 /**
@@ -64,7 +67,9 @@ class AggregationIT {
 
     @BeforeEach
     void setUp() {
-        mongoTemplate.dropCollection(FddbData.class);
+        // deletes the documents rather than the collection: dropping it would take the declared indexes
+        // with it, and the unique index on date is part of what these tests exercise
+        mongoTemplate.remove(new Query(), FddbData.class);
         // 2024-01-01 Mon, 2024-01-02 Tue, 2024-01-06 Sat, 2024-01-08 Mon; 2024-01-03..05 and 07 are gaps
         fddbDataRepository.saveAll(List.of(
                 day(LocalDate.of(2024, 1, 1), 2000, 100, 200, 50,
@@ -77,6 +82,16 @@ class AggregationIT {
                         product("Pizza Salami", 1200, 60, 120, 45)),
                 day(LocalDate.of(2024, 1, 8), 1500, 60, 150, 40,
                         product("Banane", 90, 0.3, 21, 1))));
+    }
+
+    @Test
+    void save_shouldBeRejected_whenAnEntryForTheSameDateAlreadyExists() {
+        // the "at most one entry per calendar day" invariant is enforced by the unique index on date,
+        // not by the find-then-save in PersistenceService, which is a check-then-act race
+        FddbData duplicate = day(LocalDate.of(2024, 1, 1), 1234, 1, 2, 3);
+
+        assertThatThrownBy(() -> fddbDataRepository.save(duplicate))
+                .isInstanceOf(DuplicateKeyException.class);
     }
 
     @Test
