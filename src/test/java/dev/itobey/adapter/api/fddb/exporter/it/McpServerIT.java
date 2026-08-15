@@ -18,6 +18,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.MongoDBContainer;
@@ -76,7 +77,9 @@ class McpServerIT {
 
     @BeforeEach
     void setUp() {
-        mongoTemplate.dropCollection(FddbData.class);
+        // deletes the documents rather than the collection: dropping it would take the declared indexes
+        // with it, and the unique index on date is part of what these tests exercise
+        mongoTemplate.remove(new Query(), FddbData.class);
         fddbDataRepository.saveAll(List.of(
                 day(LocalDate.of(2024, 1, 1), 2000, product("Haferflocken kernig", 300)),
                 day(LocalDate.of(2024, 1, 2), 2500, product("Haferflocken kernig", 350)),

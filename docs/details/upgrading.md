@@ -15,6 +15,34 @@ values actually in use.
 The application tells you when a new release exists — the Web UI shows a notice in the sidebar menu and the check is
 logged. The check runs on startup and on a schedule.
 
+### Duplicate days must be removed before 2.5.0 <Badge type="warning" text="2.5.0+" />
+
+From 2.5.0 the `date` field carries a **unique index**, created automatically on startup. That is what enforces "one
+entry per calendar day" — until then it was only application logic, and a race between two concurrent exports could
+leave two documents for the same day, quietly skewing every average and count for it.
+
+If your database already holds such a duplicate, MongoDB refuses to build the index and logs the failure on startup.
+Check first, and clean up if the query returns anything:
+
+```javascript
+// mongosh, against your fddb database
+db.fddb.aggregate([
+  { $group: { _id: "$date", ids: { $push: "$_id" }, count: { $sum: 1 } } },
+  { $match: { count: { $gt: 1 } } }
+])
+```
+
+```javascript
+// removes all but the newest document per duplicated date - take a dump first
+db.fddb.aggregate([
+  { $group: { _id: "$date", ids: { $push: "$_id" }, count: { $sum: 1 } } },
+  { $match: { count: { $gt: 1 } } }
+]).forEach(d => db.fddb.deleteMany({ _id: { $in: d.ids.slice(0, -1) } }));
+```
+
+Restart afterwards so the index is created. A second, non-unique index on `products.name` is created at the same time
+and needs nothing from you.
+
 ## Upgrading
 
 ::: tip Pin a version
@@ -46,12 +74,12 @@ Nothing is stored next to the jar, so there is nothing to migrate on disk.
 
 ## What a version bump touches
 
-- **Your data:** nothing. The exporter only ever inserts days or updates them in place, and no release so far has
-  needed a data migration. Documents written by an older version are read by a newer one.
+- **Your data:** nothing. The exporter only ever inserts days or updates them in place. Documents written by an older
+  version are read by a newer one. The one clean-up ever required is the duplicate-day removal for 2.4.0 above.
 - **Your configuration:** possibly. See the changelog note above.
 - **The database schema:** MongoDB has none to migrate. New fields simply appear on newly written documents; older
   documents keep whatever they were written with, so a field added in a later version is absent for older days until you
-  re-export them.
+  re-export them. Indexes are the one exception — see the duplicate-day cleanup above for 2.4.0.
 - **UI preferences** (custom rolling-average presets) live in MongoDB alongside the data and survive upgrades.
 
 ## Backing up

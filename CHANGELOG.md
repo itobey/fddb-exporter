@@ -1,6 +1,16 @@
 # Changelog
 
-## 2.4.1
+## 2.5.0 - Unreleased
+
+### ⚠️ Breaking Changes
+
+- **MongoDB now enforces one entry per day with a unique index.** `date` is indexed unique and the indexes are
+  created automatically on startup. This closes a race where two concurrent exports could both insert a document
+  for the same day, silently corrupting every average and count for it. **If your database already contains
+  duplicate dates the index cannot be created and the application logs the failure on startup.** Remove the
+  duplicates first, keeping the newest document per date.  A second, non-unique index on `products.name` backs 
+  the product searches and top-product aggregations. Read more on the 
+  [upgrading page](https://itobey.github.io/fddb-exporter/details/upgrading) of the docs.
 
 ### Fixed
 
