@@ -561,6 +561,17 @@ vaadin-side-nav-item[selected]::part(link) {
     color: var(--lumo-secondary-text-color);
 }
 
+.date-range-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.4em;
+}
+
+.date-range-heading > span {
+    white-space: nowrap;
+}
+
 /* Weekday distribution bars (Products > Explorer) */
 .weekday-chart {
     box-sizing: border-box;

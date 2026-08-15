@@ -23,15 +23,13 @@ public class ViewUtils {
     }
 
     /**
-     * Bring a freshly rendered result block to the top of the viewport, once it has stopped growing.
-     * <p>
-     * Calling {@code scrollIntoView} straight after the server pushes the result lands short of the
-     * block: a Vaadin Grid sizes itself a frame or more after its rows arrive, and a smooth scroll
-     * fixes its destination the moment it starts, so it aims into a document that is still hundreds
-     * of pixels shorter than the final one and never corrects afterwards. On Rolling Averages that
-     * left the page parked on the preset buttons instead of on the averages. Waiting for the
-     * block's own height to hold still for a few frames removes the race; the frame budget is the
-     * escape hatch for a block that never settles, so the scroll still happens.
+     * Bring a freshly rendered result block to the top of the viewport, once both it and the
+     * viewport have stopped growing. A scroll fired too early aims short: a Vaadin Grid still sizes
+     * itself a frame after its rows arrive, and on mobile the keyboard is still closing (shrinking
+     * the visual viewport) while the field that triggered the search is still focused - either one
+     * moving after the scroll starts leaves it short of the block. Waiting for both to hold steady
+     * for a few frames removes the race; the frame budget is the escape hatch for either one that
+     * never settles, so the scroll still happens.
      */
     public static void scrollIntoViewWhenSettled(Component target) {
         target.getElement().executeJs("""
@@ -40,16 +38,20 @@ public class ViewUtils {
                 // so the theme's Reduced Motion Rule has to be honoured here explicitly.
                 const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
                     ? 'auto' : 'smooth';
+                const viewport = window.visualViewport;
                 let lastHeight = -1;
+                let lastViewportHeight = -1;
                 let stableFrames = 0;
                 let framesLeft = 60;
                 const settle = () => {
                     const height = block.scrollHeight;
-                    if (height === lastHeight) {
+                    const viewportHeight = viewport ? viewport.height : window.innerHeight;
+                    if (height === lastHeight && viewportHeight === lastViewportHeight) {
                         stableFrames++;
                     } else {
                         stableFrames = 0;
                         lastHeight = height;
+                        lastViewportHeight = viewportHeight;
                     }
                     if (stableFrames < 3 && framesLeft-- > 0) {
                         requestAnimationFrame(settle);
@@ -109,7 +111,8 @@ public class ViewUtils {
         Div card = createCard(
                 LumoUtility.Display.FLEX,
                 LumoUtility.FlexDirection.COLUMN,
-                LumoUtility.AlignItems.CENTER
+                LumoUtility.AlignItems.CENTER,
+                LumoUtility.JustifyContent.CENTER
         );
 
         Span titleSpan = new Span(title);
