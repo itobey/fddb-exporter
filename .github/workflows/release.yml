@@ -51,7 +51,7 @@ jobs:
       # Same ref as deploy-docs, for the same reason: the CHANGELOG section is read from the commit
       # that was tagged, not from master after the template's snapshot bump.
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
 
