@@ -1549,6 +1549,13 @@ vaadin-progress-bar::part(indeterminate) {
     animation: exportResultIn 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* An empty ledger is one that has never run: it stays in the DOM so the pending state can be
+   toggled on it without a server round trip, but it must not draw its border rule until it holds
+   something. While pending it has content of its own to show, so it keeps its box. */
+.export-result:empty:not(.export-result--pending) {
+    display: none;
+}
+
 @keyframes exportResultIn {
     from {
         opacity: 0;
@@ -1562,8 +1569,10 @@ vaadin-progress-bar::part(indeterminate) {
 
 /* Pending state, added client-side on click so it paints during the blocking request rather than
    after it. The ledger's own children are hidden and a single line takes their place, so a re-run
-   does not show the previous result while the new one is being fetched. */
-.export-result--pending > * {
+   does not show the previous result while the new one is being fetched. Two class names, because
+   the status line and the chip row set their own display further down this file and would win the
+   later-rule tiebreak at equal specificity. */
+.export-result.export-result--pending > * {
     display: none;
 }
 
