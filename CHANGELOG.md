@@ -12,6 +12,12 @@
   the product searches and top-product aggregations. Read more on the 
   [upgrading page](https://itobey.github.io/fddb-exporter/details/upgrading) of the docs.
 
+### Added
+
+- **Link to Github Source.** The drawer footer now links to the source repository and the documentation.
+
+## 2.4.1
+
 ### Fixed
 
 - **Products Explorer stat cards no longer overflow on mobile.** Values (and date ranges) now shrink to fit narrow

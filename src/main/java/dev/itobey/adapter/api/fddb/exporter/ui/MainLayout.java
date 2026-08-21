@@ -1,9 +1,11 @@
 package dev.itobey.adapter.api.fddb.exporter.ui;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -26,6 +28,11 @@ public class MainLayout extends AppLayout {
     // AppShell keeps pointing @PWA at icon.png, which is the installable icon and a
     // different job from this one.
     private static final String ICON_PATH = "/icons/icon-192x192.png";
+
+    private static final String GITHUB_URL = "https://github.com/itobey/fddb-exporter";
+    private static final String DOCS_URL = "https://itobey.github.io/fddb-exporter/";
+
+    private static final String GITHUB_MARK_PATH = "icons/github.svg";
 
     private final String appVersion;
     private final VersionCheckService versionCheckService;
@@ -119,58 +126,77 @@ public class MainLayout extends AppLayout {
         nav.addItem(new SideNavItem("Data Download", DataDownloadView.class, new Icon(VaadinIcon.CLOUD_DOWNLOAD)));
         nav.addItem(new SideNavItem("Settings", SettingsView.class, new Icon(VaadinIcon.COGS)));
 
-        addToDrawer(drawerHeader, nav, createVersionInfo());
+        addToDrawer(drawerHeader, nav, createAboutStrip());
     }
 
-    private VerticalLayout createVersionInfo() {
-        VerticalLayout versionContainer = new VerticalLayout();
-        versionContainer.setPadding(false);
-        versionContainer.setSpacing(false);
-        versionContainer.getStyle().set("padding", "0.75rem 0.25rem 0.75rem 0.5rem");
+    /**
+     * Drawer footer: what this build is, and where it came from.
+     */
+    private VerticalLayout createAboutStrip() {
+        VerticalLayout aboutStrip = new VerticalLayout();
+        aboutStrip.setPadding(false);
+        aboutStrip.setSpacing(false);
+        aboutStrip.addClassName("drawer-about");
 
         Span appVersionSpan = new Span("Version " + this.appVersion);
         appVersionSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        appVersionSpan.getStyle().set("margin-left", "0.5rem");
-        versionContainer.add(appVersionSpan);
+        aboutStrip.add(appVersionSpan);
 
+        createUpdateNotice().ifPresent(aboutStrip::add);
+        aboutStrip.add(createAboutLinks());
+
+        return aboutStrip;
+    }
+
+    /**
+     * The update line only exists when a newer release was found, and only links out when the
+     * check also returned a release URL.
+     */
+    private Optional<Component> createUpdateNotice() {
         Optional<String> latestVersion = versionCheckService.getLatestVersionIfNewer();
-        if (latestVersion.isPresent()) {
-            Icon updateIcon = VaadinIcon.ARROW_CIRCLE_UP.create();
-            updateIcon.setSize("14px");
-            updateIcon.getStyle().set("color", "var(--green-accent-text)");
-
-            Optional<String> releaseUrl = versionCheckService.getReleaseUrl();
-            if (releaseUrl.isPresent()) {
-                Anchor updateLink = new Anchor(releaseUrl.get());
-                updateLink.setTarget("_blank");
-                updateLink.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
-                updateLink.getStyle()
-                        .set("color", "var(--green-accent-text)")
-                        .set("text-decoration", "none")
-                        .set("display", "flex")
-                        .set("align-items", "center")
-                        .set("gap", "0.25rem")
-                        .set("white-space", "nowrap")
-                        .set("margin-left", "0.5rem");
-                updateLink.add(updateIcon, new Span("New Version " + latestVersion.get() + " available"));
-                versionContainer.add(updateLink);
-            } else {
-                HorizontalLayout updateLayout = new HorizontalLayout(updateIcon,
-                        new Span("New Version " + latestVersion.get() + " available"));
-                updateLayout.setSpacing(false);
-                updateLayout.setPadding(false);
-                updateLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-                updateLayout.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
-                updateLayout.getStyle()
-                        .set("color", "var(--green-accent-text)")
-                        .set("gap", "0.25rem")
-                        .set("white-space", "nowrap")
-                        .set("margin-left", "0.5rem");
-                versionContainer.add(updateLayout);
-            }
+        if (latestVersion.isEmpty()) {
+            return Optional.empty();
         }
 
-        return versionContainer;
+        Icon updateIcon = VaadinIcon.ARROW_CIRCLE_UP.create();
+        Span updateText = new Span("New Version " + latestVersion.get() + " available");
+
+        Optional<String> releaseUrl = versionCheckService.getReleaseUrl();
+        if (releaseUrl.isPresent()) {
+            Anchor updateLink = new Anchor(releaseUrl.get());
+            updateLink.setTarget("_blank");
+            updateLink.getElement().setAttribute("rel", "noopener noreferrer");
+            updateLink.addClassName("drawer-about-update");
+            updateLink.add(updateIcon, updateText);
+            return Optional.of(updateLink);
+        }
+
+        Span updateNotice = new Span(updateIcon, updateText);
+        updateNotice.addClassName("drawer-about-update");
+        return Optional.of(updateNotice);
+    }
+
+    /**
+     * Provenance links, kept quiet: these are escape hatches, not part of the daily task flow.
+     */
+    private HorizontalLayout createAboutLinks() {
+        HorizontalLayout aboutLinks = new HorizontalLayout();
+        aboutLinks.setPadding(false);
+        aboutLinks.setSpacing(false);
+        aboutLinks.addClassName("drawer-about-links");
+
+        aboutLinks.add(aboutLink(GITHUB_URL, new SvgIcon(GITHUB_MARK_PATH), "GitHub"));
+        aboutLinks.add(aboutLink(DOCS_URL, VaadinIcon.BOOK.create(), "Docs"));
+
+        return aboutLinks;
+    }
+
+    private Anchor aboutLink(String href, Component icon, String label) {
+        Anchor link = new Anchor(href);
+        link.setTarget("_blank");
+        link.getElement().setAttribute("rel", "noopener noreferrer");
+        link.addClassName("drawer-about-link");
+        link.add(icon, new Span(label));
+        return link;
     }
 }
-
