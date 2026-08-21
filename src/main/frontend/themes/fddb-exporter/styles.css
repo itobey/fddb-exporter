@@ -461,6 +461,88 @@ vaadin-app-layout::part(drawer) {
     line-height: 1;
 }
 
+/* Drawer about strip: what this build is, and where it came from. Mirrors the hairline
+   under .drawer-header so the nav sits between two rules rather than trailing off. */
+.drawer-about {
+    padding: 0.75rem 1rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.drawer-about-update {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+    font-size: var(--lumo-font-size-s);
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--green-accent-text);
+    text-decoration: none;
+}
+
+.drawer-about-update vaadin-icon {
+    width: 14px;
+    height: 14px;
+    flex: none;
+}
+
+.drawer-about-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.875rem;
+    margin-top: 0.5rem;
+}
+
+/* Quiet by design: these are escape hatches, not the gold Data Export action. */
+.drawer-about-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.drawer-about-link:hover {
+    color: var(--lumo-body-text-color);
+}
+
+.drawer-about-link vaadin-icon {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    fill: currentColor;
+    color: inherit;
+}
+
+/* The global 44px floor further down this file applies to every `a`, which is right for a
+   finger and wrong here: it turns three one-line rows into three 44px blocks and leaves the
+   strip looking like it was spaced by accident. */
+.drawer-about-update,
+.drawer-about-link {
+    min-height: 0;
+    min-width: 0;
+}
+
+/* A finger still needs the 44px, so grow the target instead of the row: the overlay reaches
+   into the padding around each link without moving a pixel of layout, which keeps the strip
+   as tight on a phone as it is under a mouse. The 6px of horizontal reach reads against the
+   14px column gap, so two adjacent targets stop 2px short of touching. */
+@media (pointer: coarse) {
+    .drawer-about-update,
+    .drawer-about-link {
+        position: relative;
+    }
+
+    .drawer-about-update::after,
+    .drawer-about-link::after {
+        content: "";
+        position: absolute;
+        inset: -12px -6px;
+    }
+}
+
 /* Side Navigation */
 vaadin-side-nav-item {
     --_lumo-item-selected-background: rgba(78, 97, 155, 0.15);

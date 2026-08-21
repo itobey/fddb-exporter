@@ -12,6 +12,12 @@
   the product searches and top-product aggregations. Read more on the 
   [upgrading page](https://itobey.github.io/fddb-exporter/details/upgrading) of the docs.
 
+### Added
+
+- **Link to Github Source.** The drawer footer now links to the source repository and the documentation.
+
+## 2.4.1
+
 ### Fixed
 
 - **The nightly export now notifies you when a day cannot be parsed.** A failed day used to fail silently, with no
