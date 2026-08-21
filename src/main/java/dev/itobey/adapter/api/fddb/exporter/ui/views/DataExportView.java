@@ -190,9 +190,9 @@ public class DataExportView extends VerticalLayout {
                 action.run();
             } finally {
                 button.setEnabled(true);
-                // displayResult replaces the contents on every path, but an exception thrown
-                // before it runs would otherwise strand the pending line on screen.
-                result.getElement().getClassList().remove("export-result--pending");
+                // displayResult clears this on every path that reaches it, but a validation error
+                // returns before it ever runs and would strand the pending line on screen.
+                clearPending(result);
             }
         });
         // A native listener, so this paints during the request rather than after it. Attached to
@@ -201,8 +201,6 @@ public class DataExportView extends VerticalLayout {
                 "const ledger = this;"
                         + "$0.addEventListener('click', () => {"
                         + "  ledger.classList.add('export-result--pending');"
-                        + "  ledger.hidden = false;"
-                        + "  ledger.style.display = '';"
                         + "});",
                 button.getElement());
         return button;
@@ -215,8 +213,18 @@ public class DataExportView extends VerticalLayout {
         // to announce itself. "polite" rather than "assertive": the run has already finished, and
         // the accompanying notification is the urgent channel.
         result.getElement().setAttribute("aria-live", "polite");
-        result.setVisible(false);
+        // Deliberately not setVisible(false): an invisible element is inactive on the server, so
+        // the JS that clears the pending state would be queued instead of running. The ledger
+        // stays in the DOM and hides itself through CSS for as long as it holds nothing.
         return result;
+    }
+
+    /**
+     * The pending class is added client-side, so the server's class list never holds it and
+     * removing it there does nothing. It has to be dropped in the DOM, where it was added.
+     */
+    private void clearPending(Div result) {
+        result.getElement().executeJs("this.classList.remove('export-result--pending');");
     }
 
     private void exportDateRange() {
@@ -272,8 +280,7 @@ public class DataExportView extends VerticalLayout {
      */
     private void displayResult(Div resultDiv, ExportResultDTO result) {
         resultDiv.removeAll();
-        resultDiv.getElement().getClassList().remove("export-result--pending");
-        resultDiv.setVisible(true);
+        clearPending(resultDiv);
 
         List<String> successful = result.getSuccessfulDays();
         List<String> unsuccessful = result.getUnsuccessfulDays();

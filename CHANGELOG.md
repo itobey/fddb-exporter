@@ -16,6 +16,11 @@
 
 - **Link to Github Source.** The drawer footer now links to the source repository and the documentation.
 
+### Fixed
+
+- **Data Export cards no longer get stuck on "Exporting…".** A second export in the same card could leave the
+  pending spinner stuck on top of the old result.
+
 ## 2.4.1
 
 ### Fixed
