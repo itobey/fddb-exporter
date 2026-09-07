@@ -20,7 +20,7 @@
         <commons-lang3.version>3.20.0</commons-lang3.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
-        <influxdb-client-java.version>7.5.0</influxdb-client-java.version>
+        <influxdb-client-java.version>8.0.0</influxdb-client-java.version>
         <commons-io.version>2.22.0</commons-io.version>
         <jasypt-spring-boot-starter.version>4.0.4</jasypt-spring-boot-starter.version>
         <java-telegram-bot-api.version>8.3.0</java-telegram-bot-api.version>
