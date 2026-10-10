@@ -95,6 +95,19 @@ class AggregationIT {
     }
 
     @Test
+    void findByProduct_shouldTreatRegexMetacharactersLiterally() {
+        // a product name with brackets is an invalid regex, which MongoDB rejects outright - the documented
+        // semantics are a case-insensitive substring match
+        fddbDataRepository.save(day(LocalDate.of(2024, 2, 1), 500, 1, 2, 3,
+                product("Müsli (500g)", 500, 1, 2, 3)));
+
+        List<ProductWithDateDTO> result = fddbDataService.findByProduct("müsli (500g)", null, null, null, null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getProduct().getName()).isEqualTo("Müsli (500g)");
+    }
+
+    @Test
     void findByDateRange_shouldReturnOnlyTheRangeOrderedByDate() {
         List<FddbDataDTO> result = fddbDataService.findByDateRange(
                 LocalDate.of(2024, 1, 2), LocalDate.of(2024, 1, 6), false);
