@@ -5,10 +5,12 @@ import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.ExecutionMode;
 import dev.itobey.adapter.api.fddb.exporter.dto.telemetry.TelemetryDto;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -70,9 +72,7 @@ public class TelemetryService {
     /**
      * Sends the ping and swallows anything that goes wrong.
      * <p>
-     * A telemetry outage - an unreachable host, a DNS failure, an air-gapped deployment, or the documented
-     * opt-out of repointing {@code fddb-exporter.telemetry.url} at a dead address - must never be visible to
-     * the user, and above all must never fail the {@code @PostConstruct} below and with it the whole startup.
+     * Logs failures without disrupting startup or scheduled execution.
      */
     public void sendTelemetryDataQuietly() {
         try {
@@ -82,8 +82,13 @@ public class TelemetryService {
         }
     }
 
-    @PostConstruct
-    private void init() {
+    /**
+     * Sends telemetry asynchronously after startup, suppressing failures.
+     * Uses an event listener because {@code @Async} does not apply to {@code @PostConstruct} methods.
+     */
+    @Async
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
         log.debug("sending telemetry data on startup");
         sendTelemetryDataQuietly();
     }

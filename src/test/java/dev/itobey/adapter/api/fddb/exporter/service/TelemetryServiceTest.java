@@ -7,6 +7,8 @@ import dev.itobey.adapter.api.fddb.exporter.dto.telemetry.TelemetryDto;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.EnvironmentDetector;
 import dev.itobey.adapter.api.fddb.exporter.service.telemetry.TelemetryService;
+import jakarta.annotation.PostConstruct;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,7 +17,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -94,7 +100,7 @@ class TelemetryServiceTest {
 
     @Test
     void sendTelemetryDataQuietly_shouldSwallowAFailingPing() {
-        // given: an unreachable telemetry host - this runs from @PostConstruct, so it must not fail startup
+        // given: an unreachable telemetry host - this runs on startup, so it must never surface to the user
         when(environmentDetector.getExecutionMode()).thenReturn(ExecutionMode.JAR);
         when(buildProperties.getVersion()).thenReturn("1.0.0");
         when(properties.getFddb().getUsername()).thenReturn("test@example.com");
@@ -105,6 +111,37 @@ class TelemetryServiceTest {
 
         // when / then
         assertDoesNotThrow(() -> telemetryService.sendTelemetryDataQuietly());
+    }
+
+    @Test
+    void onApplicationReady_shouldSendThePingAndSwallowFailures() {
+        // given
+        when(environmentDetector.getExecutionMode()).thenReturn(ExecutionMode.JAR);
+        when(buildProperties.getVersion()).thenReturn("1.0.0");
+        when(properties.getFddb().getUsername()).thenReturn("test@example.com");
+        when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(false);
+        when(properties.getPersistence().getInfluxdb().isEnabled()).thenReturn(false);
+        when(properties.getMcp().isEnabled()).thenReturn(false);
+        doThrow(new RuntimeException("connection refused")).when(telemetryApi).sendTelemetryData(any());
+
+        // when / then - invoked directly rather than through Spring, so there is nothing to wait for
+        assertDoesNotThrow(() -> telemetryService.onApplicationReady());
+        verify(telemetryApi, times(1)).sendTelemetryData(any());
+    }
+
+    /**
+     * Checks async event wiring without timing threads. {@code @PostConstruct} would bypass the async proxy.
+     */
+    @Test
+    @SneakyThrows
+    void onApplicationReady_shouldBeWiredToRunAsynchronously() {
+        Method method = TelemetryService.class.getDeclaredMethod("onApplicationReady");
+
+        assertTrue(Modifier.isPublic(method.getModifiers()), "must be public so the proxy can invoke it");
+        assertNull(method.getAnnotation(PostConstruct.class),
+                "@Async does not work on @PostConstruct - the proxy does not exist yet");
+        assertNotNull(method.getAnnotation(EventListener.class));
+        assertNotNull(method.getAnnotation(Async.class), "the startup ping must not block the startup thread");
     }
 
     @Test

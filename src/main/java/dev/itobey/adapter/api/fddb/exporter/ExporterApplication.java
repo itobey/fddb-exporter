@@ -8,12 +8,14 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(exclude = {
         DataSourceAutoConfiguration.class,
         MongoAutoConfiguration.class
 })
+@EnableAsync
 @EnableScheduling
 @EnableFeignClients
 @EnableConfigurationProperties(FddbExporterProperties.class)

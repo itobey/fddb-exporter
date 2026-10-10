@@ -1,6 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,8 +9,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,6 +66,21 @@ class VersionCheckServiceTest {
 
         // when/then - should not throw exception
         assertDoesNotThrow(() -> versionCheckService.checkForNewVersion());
+    }
+
+    /**
+     * Checks async event wiring without timing threads or making network calls.
+     */
+    @Test
+    @SneakyThrows
+    void onApplicationReady_shouldBeWiredToRunAsynchronously() {
+        Method method = VersionCheckService.class.getDeclaredMethod("onApplicationReady");
+
+        assertTrue(Modifier.isPublic(method.getModifiers()), "must be public so the proxy can invoke it");
+        assertNull(method.getAnnotation(PostConstruct.class),
+                "@Async does not work on @PostConstruct - the proxy does not exist yet");
+        assertNotNull(method.getAnnotation(EventListener.class));
+        assertNotNull(method.getAnnotation(Async.class), "the startup check must not block the startup thread");
     }
 
     // Tests for the version comparison logic using reflection

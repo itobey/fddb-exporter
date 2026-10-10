@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -37,8 +38,10 @@ public class VersionCheckService {
     private final AtomicReference<String> releaseUrl = new AtomicReference<>();
 
     /**
-     * Check for a new version on application startup.
+     * Checks for a new version asynchronously after startup, so network delays do not block readiness.
+     * The result is available through {@link #getLatestVersionIfNewer()}.
      */
+    @Async
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         checkForNewVersion();
