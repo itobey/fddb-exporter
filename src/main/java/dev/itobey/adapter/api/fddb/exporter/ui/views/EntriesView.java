@@ -193,10 +193,6 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
         return layout;
     }
 
-    private String capitalize(String name) {
-        return name.charAt(0) + name.substring(1).toLowerCase();
-    }
-
     private VerticalLayout createDateSearchTab() {
         VerticalLayout layout = createTabLayout();
 

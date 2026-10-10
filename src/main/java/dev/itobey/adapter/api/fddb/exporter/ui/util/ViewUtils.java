@@ -17,6 +17,8 @@ import com.vaadin.flow.function.SerializableRunnable;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 
+import java.util.Locale;
+
 public class ViewUtils {
 
     private ViewUtils() {
@@ -165,7 +167,20 @@ public class ViewUtils {
     }
 
     public static String formatNumber(double value) {
-        return String.format("%.1f", value);
+        return String.format(Locale.ROOT, "%.1f", value);
+    }
+
+    /**
+     * Capitalize an all-uppercase constant-style name for display, e.g. {@code MONDAY} to {@code Monday}.
+     * Uses {@link Locale#ROOT} so the result does not depend on the host machine's default locale.
+     *
+     * @param name the name to capitalize; returned unchanged when null or empty
+     */
+    public static String capitalize(String name) {
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+        return name.charAt(0) + name.substring(1).toLowerCase(Locale.ROOT);
     }
 
     public static Div createCardsGrid(String minCardWidth) {

@@ -35,6 +35,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
@@ -417,7 +418,7 @@ public class CorrelationView extends VerticalLayout {
         Span windowSpan = new Span(timeWindow);
         windowSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
 
-        Span percentageSpan = new Span(String.format("%.1f%%", detail.getPercentage()));
+        Span percentageSpan = new Span(String.format(Locale.ROOT, "%.1f%%", detail.getPercentage()));
         percentageSpan.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
 
         if (detail.getPercentage() >= 70) {

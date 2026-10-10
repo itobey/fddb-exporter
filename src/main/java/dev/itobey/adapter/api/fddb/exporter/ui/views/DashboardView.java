@@ -21,6 +21,7 @@ import dev.itobey.adapter.api.fddb.exporter.ui.service.HealthService;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 import dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils;
 
+import java.util.Locale;
 import java.util.Map;
 
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
@@ -171,7 +172,7 @@ public class DashboardView extends VerticalLayout {
         Div overviewCards = createCardsGrid("140px");
         overviewCards.add(
                 createStatCard("Total Entries", String.valueOf(stats.getAmountEntries()), "days in database"),
-                createStatCard("Entry Coverage", String.format("%.1f%%", stats.getEntryPercentage()), "of days tracked"),
+                createStatCard("Entry Coverage", String.format(Locale.ROOT, "%.1f%%", stats.getEntryPercentage()), "of days tracked"),
                 createStatCard("Unique Products", String.valueOf(stats.getUniqueProducts()), "different products"),
                 createStatCard("Total Products", String.valueOf(stats.getTotalProducts()), "entries logged"),
                 createStatCard("First Entry", stats.getFirstEntryDate() != null ? stats.getFirstEntryDate().toString() : "N/A", "start date"),
