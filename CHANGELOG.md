@@ -47,6 +47,8 @@
 
 ### Changed
 
+- **InfluxDB writes now send all six daily totals in one point**, reducing write overhead while preserving existing
+  data, queries, and dashboards.
 - **Data Export view** now uses reusable card components for its export sections, for a more consistent layout.
 - **The container healthcheck no longer scrapes fddb.info.** The Docker `HEALTHCHECK` now calls
   `/actuator/health/liveness` instead of the aggregate `/actuator/health`, which included `fddb-login-check` and
