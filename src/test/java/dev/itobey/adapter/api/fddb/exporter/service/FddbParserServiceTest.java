@@ -169,4 +169,49 @@ class FddbParserServiceTest {
         Assertions.assertThatExceptionOfType(ParseException.class)
                 .isThrownBy(() -> fddbParserService.parseDiary(content));
     }
+
+    @Test
+    void parseDiary_whenANutrientCellIsEmpty_shouldThrowParseException() {
+        // Given: a dash, a missing cell or an ad row leaves nothing to parse. This has to be a
+        // ParseException - a NumberFormatException would escape the per-day guard in exportForTimerange
+        // and abort the whole export run.
+        String content = diaryWith("""
+                <tr><td><a href="/x">150 g Pizza</a></td><td></td><td>300 kcal</td><td>10.5 g</td><td>30 g</td><td>13.5 g</td></tr>
+                <tr><td>Total</td><td></td><td>-</td><td>10.5 g</td><td>30 g</td><td>13.5 g</td></tr>
+                """);
+
+        // When; Then
+        Assertions.assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> fddbParserService.parseDiary(content));
+    }
+
+    @Test
+    void parseDiary_whenARowIsTruncated_shouldThrowParseException() {
+        // Given: a row shorter than the layout this parser expects - previously an IndexOutOfBoundsException
+        String content = diaryWith("""
+                <tr><td><a href="/x">150 g Pizza</a></td><td></td><td>300 kcal</td></tr>
+                <tr><td>Total</td><td></td><td>300 kcal</td><td>10.5 g</td><td>30 g</td><td>13.5 g</td></tr>
+                """);
+
+        // When; Then
+        Assertions.assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> fddbParserService.parseDiary(content));
+    }
+
+    @Test
+    void parseDiary_whenTheTotalsRowIsTruncated_shouldThrowParseException() {
+        // Given
+        String content = diaryWith("""
+                <tr><td><a href="/x">150 g Pizza</a></td><td></td><td>300 kcal</td><td>10.5 g</td><td>30 g</td><td>13.5 g</td></tr>
+                <tr><td>Total</td><td></td><td>300 kcal</td></tr>
+                """);
+
+        // When; Then
+        Assertions.assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> fddbParserService.parseDiary(content));
+    }
+
+    private String diaryWith(String rows) {
+        return "<html><body><table class=\"myday-table-std\"><tbody>" + rows + "</tbody></table></body></html>";
+    }
 }

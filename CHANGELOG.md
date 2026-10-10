@@ -14,6 +14,8 @@
 
 ### Fixed
 
+- **Exports now continue after an unexpected failure for one day.** The failed day is reported as unsuccessful;
+  authentication failures still halt the run.
 - **Expired fddb.info sessions now recover automatically.** Exports retry once after a fresh login instead of
   reporting invalid credentials. Login timeouts prevent requests from hanging indefinitely.
 - **An unreachable telemetry host no longer prevents the application from starting.** A DNS failure, an air-gapped
