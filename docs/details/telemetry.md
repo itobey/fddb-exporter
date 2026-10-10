@@ -29,8 +29,9 @@ switched off in the configuration. I really want to know how many people are usi
 on. If this is a dealbreaker for you, you can still stop the ping in two ways:
 
 - **Point it somewhere harmless.** `FDDB-EXPORTER_TELEMETRY_URL` is a normal configuration property. Set it to an
-  address that goes nowhere and the send fails, which costs one log line a day and nothing else — the application does
-  not care whether the ping succeeded.
+  address that goes nowhere and the send fails, which costs nothing at all — the failure is swallowed and logged at
+  `debug` level, so it does not even appear at the default log level, and nothing else in the application cares whether
+  the ping succeeded. The same holds on startup: an unreachable telemetry host does not delay or fail the boot.
 
   ```bash
   docker run -e 'FDDB-EXPORTER_TELEMETRY_URL=http://localhost:1' ghcr.io/itobey/fddb-exporter

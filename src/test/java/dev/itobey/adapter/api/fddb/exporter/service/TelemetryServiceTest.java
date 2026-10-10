@@ -12,10 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.info.BuildProperties;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -23,7 +24,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TelemetryServiceTest {
 
-    @InjectMocks
     private TelemetryService telemetryService;
 
     @Mock
@@ -39,6 +39,8 @@ class TelemetryServiceTest {
 
     @BeforeEach
     void setUp() {
+        telemetryService = new TelemetryService(telemetryApi, persistenceService, environmentDetector,
+                Optional.of(buildProperties), properties);
     }
 
     @Test
@@ -88,6 +90,41 @@ class TelemetryServiceTest {
         TelemetryDto capturedDto = telemetryDtoCaptor.getValue();
         assertFalse(capturedDto.isMcpEnabled());
         assertFalse(capturedDto.isMcpWriteToolsEnabled());
+    }
+
+    @Test
+    void sendTelemetryDataQuietly_shouldSwallowAFailingPing() {
+        // given: an unreachable telemetry host - this runs from @PostConstruct, so it must not fail startup
+        when(environmentDetector.getExecutionMode()).thenReturn(ExecutionMode.JAR);
+        when(buildProperties.getVersion()).thenReturn("1.0.0");
+        when(properties.getFddb().getUsername()).thenReturn("test@example.com");
+        when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(false);
+        when(properties.getPersistence().getInfluxdb().isEnabled()).thenReturn(false);
+        when(properties.getMcp().isEnabled()).thenReturn(false);
+        doThrow(new RuntimeException("connection refused")).when(telemetryApi).sendTelemetryData(any());
+
+        // when / then
+        assertDoesNotThrow(() -> telemetryService.sendTelemetryDataQuietly());
+    }
+
+    @Test
+    void sendTelemetryData_shouldReportAPlaceholderVersion_whenBuildPropertiesAreAbsent() {
+        // given: running from an IDE without a Maven build produces no BuildProperties bean
+        telemetryService = new TelemetryService(telemetryApi, persistenceService, environmentDetector,
+                Optional.empty(), properties);
+        when(environmentDetector.getExecutionMode()).thenReturn(ExecutionMode.JAR);
+        when(properties.getFddb().getUsername()).thenReturn("test@example.com");
+        when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(false);
+        when(properties.getPersistence().getInfluxdb().isEnabled()).thenReturn(false);
+        when(properties.getMcp().isEnabled()).thenReturn(false);
+
+        // when
+        telemetryService.sendTelemetryData();
+
+        // then
+        ArgumentCaptor<TelemetryDto> telemetryDtoCaptor = ArgumentCaptor.forClass(TelemetryDto.class);
+        verify(telemetryApi).sendTelemetryData(telemetryDtoCaptor.capture());
+        assertEquals("dev", telemetryDtoCaptor.getValue().getAppVersion());
     }
 
 }

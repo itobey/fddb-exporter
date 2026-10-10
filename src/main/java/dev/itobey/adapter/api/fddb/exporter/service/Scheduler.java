@@ -37,7 +37,7 @@ public class Scheduler implements SchedulingConfigurer {
 
     private void sendTelemetryData() {
         log.debug("sending telemetry data");
-        telemetryService.sendTelemetryData();
+        telemetryService.sendTelemetryDataQuietly();
     }
 
     private void checkForNewVersion() {

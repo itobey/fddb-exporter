@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
 
 /**
  * This service is used to send telemetry data. No personal data is sent.
@@ -26,10 +27,17 @@ import java.security.NoSuchAlgorithmException;
 @Slf4j
 public class TelemetryService {
 
+    private static final String UNKNOWN_VERSION = "dev";
+
     private final TelemetryApi telemetryApi;
     private final PersistenceService persistenceService;
     private final EnvironmentDetector environmentDetector;
-    private final BuildProperties buildProperties;
+    /**
+     * Optional for the same reason as in {@link dev.itobey.adapter.api.fddb.exporter.service.VersionCheckService}:
+     * running from an IDE without a Maven build produces no {@code BuildProperties} bean, and a missing
+     * version string must not stop the application from starting.
+     */
+    private final Optional<BuildProperties> buildProperties;
     private final FddbExporterProperties properties;
 
     public void sendTelemetryData() {
@@ -54,15 +62,30 @@ public class TelemetryService {
         // the write-tools flag does nothing while the MCP server itself is off, so report the effective state
         telemetryDto.setMcpWriteToolsEnabled(mcpEnabled && properties.getMcp().isWriteToolsEnabled());
         telemetryDto.setExecutionMode(executionMode);
-        telemetryDto.setAppVersion(buildProperties.getVersion());
+        telemetryDto.setAppVersion(buildProperties.map(BuildProperties::getVersion).orElse(UNKNOWN_VERSION));
         log.debug("sending telemetry data: {}", telemetryDto);
         telemetryApi.sendTelemetryData(telemetryDto);
+    }
+
+    /**
+     * Sends the ping and swallows anything that goes wrong.
+     * <p>
+     * A telemetry outage - an unreachable host, a DNS failure, an air-gapped deployment, or the documented
+     * opt-out of repointing {@code fddb-exporter.telemetry.url} at a dead address - must never be visible to
+     * the user, and above all must never fail the {@code @PostConstruct} below and with it the whole startup.
+     */
+    public void sendTelemetryDataQuietly() {
+        try {
+            sendTelemetryData();
+        } catch (Exception exception) {
+            log.debug("could not send telemetry data: {}", exception.getMessage());
+        }
     }
 
     @PostConstruct
     private void init() {
         log.debug("sending telemetry data on startup");
-        sendTelemetryData();
+        sendTelemetryDataQuietly();
     }
 
     private String hashMail(String mail) {

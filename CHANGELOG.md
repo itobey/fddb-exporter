@@ -14,6 +14,9 @@
 
 ### Fixed
 
+- **An unreachable telemetry host no longer prevents the application from starting.** A DNS failure, an air-gapped
+  deployment, or repointing `FDDB-EXPORTER_TELEMETRY_URL` at a dead address used to fail the whole application on
+  startup; telemetry failures are now logged and otherwise ignored.
 - **The nightly export now notifies you when a day cannot be parsed.** A failed day used to fail silently, with no
   warning in the log and no Telegram message.
 - **Products Explorer stat cards no longer overflow on mobile.** Values (and date ranges) now shrink to fit narrow
