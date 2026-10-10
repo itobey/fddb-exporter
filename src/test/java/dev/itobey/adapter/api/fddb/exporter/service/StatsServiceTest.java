@@ -94,6 +94,34 @@ class StatsServiceTest {
     }
 
     @Test
+    void getStats_shouldReportFullCoverage_whenTheOnlyEntryIsToday() {
+        // given: a brand-new installation on its first day - dividing by zero days produced Infinity, which
+        // is not valid JSON and rendered as "Infinity%" on the dashboard
+        LocalDate today = LocalDate.now();
+        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(1L);
+
+        FddbData mockData = new FddbData();
+        mockData.setDate(today);
+        when(mongoTemplate.findOne(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME))).thenReturn(mockData);
+
+        Document rawResults = new Document();
+        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
+                .thenReturn(List.of(entry(today, 2000)));
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.Averages.class)))
+                .thenReturn(new AggregationResults<>(Collections.singletonList(StatsDTO.Averages.builder().build()), rawResults));
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.DayStats.class)))
+                .thenReturn(new AggregationResults<>(Collections.emptyList(), rawResults));
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(Document.class)))
+                .thenReturn(new AggregationResults<>(Collections.singletonList(new Document("uniqueCount", 1L)), rawResults));
+
+        // when
+        StatsDTO result = statsService.getStats();
+
+        // then
+        assertThat(result.getEntryPercentage()).isEqualTo(100.0);
+    }
+
+    @Test
     void getStats_shouldDeriveMissingDayCountAndStreaksFromOneQuery() {
         // given
         LocalDate today = LocalDate.now();
