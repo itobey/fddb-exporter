@@ -2,6 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.ui.service;
 
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -33,17 +34,11 @@ public class FddbDataClient {
     private static final String DISTINCT_PRODUCTS_URL = "/api/v2/fddbdata/products/distinct";
 
     private final RestTemplate restTemplate;
+    private final ApiBaseUrl apiBaseUrl;
 
-    public FddbDataClient() {
-        this.restTemplate = new RestTemplate();
-    }
-
-    /**
-     * Test-only constructor allowing a pre-configured {@link RestTemplate} (e.g. one bound to a
-     * {@code MockRestServiceServer}) to be injected.
-     */
-    FddbDataClient(RestTemplate restTemplate) {
+    public FddbDataClient(@Qualifier("uiRestTemplate") RestTemplate restTemplate, ApiBaseUrl apiBaseUrl) {
         this.restTemplate = restTemplate;
+        this.apiBaseUrl = apiBaseUrl;
     }
 
     /**
@@ -328,7 +323,7 @@ public class FddbDataClient {
     }
 
     private String getBaseUrl() {
-        return "http://localhost:8080";
+        return apiBaseUrl.get();
     }
 }
 

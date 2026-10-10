@@ -3,6 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.ui.service;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationInputDto;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationOutputDto;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -17,9 +18,11 @@ public class CorrelationClient {
     private static final String CORRELATION_URL = "/api/v2/correlation";
 
     private final RestTemplate restTemplate;
+    private final ApiBaseUrl apiBaseUrl;
 
-    public CorrelationClient() {
-        this.restTemplate = new RestTemplate();
+    public CorrelationClient(@Qualifier("uiRestTemplate") RestTemplate restTemplate, ApiBaseUrl apiBaseUrl) {
+        this.restTemplate = restTemplate;
+        this.apiBaseUrl = apiBaseUrl;
     }
 
     /**
@@ -39,7 +42,7 @@ public class CorrelationClient {
     }
 
     private String getBaseUrl() {
-        return "http://localhost:8080";
+        return apiBaseUrl.get();
     }
 }
 
