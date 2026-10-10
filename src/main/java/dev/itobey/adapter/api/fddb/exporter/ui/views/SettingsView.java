@@ -343,16 +343,35 @@ public class SettingsView extends VerticalLayout {
         preset.setFromDate(fromDate);
         preset.setToDate(toDate);
         settings.getRollingAveragePresets().add(preset);
-        userSettingsService.saveSettings(settings);
+        boolean saved = trySaveSettings(settings, "Could not add preset \"" + name + "\"");
         refreshPresetsList();
-        showSuccess("Preset \"" + name + "\" added.");
+        if (saved) {
+            showSuccess("Preset \"" + name + "\" added.");
+        }
     }
 
     private void deletePreset(String name) {
         UserSettings settings = userSettingsService.getSettings();
         settings.getRollingAveragePresets().removeIf(p -> p.getName().equals(name));
-        userSettingsService.saveSettings(settings);
+        boolean saved = trySaveSettings(settings, "Could not delete preset \"" + name + "\"");
         refreshPresetsList();
-        showSuccess("Preset \"" + name + "\" deleted.");
+        if (saved) {
+            showSuccess("Preset \"" + name + "\" deleted.");
+        }
+    }
+
+    /**
+     * Persists the settings, reporting a failure to the user instead of letting the caller claim success.
+     *
+     * @return true if the settings were persisted
+     */
+    private boolean trySaveSettings(UserSettings settings, String failureMessage) {
+        try {
+            userSettingsService.saveSettings(settings);
+            return true;
+        } catch (RuntimeException exception) {
+            showError(failureMessage + ": " + exception.getMessage());
+            return false;
+        }
     }
 }
