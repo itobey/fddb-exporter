@@ -407,9 +407,20 @@ public class StatsService {
         return val instanceof Number ? ((Number) val).longValue() : 0L;
     }
 
+    /**
+     * The share of days since the first entry that actually have one.
+     * <p>
+     * The range is inclusive at both ends, so a diary whose first entry is today covers exactly one day
+     * rather than zero - dividing by zero here produced {@code Infinity}, which is not valid JSON and
+     * rendered as "Infinity%" on the dashboard of every brand-new installation. Capped at 100 because
+     * duplicate days would otherwise be able to push it above.
+     */
     private double calculateEntryPercentage(LocalDate givenDate, long documentCount) {
-        long daysSince = ChronoUnit.DAYS.between(givenDate, LocalDate.now());
-        return (double) documentCount / daysSince * 100;
+        long daysSince = ChronoUnit.DAYS.between(givenDate, LocalDate.now()) + 1;
+        if (daysSince <= 0) {
+            return 0.0;
+        }
+        return Math.min(100.0, (double) documentCount / daysSince * 100);
     }
 
     private double roundToOneDecimal(double value) {

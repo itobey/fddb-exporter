@@ -14,6 +14,8 @@
 
 ### Fixed
 
+- **Days tracked now shows 100% when the first entry is today.** Coverage counts both the first day and today,
+  avoids division by zero, and caps the result at 100%. This keeps the dashboard and stats API percentage finite.
 - **Product searches now match literal text.** Regex characters in search terms are treated literally, preserving
   case-insensitive substring matching. Malformed patterns no longer cause search errors, and caller-supplied regex
   patterns can no longer trigger expensive backtracking. This applies to the REST API, Web UI, and MCP product tools.
