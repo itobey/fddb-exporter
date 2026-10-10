@@ -4,6 +4,7 @@ import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
+import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ExportInProgressException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
@@ -157,6 +158,44 @@ class FddbDataServiceTest {
         verify(timeframeCalculator, times(2)).calculateTimeframeFor(any(LocalDate.class));
         verify(exportService, times(2)).exportData(timeframeDTO);
         verify(persistenceService, times(1)).saveOrUpdate(mockFddbData);
+    }
+
+    @Test
+    @SneakyThrows
+    void exportForTimerange_whenOneDayFailsUnexpectedly_shouldStillExportTheOthers() {
+        // given: anything that is not a ParseException used to abort the whole run, discarding the days
+        // already exported and the ones still queued behind it
+        DateRangeDTO dateRangeDTO = new DateRangeDTO("2021-08-15", "2021-08-17");
+        TimeframeDTO timeframeDTO = new TimeframeDTO(1628985600, 1629072000);
+
+        when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(timeframeDTO);
+        when(exportService.exportData(timeframeDTO))
+                .thenReturn(mockFddbData)
+                .thenThrow(new IllegalStateException("something nobody foresaw"))
+                .thenReturn(mockFddbData);
+
+        // when
+        ExportResultDTO result = fddbDataService.exportForTimerange(dateRangeDTO);
+
+        // then
+        assertEquals(List.of("2021-08-15", "2021-08-17"), result.getSuccessfulDays());
+        assertEquals(List.of("2021-08-16"), result.getUnsuccessfulDays());
+    }
+
+    @Test
+    @SneakyThrows
+    void exportForTimerange_whenNotLoggedIn_shouldHaltInsteadOfRecordingEveryDayAsUnsuccessful() {
+        // given: wrong credentials make every following day fail the same way, so there is nothing to gain
+        // by carrying on - the AuthenticationException must survive the catch-all guard
+        DateRangeDTO dateRangeDTO = new DateRangeDTO("2021-08-15", "2021-08-17");
+        TimeframeDTO timeframeDTO = new TimeframeDTO(1628985600, 1629072000);
+
+        when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(timeframeDTO);
+        when(exportService.exportData(timeframeDTO)).thenThrow(new AuthenticationException("not logged in"));
+
+        // when & then
+        assertThrows(AuthenticationException.class, () -> fddbDataService.exportForTimerange(dateRangeDTO));
+        verify(exportService, times(1)).exportData(timeframeDTO);
     }
 
     @Test

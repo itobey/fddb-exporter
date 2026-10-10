@@ -226,8 +226,16 @@ public class FddbDataService {
                             successfulDays.add(date.toString());
                         } catch (ParseException parseException) {
                             unsuccessfulDays.add(date.toString());
+                        } catch (AuthenticationException authenticationException) {
+                            // not logged in - every following day would fail the same way, so halt
+                            throw authenticationException;
+                        } catch (RuntimeException runtimeException) {
+                            // belt and braces: one day that fails in an unforeseen way must not discard the
+                            // days already exported and the ones still queued behind it
+                            log.warn("unexpected failure while exporting {} - recording it as unsuccessful",
+                                    date, runtimeException);
+                            unsuccessfulDays.add(date.toString());
                         }
-                        // AuthenticationException is not caught and will halt the process
                     });
 
             ExportResultDTO result = new ExportResultDTO();
