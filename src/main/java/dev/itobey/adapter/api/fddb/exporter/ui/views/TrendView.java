@@ -401,8 +401,7 @@ public class TrendView extends VerticalLayout {
     }
 
     private static String metricLabel(NutrientMetric metric) {
-        String name = metric.name();
-        return name.charAt(0) + name.substring(1).toLowerCase();
+        return capitalize(metric.name());
     }
 
     private static String granularityLabel(TrendGranularity granularity) {

@@ -284,10 +284,6 @@ public class RollingAveragesView extends VerticalLayout {
         return grid;
     }
 
-    private String capitalize(String name) {
-        return name.charAt(0) + name.substring(1).toLowerCase();
-    }
-
     private Component createMacroDistributionBars(MacroSplitDTO macroSplit) {
         VerticalLayout container = new VerticalLayout();
         container.addClassNames(LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
