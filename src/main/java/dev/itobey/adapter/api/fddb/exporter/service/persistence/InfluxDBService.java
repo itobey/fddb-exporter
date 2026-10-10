@@ -2,7 +2,6 @@ package dev.itobey.adapter.api.fddb.exporter.service.persistence;
 
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.QueryApi;
-import com.influxdb.client.WriteApi;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxTable;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Service class for persisting data to InfluxDB.
@@ -39,35 +37,17 @@ public class InfluxDBService {
      */
     public void saveToInfluxDB(FddbData fddbData) {
         Instant time = fddbData.getDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
-        Map<String, Double> metrics = Map.of(
-                "calories", fddbData.getTotalCalories(),
-                "fat", fddbData.getTotalFat(),
-                "carbs", fddbData.getTotalCarbs(),
-                "sugar", fddbData.getTotalSugar(),
-                "fibre", fddbData.getTotalFibre(),
-                "protein", fddbData.getTotalProtein()
-        );
 
-        metrics.forEach((metric, value) ->
-                writeData(metric, value, time)
-        );
-    }
+        Point point = Point.measurement(DAILY_TOTALS)
+                .addField("calories", fddbData.getTotalCalories())
+                .addField("fat", fddbData.getTotalFat())
+                .addField("carbs", fddbData.getTotalCarbs())
+                .addField("sugar", fddbData.getTotalSugar())
+                .addField("protein", fddbData.getTotalProtein())
+                .addField("fibre", fddbData.getTotalFibre())
+                .time(time, WritePrecision.NS);
 
-    /**
-     * Writes data as a Point to InfluxDB.
-     *
-     * @param field The field to be written.
-     * @param value The value to be written.
-     * @param time  The time of the data point.
-     */
-    public void writeData(String field, double value, Instant time) {
-        try (WriteApi writeApi = influxDBClient.makeWriteApi()) {
-            Point point = Point.measurement(DAILY_TOTALS)
-                    .addField(field, value)
-                    .time(time, WritePrecision.NS);
-
-            writeApi.writePoint(point);
-        }
+        influxDBClient.getWriteApiBlocking().writePoint(point);
     }
 
     /**
