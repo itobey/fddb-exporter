@@ -11,9 +11,10 @@ import org.springframework.context.annotation.Profile;
 public class FddbFeignConfig {
 
     private final FddbExporterProperties properties;
+    private final FddbSession fddbSession;
 
     @Bean
     public FddbRequestInterceptor fddbRequestInterceptor() {
-        return new FddbRequestInterceptor(properties);
+        return new FddbRequestInterceptor(properties, fddbSession);
     }
 }
