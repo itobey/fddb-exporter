@@ -30,8 +30,9 @@ public class MongoIndexInitializer {
     public void ensureIndexes() {
         try {
             IndexOperations indexOps = mongoTemplate.indexOps(FddbData.class);
-            indexOps.createIndex(new Index().on("date", Sort.Direction.ASC).unique());
-            indexOps.createIndex(new Index().on("products.name", Sort.Direction.ASC));
+            // Match the existing production index names to avoid IndexOptionsConflict.
+            indexOps.createIndex(new Index().on("date", Sort.Direction.ASC).unique().named("date"));
+            indexOps.createIndex(new Index().on("products.name", Sort.Direction.ASC).named("products.name"));
         } catch (Exception e) {
             log.error("Failed to create MongoDB indexes. If this is the unique index on 'date', the collection "
                     + "likely already contains duplicate dates - see the upgrading docs to find and remove them, "
