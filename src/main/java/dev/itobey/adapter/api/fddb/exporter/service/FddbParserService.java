@@ -61,6 +61,19 @@ public class FddbParserService {
         }
     }
 
+    /**
+     * Whether a response came back as the logged-out page.
+     * <p>
+     * The non-throwing counterpart of {@link #checkAuthentication(Document)}, for the adapter's
+     * retry-with-a-fresh-login path, where being logged out is a condition to handle rather than an error.
+     *
+     * @param html the raw HTML of an fddb.info response
+     * @return true if the page shows the login link instead of the diary
+     */
+    public boolean isLoggedOut(String html) {
+        return !Jsoup.parse(html, "UTF-8").selectXpath(XPATH_AUTH_STATUS).isEmpty();
+    }
+
     public void checkAuthentication(Document doc) throws AuthenticationException {
         Elements authStatus = doc.selectXpath(XPATH_AUTH_STATUS);
         if (!authStatus.isEmpty()) {

@@ -25,6 +25,8 @@
 
 ### Fixed
 
+- **Expired fddb.info sessions now recover automatically.** Exports retry once after a fresh login instead of
+  reporting invalid credentials. Login timeouts prevent requests from hanging indefinitely.
 - **An unreachable telemetry host no longer prevents the application from starting.** A DNS failure, an air-gapped
   deployment, or repointing `FDDB-EXPORTER_TELEMETRY_URL` at a dead address used to fail the whole application on
   startup; telemetry failures are now logged and otherwise ignored.
