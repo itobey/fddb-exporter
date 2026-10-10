@@ -25,6 +25,8 @@
 
 ### Fixed
 
+- **The Web UI now works with custom server settings.** API calls use the configured port, context path, and HTTPS
+  setting instead of a hardcoded URL. Shared connection and read timeouts prevent requests from hanging indefinitely.
 - **Exports now continue after an unexpected failure for one day.** The failed day is reported as unsuccessful;
   authentication failures still halt the run.
 - **Expired fddb.info sessions now recover automatically.** Exports retry once after a fresh login instead of

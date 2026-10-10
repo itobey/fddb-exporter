@@ -2,6 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.ui.service;
 
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -29,9 +30,11 @@ public class StatsClient {
     private static final String MISSING_DAYS_URL = "/api/v2/stats/missing-days";
 
     private final RestTemplate restTemplate;
+    private final ApiBaseUrl apiBaseUrl;
 
-    public StatsClient() {
-        this.restTemplate = new RestTemplate();
+    public StatsClient(@Qualifier("uiRestTemplate") RestTemplate restTemplate, ApiBaseUrl apiBaseUrl) {
+        this.restTemplate = restTemplate;
+        this.apiBaseUrl = apiBaseUrl;
     }
 
     /**
@@ -173,7 +176,7 @@ public class StatsClient {
     }
 
     private String getBaseUrl() {
-        return "http://localhost:8080";
+        return apiBaseUrl.get();
     }
 }
 

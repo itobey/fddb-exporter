@@ -24,7 +24,9 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
  */
 class FddbDataClientTest {
 
-    private static final String BASE = "http://localhost:8080/api/v2/fddbdata";
+    // deliberately not port 8080 and not the empty context path: the base URL has to come from the
+    // configuration, not from a literal in the client
+    private static final String BASE = "http://localhost:9090/fddb/api/v2/fddbdata";
 
     private RestTemplate restTemplate;
     private MockRestServiceServer server;
@@ -34,7 +36,7 @@ class FddbDataClientTest {
     void setUp() {
         restTemplate = new RestTemplate();
         server = MockRestServiceServer.createServer(restTemplate);
-        client = new FddbDataClient(restTemplate);
+        client = new FddbDataClient(restTemplate, new ApiBaseUrl(9090, "/fddb", false));
     }
 
     @Test

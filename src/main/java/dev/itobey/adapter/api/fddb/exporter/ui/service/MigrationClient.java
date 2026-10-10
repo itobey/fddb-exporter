@@ -1,6 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -15,9 +16,11 @@ public class MigrationClient {
     private static final String MIGRATION_URL = "/api/v2/migration/toInfluxDb";
 
     private final RestTemplate restTemplate;
+    private final ApiBaseUrl apiBaseUrl;
 
-    public MigrationClient() {
-        this.restTemplate = new RestTemplate();
+    public MigrationClient(@Qualifier("uiRestTemplate") RestTemplate restTemplate, ApiBaseUrl apiBaseUrl) {
+        this.restTemplate = restTemplate;
+        this.apiBaseUrl = apiBaseUrl;
     }
 
     /**
@@ -36,7 +39,7 @@ public class MigrationClient {
     }
 
     private String getBaseUrl() {
-        return "http://localhost:8080";
+        return apiBaseUrl.get();
     }
 }
 
