@@ -11,6 +11,7 @@ import dev.itobey.adapter.api.fddb.exporter.service.persistence.MongoDBService;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -165,6 +166,23 @@ class MongoDBServiceTest {
 
         // then
         assertThat(result).containsExactly("Haferflocken kernig", "Haferflocken zart");
+    }
+
+    @Test
+    void findDistinctProductNames_shouldQuoteRegexMetacharactersInTheSearchTerm() {
+        // given: a product name like "Müsli (500g)" is an unbalanced group as a regex, which Mongo rejects
+        // with an IllegalArgumentException - the documented semantics are a plain substring match
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(COLLECTION_NAME), eq(Document.class)))
+                .thenReturn(new AggregationResults<>(List.of(), new Document()));
+
+        // when
+        mongoDBService.findDistinctProductNames("Müsli (500g", 50);
+
+        // then
+        ArgumentCaptor<Aggregation> aggregation = ArgumentCaptor.forClass(Aggregation.class);
+        verify(mongoTemplate).aggregate(aggregation.capture(), eq(COLLECTION_NAME), eq(Document.class));
+        // the pipeline renders as JSON, so Pattern.quote's \Q...\E shows up with escaped backslashes
+        assertThat(aggregation.getValue().toString()).contains("\\\\QMüsli (500g\\\\E");
     }
 
     private void stubProductOccurrences(List<ProductWithDate> occurrences) {

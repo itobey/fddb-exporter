@@ -14,6 +14,9 @@
 
 ### Fixed
 
+- **Product searches now match literal text.** Regex characters in search terms are treated literally, preserving
+  case-insensitive substring matching. Malformed patterns no longer cause search errors, and caller-supplied regex
+  patterns can no longer trigger expensive backtracking. This applies to the REST API, Web UI, and MCP product tools.
 - **The Web UI now works with custom server settings.** API calls use the configured port, context path, and HTTPS
   setting instead of a hardcoded URL. Shared connection and read timeouts prevent requests from hanging indefinitely.
 - **Exports now continue after an unexpected failure for one day.** The failed day is reported as unsuccessful;

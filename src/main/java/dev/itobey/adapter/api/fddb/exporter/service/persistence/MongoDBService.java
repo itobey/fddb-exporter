@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
@@ -264,7 +265,7 @@ public class MongoDBService {
 
         operations.add(unwind("products"));
         if (search != null && !search.isBlank()) {
-            operations.add(match(Criteria.where("products.name").regex(search, "i")));
+            operations.add(match(productNameContains(search)));
         }
         operations.add(group("products.name"));
         operations.add(sort(Sort.Direction.ASC, "_id"));
@@ -388,7 +389,7 @@ public class MongoDBService {
 
         if (!excludeNames.isEmpty()) {
             List<Criteria> excludeList = excludeNames.stream()
-                    .map(name -> Criteria.where("products.name").regex(name, "i"))
+                    .map(name -> productNameContains(name))
                     .toList();
             operations.add(match(new Criteria().norOperator(excludeList.toArray(new Criteria[0]))));
         }
@@ -398,9 +399,22 @@ public class MongoDBService {
 
     private Criteria anyNameMatches(List<String> names) {
         List<Criteria> criteria = names.stream()
-                .map(name -> Criteria.where("products.name").regex(name, "i"))
+                .map(this::productNameContains)
                 .toList();
         return new Criteria().orOperator(criteria.toArray(new Criteria[0]));
+    }
+
+    /**
+     * Case-insensitive <em>substring</em> match on a product name - which is what the REST docs, the MCP
+     * tool descriptions and the UI labels all promise.
+     * <p>
+     * The input is quoted, so it means exactly that. Passing caller-supplied text straight to
+     * {@code regex()} made {@code Müsli (500g)} a 500 (an unbalanced group Mongo rejects), and let a
+     * pattern like {@code (a+)+$} pin a database thread with catastrophic backtracking - both reachable
+     * from the unauthenticated REST API, the UI and the MCP tools.
+     */
+    private Criteria productNameContains(String name) {
+        return Criteria.where("products.name").regex(Pattern.quote(name), "i");
     }
 
     /**
@@ -412,9 +426,9 @@ public class MongoDBService {
 
         addDateRangeMatch(operations, fromDate, toDate);
         // match before unwinding so days without the product never get expanded
-        operations.add(match(Criteria.where("products.name").regex(name, "i")));
+        operations.add(match(productNameContains(name)));
         operations.add(unwind("products"));
-        operations.add(match(Criteria.where("products.name").regex(name, "i")));
+        operations.add(match(productNameContains(name)));
         operations.add(sort(Sort.Direction.DESC, "date"));
         operations.add(project()
                 .andExpression("date").as("date")
