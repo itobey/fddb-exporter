@@ -67,8 +67,8 @@ FDDB Exporter keys every entry on its diary date and stores it as midnight of th
 the timezone is semantically relevant rather than cosmetic — see
 [time and date](/details/persistence.md#time-and-date). A container defaults to UTC, so set this to your own timezone.
 
-| Variable | Default | Description                                                                |
-|----------|---------|----------------------------------------------------------------------------|
+| Variable | Default | Description                                                                                 |
+|----------|---------|---------------------------------------------------------------------------------------------|
 | `TZ`     | UTC     | Timezone of the container, e.g. `Europe/Berlin`. The Helm chart calls this value `timezone` |
 
 Changing `TZ` does not rewrite entries that already exist. If days look shifted by one, see
@@ -119,11 +119,23 @@ A Telegram message is sent when the scheduled export cannot parse a day. Notific
 nothing is sent until a token and a chat id are configured. See [Notifications](/details/notifications.md) for what
 triggers a message and how to obtain the two values.
 
-| Variable                                    | Default | Description                                                   |
-|---------------------------------------------|---------|---------------------------------------------------------------|
-| `FDDB-EXPORTER_NOTIFICATION_ENABLED`        | true    | Send a Telegram message when a scheduled export fails to parse |
-| `FDDB-EXPORTER_NOTIFICATION_TELEGRAM_TOKEN` | -       | Bot token from BotFather                                       |
-| `FDDB-EXPORTER_NOTIFICATION_TELEGRAM_CHATID`| -       | Id of the chat to send messages to                             |
+| Variable                                     | Default | Description                                                    |
+|----------------------------------------------|---------|----------------------------------------------------------------|
+| `FDDB-EXPORTER_NOTIFICATION_ENABLED`         | true    | Send a Telegram message when a scheduled export fails to parse |
+| `FDDB-EXPORTER_NOTIFICATION_TELEGRAM_TOKEN`  | -       | Bot token from BotFather                                       |
+| `FDDB-EXPORTER_NOTIFICATION_TELEGRAM_CHATID` | -       | Id of the chat to send messages to                             |
+
+### Version Check <Badge type="tip" text="2.5.0+" />
+
+The application checks for a new release on startup and once a day, and shows a notice in the Web UI's sidebar when one
+exists — see [Upgrading](/details/upgrading.md).
+
+| Variable                           | Default     | Description                                                           |
+|------------------------------------|-------------|-----------------------------------------------------------------------|
+| `FDDB-EXPORTER_VERSION-CHECK_CRON` | 0 0 4 * * * | When the daily check for a new release runs (4 AM daily, Spring cron) |
+
+Before 2.5.0 the check ran on `FDDB-EXPORTER_TELEMETRY_CRON`, so moving telemetry moved the version check with it. If
+you had retimed telemetry and want the version check to keep following it, set this variable to the same expression.
 
 ### MCP Server Configuration <Badge type="tip" text="2.3.0+" />
 
@@ -132,17 +144,17 @@ MongoDB persistence. For what it exposes and how to connect a client, see [MCP S
 
 | Variable                                | Default | Description                                                                       |
 |-----------------------------------------|---------|-----------------------------------------------------------------------------------|
-| `FDDB-EXPORTER_MCP_ENABLED`             | false   | Enable the MCP server endpoint at `/mcp`, with the read-only tools                 |
-| `FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED` | false   | Additionally expose the export tools, which scrape FDDB and write to the database  |
+| `FDDB-EXPORTER_MCP_ENABLED`             | false   | Enable the MCP server endpoint at `/mcp`, with the read-only tools                |
+| `FDDB-EXPORTER_MCP_WRITE-TOOLS-ENABLED` | false   | Additionally expose the export tools, which scrape FDDB and write to the database |
 
 Both flags are read at startup, so changing either needs a restart. Mind
 [the hyphens](#a-note-on-the-hyphens) if you set them from a shell script.
 
 ### Web UI Configuration
 
-| Variable                             | Default           | Description                                                              |
-|--------------------------------------|-------------------|--------------------------------------------------------------------------|
-| `FDDB-EXPORTER_UI_FDDB-LINK-PREFIX`  | https://fddb.info | Base URL the [Web UI](/visualization/web-ui.md) prefixes to product links |
+| Variable                            | Default           | Description                                                               |
+|-------------------------------------|-------------------|---------------------------------------------------------------------------|
+| `FDDB-EXPORTER_UI_FDDB-LINK-PREFIX` | https://fddb.info | Base URL the [Web UI](/visualization/web-ui.md) prefixes to product links |
 
 Products are stored with the site-relative link FDDB itself uses, so this is what turns them into a URL you can click.
 
@@ -151,10 +163,10 @@ Products are stored with the site-relative link FDDB itself uses, so this is wha
 The health endpoint is exposed at `/actuator/health`, with liveness and readiness groups for Kubernetes. The defaults
 are usually fine; they are listed here because they matter to anyone writing probe configuration.
 
-| Variable                                        | Default                  | Description                              |
-|-------------------------------------------------|--------------------------|------------------------------------------|
-| `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE`     | health, scheduledtasks   | Which actuator endpoints are exposed     |
-| `MANAGEMENT_ENDPOINT_HEALTH_SHOW-DETAILS`       | always                   | Whether health details are in the response |
+| Variable                                    | Default                | Description                                |
+|---------------------------------------------|------------------------|--------------------------------------------|
+| `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | health, scheduledtasks | Which actuator endpoints are exposed       |
+| `MANAGEMENT_ENDPOINT_HEALTH_SHOW-DETAILS`   | always                 | Whether health details are in the response |
 
 Three custom indicators contribute to the health response: `fddb-login-check` (does the fddb.info login still work —
 it performs a real request), plus `mongodb` and `influxdb` when the respective store is enabled.
@@ -181,7 +193,8 @@ Note that the health endpoint is **not** authenticated, like everything else the
 ## Encrypting credentials
 
 Environment variables are plain text, and this application needs several credentials — your FDDB password above all.
-Rather than passing them in the clear, the application supports [Jasypt](https://github.com/ulisesbocchio/jasypt-spring-boot)
+Rather than passing them in the clear, the application
+supports [Jasypt](https://github.com/ulisesbocchio/jasypt-spring-boot)
 encrypted properties: any property value written as `ENC(...)` is decrypted at startup.
 
 1. Encrypt a value, using the Maven plugin that ships with the project:

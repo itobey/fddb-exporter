@@ -41,16 +41,19 @@ class SchedulerTest {
 
     private FddbExporterProperties.Scheduler schedulerProperties;
     private FddbExporterProperties.Telemetry telemetryProperties;
+    private FddbExporterProperties.VersionCheck versionCheckProperties;
     private FddbExporterProperties.Notification notificationProperties;
 
     @BeforeEach
     void setUp() {
         schedulerProperties = new FddbExporterProperties.Scheduler();
         telemetryProperties = new FddbExporterProperties.Telemetry();
+        versionCheckProperties = new FddbExporterProperties.VersionCheck();
         notificationProperties = new FddbExporterProperties.Notification();
 
         lenient().when(properties.getScheduler()).thenReturn(schedulerProperties);
         lenient().when(properties.getTelemetry()).thenReturn(telemetryProperties);
+        lenient().when(properties.getVersionCheck()).thenReturn(versionCheckProperties);
         lenient().when(properties.getNotification()).thenReturn(notificationProperties);
     }
 
@@ -60,13 +63,15 @@ class SchedulerTest {
         schedulerProperties.setEnabled(true);
         schedulerProperties.setCron("0 0 1 * * ?");
         telemetryProperties.setCron("0 0 2 * * ?");
+        versionCheckProperties.setCron("0 0 5 * * ?");
 
         // when
         scheduler.configureTasks(taskRegistrar);
 
         // then
         verify(taskRegistrar).addCronTask(any(Runnable.class), eq("0 0 1 * * ?"));
-        verify(taskRegistrar, times(2)).addCronTask(any(Runnable.class), eq("0 0 2 * * ?"));
+        verify(taskRegistrar).addCronTask(any(Runnable.class), eq("0 0 2 * * ?"));
+        verify(taskRegistrar).addCronTask(any(Runnable.class), eq("0 0 5 * * ?"));
     }
 
     @Test
@@ -75,13 +80,15 @@ class SchedulerTest {
         schedulerProperties.setEnabled(false);
         schedulerProperties.setCron("0 0 1 * * ?");
         telemetryProperties.setCron("0 0 2 * * ?");
+        versionCheckProperties.setCron("0 0 5 * * ?");
 
         // when
         scheduler.configureTasks(taskRegistrar);
 
         // then
         verify(taskRegistrar, never()).addCronTask(any(Runnable.class), eq("0 0 1 * * ?"));
-        verify(taskRegistrar, times(2)).addCronTask(any(Runnable.class), eq("0 0 2 * * ?"));
+        verify(taskRegistrar).addCronTask(any(Runnable.class), eq("0 0 2 * * ?"));
+        verify(taskRegistrar).addCronTask(any(Runnable.class), eq("0 0 5 * * ?"));
     }
 
     @Test
@@ -90,6 +97,7 @@ class SchedulerTest {
         schedulerProperties.setEnabled(true);
         schedulerProperties.setCron("0 0 1 * * ?");
         telemetryProperties.setCron("0 0 2 * * ?");
+        versionCheckProperties.setCron("0 0 5 * * ?");
         notificationProperties.setEnabled(true);
         doThrow(new ExportInProgressException("An export is already running"))
                 .when(fddbDataService).exportForDaysBack(1, false);
@@ -166,6 +174,7 @@ class SchedulerTest {
         schedulerProperties.setEnabled(true);
         schedulerProperties.setCron("0 0 1 * * ?");
         telemetryProperties.setCron("0 0 2 * * ?");
+        versionCheckProperties.setCron("0 0 5 * * ?");
 
         scheduler.configureTasks(taskRegistrar);
         ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
@@ -178,13 +187,27 @@ class SchedulerTest {
         // given
         schedulerProperties.setEnabled(false);
         telemetryProperties.setCron("0 0 2 * * ?");
+        versionCheckProperties.setCron("0 0 5 * * ?");
 
         // when
         scheduler.configureTasks(taskRegistrar);
 
-        // then
-        // telemetry cron is used for both telemetry and version check; ensure at least one registration
-        verify(taskRegistrar, atLeastOnce()).addCronTask(any(Runnable.class), eq("0 0 2 * * ?"));
+        // then: telemetry runs on its own cron, independently of the export scheduler being disabled
+        verify(taskRegistrar).addCronTask(any(Runnable.class), eq("0 0 2 * * ?"));
+    }
+
+    @Test
+    void configureTasks_shouldFallBackToTheTelemetryCronWhenNoVersionCheckCronIsConfigured() {
+        // given: a configuration predating fddb-exporter.version-check.cron, or one that removed it
+        schedulerProperties.setEnabled(false);
+        telemetryProperties.setCron("0 0 2 * * ?");
+        versionCheckProperties.setCron(null);
+
+        // when
+        scheduler.configureTasks(taskRegistrar);
+
+        // then: telemetry and version check land on the old shared cron rather than on nothing at all
+        verify(taskRegistrar, times(2)).addCronTask(any(Runnable.class), eq("0 0 2 * * ?"));
     }
 
 }
