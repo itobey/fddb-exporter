@@ -146,7 +146,7 @@ public class DataDownloadService {
             }
         } catch (Exception exception) {
             log.error("Error generating CSV for totals", exception);
-            throw new RuntimeException("Failed to generate CSV", exception);
+            throw new DownloadException("Failed to generate CSV", exception);
         }
         return output.toByteArray();
     }
@@ -173,7 +173,7 @@ public class DataDownloadService {
             }
         } catch (Exception exception) {
             log.error("Error generating CSV for full data", exception);
-            throw new RuntimeException("Failed to generate CSV", exception);
+            throw new DownloadException("Failed to generate CSV", exception);
         }
         return output.toByteArray();
     }
@@ -265,7 +265,7 @@ public class DataDownloadService {
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(data);
         } catch (JacksonException jacksonException) {
             log.error("Error generating JSON", jacksonException);
-            throw new RuntimeException("Failed to generate JSON", jacksonException);
+            throw new DownloadException("Failed to generate JSON", jacksonException);
         }
     }
 
@@ -274,6 +274,16 @@ public class DataDownloadService {
         return COMMA_DECIMAL_SEPARATOR.equals(decimalSeparator)
                 ? formatted.replace(".", ",")
                 : formatted;
+    }
+
+    /**
+     * Identifies export serialization failures. The global handler returns HTTP 500.
+     */
+    public static class DownloadException extends RuntimeException {
+
+        public DownloadException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 
     /**
