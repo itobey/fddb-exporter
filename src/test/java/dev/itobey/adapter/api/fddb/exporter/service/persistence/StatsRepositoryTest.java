@@ -18,6 +18,7 @@ import org.springframework.data.mongodb.core.query.Query;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -123,6 +124,58 @@ class StatsRepositoryTest {
                 .findFirst()
                 .orElseThrow();
         assertThat(((Document) sortStage.get("$sort")).get("totalCalories")).isEqualTo(1);
+    }
+
+    /**
+     * The six all-time extremes used to be six {@code sort + limit 1} aggregations. What makes one
+     * enough is that {@code $max} over {@code {v, d}} compares the value first and carries the date
+     * along, so this pins that shape rather than just the result.
+     */
+    @Test
+    void findHighestDayPerMetric_shouldAskForAllSixMaximaInOneGroupStage() {
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(COLLECTION_NAME), eq(StatsRepository.HighestDays.class)))
+                .thenReturn(new AggregationResults<>(List.of(), new Document()));
+
+        statsRepository.findHighestDayPerMetric();
+
+        ArgumentCaptor<Aggregation> aggregation = ArgumentCaptor.forClass(Aggregation.class);
+        verify(mongoTemplate).aggregate(aggregation.capture(), eq(COLLECTION_NAME),
+                eq(StatsRepository.HighestDays.class));
+        List<Document> pipeline = aggregation.getValue().toPipeline(Aggregation.DEFAULT_CONTEXT);
+        assertThat(pipeline).hasSize(2);
+
+        Document group = (Document) pipeline.getFirst().get("$group");
+        assertThat(group.keySet()).containsExactlyInAnyOrder(
+                "_id", "totalCalories", "totalFat", "totalCarbs", "totalSugar", "totalProtein", "totalFibre");
+        Document caloriesMax = (Document) ((Document) group.get("totalCalories")).get("$max");
+        // value first, date second - reversing this would return the latest day, not the highest one
+        assertThat(caloriesMax.keySet()).containsExactly("v", "d");
+        assertThat(caloriesMax.get("v")).isEqualTo("$totalCalories");
+        assertThat(caloriesMax.get("d")).isEqualTo("$date");
+    }
+
+    @Test
+    void findHighestDayPerMetric_shouldMapEachProjectedPairToItsMetric() {
+        StatsRepository.HighestDays highestDays = new StatsRepository.HighestDays();
+        highestDays.setTotalCalories(StatsDTO.DayStats.builder().date(LocalDate.of(2024, 5, 1)).total(3200).build());
+        highestDays.setTotalProtein(StatsDTO.DayStats.builder().date(LocalDate.of(2024, 6, 2)).total(180).build());
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(COLLECTION_NAME), eq(StatsRepository.HighestDays.class)))
+                .thenReturn(new AggregationResults<>(List.of(highestDays), new Document()));
+
+        Map<NutrientMetric, StatsDTO.DayStats> result = statsRepository.findHighestDayPerMetric();
+
+        // metrics the aggregation had nothing for are left out rather than mapped to a null-dated day
+        assertThat(result).containsOnlyKeys(NutrientMetric.CALORIES, NutrientMetric.PROTEIN);
+        assertThat(result.get(NutrientMetric.CALORIES).getDate()).isEqualTo(LocalDate.of(2024, 5, 1));
+        assertThat(result.get(NutrientMetric.PROTEIN).getTotal()).isEqualTo(180.0);
+    }
+
+    @Test
+    void findHighestDayPerMetric_whenTheDiaryIsEmpty_shouldReturnNoMetricsAtAll() {
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(COLLECTION_NAME), eq(StatsRepository.HighestDays.class)))
+                .thenReturn(new AggregationResults<>(List.of(), new Document()));
+
+        assertThat(statsRepository.findHighestDayPerMetric()).isEmpty();
     }
 
     @Test

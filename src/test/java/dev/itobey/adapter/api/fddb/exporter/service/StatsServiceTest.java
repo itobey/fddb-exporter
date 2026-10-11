@@ -13,13 +13,11 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,11 +57,8 @@ class StatsServiceTest {
                 .build()));
         when(statsRepository.countUniqueProducts()).thenReturn(42L);
         when(statsRepository.countTotalProducts()).thenReturn(120L);
-        when(statsRepository.findExtremeDays(any(), eq(ExtremeDirection.HIGHEST), anyInt(), eq(null), eq(null)))
-                .thenReturn(List.of(StatsDTO.DayStats.builder()
-                        .date(LocalDate.of(2023, 5, 1))
-                        .total(3000)
-                        .build()));
+        when(statsRepository.findHighestDayPerMetric()).thenReturn(highestDayForEveryMetric(
+                StatsDTO.DayStats.builder().date(LocalDate.of(2023, 5, 1)).total(3000).build()));
         when(statsRepository.findLoggedDates(any(), any())).thenReturn(Set.of());
 
         // when
@@ -89,7 +84,7 @@ class StatsServiceTest {
         when(statsRepository.countAll()).thenReturn(1L);
         when(statsRepository.findFirstEntryDate()).thenReturn(today);
         when(statsRepository.averages(null, null)).thenReturn(Optional.of(StatsDTO.Averages.builder().build()));
-        when(statsRepository.findExtremeDays(any(), any(), anyInt(), eq(null), eq(null))).thenReturn(List.of());
+        when(statsRepository.findHighestDayPerMetric()).thenReturn(Map.of());
         when(statsRepository.findLoggedDates(any(), any())).thenReturn(Set.of(today));
 
         // when
@@ -107,7 +102,7 @@ class StatsServiceTest {
         when(statsRepository.countAll()).thenReturn(3L);
         when(statsRepository.findFirstEntryDate()).thenReturn(firstEntryDate);
         when(statsRepository.averages(null, null)).thenReturn(Optional.of(StatsDTO.Averages.builder().build()));
-        when(statsRepository.findExtremeDays(any(), any(), anyInt(), eq(null), eq(null))).thenReturn(List.of());
+        when(statsRepository.findHighestDayPerMetric()).thenReturn(Map.of());
         // logged: -4, -3, -1 - so -2 is a gap and today is not logged yet
         when(statsRepository.findLoggedDates(firstEntryDate, today)).thenReturn(Set.of(
                 today.minusDays(4), today.minusDays(3), today.minusDays(1)));
@@ -131,7 +126,7 @@ class StatsServiceTest {
         when(statsRepository.countAll()).thenReturn(3L);
         when(statsRepository.findFirstEntryDate()).thenReturn(today.minusDays(4));
         when(statsRepository.averages(null, null)).thenReturn(Optional.of(StatsDTO.Averages.builder().build()));
-        when(statsRepository.findExtremeDays(any(), any(), anyInt(), eq(null), eq(null))).thenReturn(List.of());
+        when(statsRepository.findHighestDayPerMetric()).thenReturn(Map.of());
         when(statsRepository.findLoggedDates(any(), any()))
                 .thenThrow(new DataAccessResourceFailureException("timed out"));
 
@@ -205,7 +200,7 @@ class StatsServiceTest {
         // this is what makes it the cheap alternative to getStats(): a count and two indexed reads
         verify(statsRepository, never()).averages(any(), any());
         verify(statsRepository, never()).countUniqueProducts();
-        verify(statsRepository, never()).findExtremeDays(any(), any(), anyInt(), any(), any());
+        verify(statsRepository, never()).findHighestDayPerMetric();
     }
 
     @Test
@@ -394,6 +389,18 @@ class StatsServiceTest {
 
         assertThat(statsService().countByDateRange(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 31)))
                 .isEqualTo(28L);
+    }
+
+    /**
+     * The six all-time extremes come back from a single aggregation now, so a test that does not care
+     * which metric is which can hand the same day back for all of them.
+     */
+    private Map<NutrientMetric, StatsDTO.DayStats> highestDayForEveryMetric(StatsDTO.DayStats dayStats) {
+        Map<NutrientMetric, StatsDTO.DayStats> byMetric = new EnumMap<>(NutrientMetric.class);
+        for (NutrientMetric metric : NutrientMetric.values()) {
+            byMetric.put(metric, dayStats);
+        }
+        return byMetric;
     }
 
     private FddbData entry(LocalDate date, double calories) {

@@ -4,6 +4,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExtremeDirection;
 import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.bson.Document;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -129,6 +130,69 @@ public class StatsRepository {
                 mongoTemplate.aggregate(newAggregation(operations), COLLECTION_NAME, StatsDTO.DayStats.class);
 
         return results.getMappedResults();
+    }
+
+    /**
+     * Finds all six nutrient extremes in one aggregation. BSON compares {@code {v: total, d: date}}
+     * in field order, so {@code $max} selects the highest total, then the latest date on ties.
+     *
+     * @return the highest day per metric, with metrics missing from the map if the diary is empty
+     */
+    public Map<NutrientMetric, StatsDTO.DayStats> findHighestDayPerMetric() {
+        Document group = new Document("_id", null);
+        Document project = new Document("_id", 0);
+        for (NutrientMetric metric : NutrientMetric.values()) {
+            String alias = metric.getFieldName();
+            group.append(alias, new Document("$max",
+                    new Document("v", "$" + metric.getFieldName()).append("d", "$date")));
+            project.append(alias, new Document("total", "$" + alias + ".v").append("date", "$" + alias + ".d"));
+        }
+
+        // Let MongoDB's converter map BSON dates to LocalDate.
+        AggregationResults<HighestDays> results = mongoTemplate.aggregate(
+                newAggregation(
+                        context -> new Document("$group", group),
+                        context -> new Document("$project", project)),
+                COLLECTION_NAME, HighestDays.class);
+
+        HighestDays highest = results.getUniqueMappedResult();
+        if (highest == null) {
+            return Map.of();
+        }
+
+        Map<NutrientMetric, StatsDTO.DayStats> byMetric = new EnumMap<>(NutrientMetric.class);
+        for (NutrientMetric metric : NutrientMetric.values()) {
+            StatsDTO.DayStats dayStats = highest.forMetric(metric);
+            if (dayStats != null && dayStats.getDate() != null) {
+                byMetric.put(metric, dayStats);
+            }
+        }
+        return byMetric;
+    }
+
+    /**
+     * Projected date and total for each nutrient extreme.
+     */
+    @Data
+    static class HighestDays {
+
+        private StatsDTO.DayStats totalCalories;
+        private StatsDTO.DayStats totalFat;
+        private StatsDTO.DayStats totalCarbs;
+        private StatsDTO.DayStats totalSugar;
+        private StatsDTO.DayStats totalProtein;
+        private StatsDTO.DayStats totalFibre;
+
+        StatsDTO.DayStats forMetric(NutrientMetric metric) {
+            return switch (metric) {
+                case CALORIES -> totalCalories;
+                case FAT -> totalFat;
+                case CARBS -> totalCarbs;
+                case SUGAR -> totalSugar;
+                case PROTEIN -> totalProtein;
+                case FIBRE -> totalFibre;
+            };
+        }
     }
 
     /**

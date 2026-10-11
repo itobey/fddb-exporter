@@ -52,6 +52,8 @@
 
 ### Changed
 
+- **Overall statistics now use one aggregation for nutrient extremes and a two-minute cache**, cleared on data
+  writes. Tied extremes now select the latest day; the response format is unchanged.
 - **Export dates and InfluxDB timestamps now share a configurable timezone**, set via `fddb-exporter.timezone`
   (`FDDB-EXPORTER_TIMEZONE`, default `Europe/Berlin`), independently of the JVM's `TZ`.
 - **DST scrape windows now span 23 or 25 hours**, ending at the next day's boundary without gaps or overlaps.
