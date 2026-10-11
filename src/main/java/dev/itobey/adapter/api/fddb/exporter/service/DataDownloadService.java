@@ -52,6 +52,11 @@ public class DataDownloadService {
     private static final String COMMA_DECIMAL_SEPARATOR = ",";
     private static final String EMPTY_FIELD = "";
 
+    /**
+     * Formula prefixes and leading control characters that spreadsheets may interpret as formulas.
+     */
+    private static final String FORMULA_TRIGGERS = "=+-@\t\r";
+
     private static final String[] TOTALS_CSV_HEADER = {
             "Date", "Calories", "Fat", "Carbs", "Sugar", "Protein", "Fibre"
     };
@@ -137,7 +142,7 @@ public class DataDownloadService {
             csvWriter.writeNext(TOTALS_CSV_HEADER);
 
             for (FddbDataDTO total : totals) {
-                csvWriter.writeNext(createTotalsRow(total, decimalSeparator));
+                writeRow(csvWriter, createTotalsRow(total, decimalSeparator));
             }
         } catch (Exception exception) {
             log.error("Error generating CSV for totals", exception);
@@ -176,10 +181,10 @@ public class DataDownloadService {
     private void writeEntryRows(CSVWriter csvWriter, FddbDataDTO entry, String decimalSeparator) {
         if (hasProducts(entry)) {
             for (ProductDTO product : entry.getProducts()) {
-                csvWriter.writeNext(createProductRow(entry, product, decimalSeparator));
+                writeRow(csvWriter, createProductRow(entry, product, decimalSeparator));
             }
         } else {
-            csvWriter.writeNext(createEmptyProductRow(entry, decimalSeparator));
+            writeRow(csvWriter, createEmptyProductRow(entry, decimalSeparator));
         }
     }
 
@@ -220,6 +225,26 @@ public class DataDownloadService {
                 formatNumber(entry.getTotalProtein(), decimalSeparator),
                 formatNumber(entry.getTotalFibre(), decimalSeparator)
         };
+    }
+
+    /**
+     * Neutralizes formula-like fields in data rows; constant headers bypass this.
+     */
+    private void writeRow(CSVWriter csvWriter, String[] row) {
+        for (int i = 0; i < row.length; i++) {
+            row[i] = neutralizeFormula(row[i]);
+        }
+        csvWriter.writeNext(row);
+    }
+
+    /**
+     * Prefixes formula-like fields with an apostrophe; CSV quoting alone does not prevent evaluation.
+     */
+    private String neutralizeFormula(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+        return FORMULA_TRIGGERS.indexOf(value.charAt(0)) >= 0 ? "'" + value : value;
     }
 
     /**

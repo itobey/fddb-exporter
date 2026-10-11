@@ -3,6 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.DownloadFormat;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ProductDTO;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import dev.itobey.adapter.api.fddb.exporter.testutil.TestDataLoader;
@@ -16,6 +17,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -126,6 +128,55 @@ class DataDownloadServiceTest {
         assertThat(csv).contains("100 g");
         assertThat(csv).contains("Apple");
         assertThat(csv).contains("150 g");
+    }
+
+    /**
+     * Formula-like product fields are escaped even when CSV-quoted.
+     */
+    @Test
+    @SneakyThrows
+    void downloadData_whenAProductNameLooksLikeAFormula_shouldNeutralizeIt() {
+        // given
+        FddbDataDTO entry = new FddbDataDTO();
+        entry.setDate(LocalDate.of(2024, 1, 1));
+        entry.setTotalCalories(2000);
+        ProductDTO product = new ProductDTO();
+        product.setName("=1+1");
+        product.setAmount("@100 g");
+        product.setLink("+http://example.org");
+        entry.setProducts(List.of(product));
+
+        when(persistenceService.findAllEntries()).thenReturn(testFddbData);
+        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(new ArrayList<>(List.of(entry)));
+
+        // when
+        byte[] result = dataDownloadService.downloadData(null, null, DownloadFormat.CSV, true, ".");
+
+        // then: formula-like fields have a leading apostrophe
+        String csv = new String(result, StandardCharsets.UTF_8);
+        assertThat(csv).contains("\"'=1+1\"");
+        assertThat(csv).contains("\"'@100 g\"");
+        assertThat(csv).contains("\"'+http://example.org\"");
+        assertThat(csv).doesNotContain("\"=1+1\"");
+    }
+
+    /**
+     * Ordinary fields retain their original CSV representation.
+     */
+    @Test
+    @SneakyThrows
+    void downloadData_whenNothingLooksLikeAFormula_shouldLeaveEveryFieldAlone() {
+        // given
+        when(persistenceService.findAllEntries()).thenReturn(testFddbData);
+        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(testFddbDataDTO);
+
+        // when
+        byte[] result = dataDownloadService.downloadData(null, null, DownloadFormat.CSV, true, ".");
+
+        // then
+        String csv = new String(result, StandardCharsets.UTF_8);
+        assertThat(csv).doesNotContain("'");
+        assertThat(csv).contains("\"2024-01-01\"");
     }
 
     @Test
