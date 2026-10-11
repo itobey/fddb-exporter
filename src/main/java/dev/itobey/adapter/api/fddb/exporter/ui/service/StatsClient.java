@@ -48,7 +48,7 @@ public class StatsClient {
             return restTemplate.getForObject(getBaseUrl() + STATS_URL, StatsDTO.class);
         } catch (RestClientException e) {
             log.error("Failed to get stats", e);
-            throw new ApiException("Failed to retrieve statistics: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve statistics", e);
         }
     }
 
@@ -66,7 +66,7 @@ public class StatsClient {
             return restTemplate.getForObject(url, RollingAveragesDTO.class, fromDate, toDate);
         } catch (RestClientException e) {
             log.error("Failed to get rolling averages", e);
-            throw new ApiException("Failed to retrieve rolling averages: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve rolling averages", e);
         }
     }
 
@@ -96,7 +96,7 @@ public class StatsClient {
             return response.getBody();
         } catch (RestClientException e) {
             log.error("Failed to get trend", e);
-            throw new ApiException("Failed to retrieve trend: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve trend", e);
         }
     }
 
@@ -119,7 +119,7 @@ public class StatsClient {
             return response.getBody();
         } catch (RestClientException e) {
             log.error("Failed to get weekday breakdown", e);
-            throw new ApiException("Failed to retrieve weekday breakdown: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve weekday breakdown", e);
         }
     }
 
@@ -137,7 +137,7 @@ public class StatsClient {
             return restTemplate.getForObject(url, MacroSplitDTO.class, fromDate, toDate);
         } catch (RestClientException e) {
             log.error("Failed to get macro split", e);
-            throw new ApiException("Failed to retrieve macro split: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve macro split", e);
         }
     }
 
@@ -162,7 +162,7 @@ public class StatsClient {
             return response.getBody();
         } catch (RestClientException e) {
             log.error("Failed to get missing days", e);
-            throw new ApiException("Failed to retrieve missing days: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve missing days", e);
         }
     }
 

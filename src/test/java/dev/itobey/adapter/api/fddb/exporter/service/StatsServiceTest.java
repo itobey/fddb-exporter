@@ -14,6 +14,7 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Query;
 
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.Collections;
@@ -281,7 +282,7 @@ class StatsServiceTest {
     void getExtremeDays_whenFromIsAfterTo_shouldThrowException() {
         assertThatThrownBy(() -> statsService.getExtremeDays(NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 5,
                 LocalDate.of(2024, 2, 1), LocalDate.of(2024, 1, 1)))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(DateTimeException.class)
                 .hasMessage("The 'from' date cannot be after the 'to' date");
     }
 
@@ -409,7 +410,7 @@ class StatsServiceTest {
     @Test
     void getMissingDays_whenFromIsAfterTo_shouldThrowException() {
         assertThatThrownBy(() -> statsService.getMissingDays(LocalDate.of(2024, 2, 1), LocalDate.of(2024, 1, 1)))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(DateTimeException.class);
     }
 
     private FddbData entry(LocalDate date, double calories) {

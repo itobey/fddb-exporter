@@ -52,7 +52,9 @@ class FddbDataExportResourceV2IT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidBatchExport)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.dateTimeError")
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Invalid Date Range"))
+                .andExpect(jsonPath("$.detail")
                         .value("The 'from' date cannot be after the 'to' date"));
     }
 
@@ -67,7 +69,9 @@ class FddbDataExportResourceV2IT {
     void exportForDaysBack_whenDayOutsidePermittedRange_shouldThrowException(int days, boolean includeToday) {
         mockMvc.perform(get("/api/v2/fddbdata/export?days=" + days + "&includeToday=" + includeToday))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.dateTimeError")
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Invalid Date Range"))
+                .andExpect(jsonPath("$.detail")
                         .value("Days back must be between 1 and 365"));
     }
 }

@@ -15,6 +15,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -374,7 +375,11 @@ public class StatsService {
 
         StatsDTO.Averages averages = results.getUniqueMappedResult();
         if (averages == null) {
-            throw new IllegalStateException("No data available for averaging");
+            // An empty range is the caller's choice of range, not a broken server: IllegalArgumentException
+            // maps to 400 with this message, where the old IllegalStateException became a 5xx and told
+            // nobody - neither a REST client nor an MCP model - what to do about it.
+            throw new IllegalArgumentException(
+                    "No entries in the requested range, so there is nothing to average - pick a range that has data");
         }
 
         return averages;
@@ -602,9 +607,14 @@ public class StatsService {
         return criteria;
     }
 
+    /**
+     * Deliberately the same exception type as {@code FddbDataService.validateRange}: the same user
+     * mistake must not answer 400 here and something else there, so both throw
+     * {@link DateTimeException} and {@code GlobalExceptionHandler} maps it once.
+     */
     private void validateDateRange(LocalDate fromDate, LocalDate toDate) {
         if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
-            throw new IllegalArgumentException("The 'from' date cannot be after the 'to' date");
+            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
         }
     }
 

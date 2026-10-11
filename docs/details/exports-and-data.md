@@ -39,7 +39,8 @@ Web UI and the MCP export tools all share one lock.
 
 A second export requested while one is running is **refused, not queued**:
 
-- The **REST API** answers `409 Conflict` with an `exportError` message. Retry once the running export has finished;
+- The **REST API** answers `409 Conflict` with the explanation in the `detail` member of the
+  [problem details body](/details/rest-api.md#error-responses). Retry once the running export has finished;
   how long that takes depends on how many days it covers, since each day is a separate request to fddb.info.
 - The **Web UI** surfaces the same message, since it calls the REST API.
 - The **scheduler** logs a warning and skips that night's run. Yesterday is picked up by the next run, and no

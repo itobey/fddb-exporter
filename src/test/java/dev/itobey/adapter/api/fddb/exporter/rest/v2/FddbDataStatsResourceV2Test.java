@@ -11,10 +11,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -57,20 +59,23 @@ class FddbDataStatsResourceV2Test {
         assertEquals(mockAverages, response.getBody());
     }
 
+    /**
+     * The controller no longer catches this itself - GlobalExceptionHandler turns it into a
+     * ProblemDetail with the same 400, so every endpoint answers an invalid range the same way.
+     */
     @Test
     void testGetRollingAverages_InvalidDateRange() {
         DateRangeDTO dateRangeDTO = DateRangeDTO.builder()
                 .fromDate("2023-01-31")
                 .toDate("2023-01-01")
                 .build();
-        String errorMessage = "From date must be before to date";
+        String errorMessage = "The 'from' date cannot be after the 'to' date";
         when(fddbDataService.getRollingAverages(dateRangeDTO))
-                .thenThrow(new IllegalArgumentException(errorMessage));
+                .thenThrow(new DateTimeException(errorMessage));
 
-        ResponseEntity<?> response = fddbDataStatsResourceV2.getRollingAverages(dateRangeDTO);
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals(errorMessage, response.getBody());
+        assertThatThrownBy(() -> fddbDataStatsResourceV2.getRollingAverages(dateRangeDTO))
+                .isInstanceOf(DateTimeException.class)
+                .hasMessage(errorMessage);
     }
 
     @Test

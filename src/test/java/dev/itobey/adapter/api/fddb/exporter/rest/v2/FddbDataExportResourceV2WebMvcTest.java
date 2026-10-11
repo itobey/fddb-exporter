@@ -56,8 +56,10 @@ class FddbDataExportResourceV2WebMvcTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidBatchExport)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fromDate").value("From date must be in the format YYYY-MM-DD"))
-                .andExpect(jsonPath("$.toDate").value("To date cannot be null"));
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Validation Failed"))
+                .andExpect(jsonPath("$.errors.fromDate").value("From date must be in the format YYYY-MM-DD"))
+                .andExpect(jsonPath("$.errors.toDate").value("To date cannot be null"));
     }
 }
 

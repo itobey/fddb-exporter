@@ -37,7 +37,7 @@ public class CorrelationClient {
             return restTemplate.postForObject(getBaseUrl() + CORRELATION_URL, input, CorrelationOutputDto.class);
         } catch (RestClientException e) {
             log.error("Failed to create correlation", e);
-            throw new ApiException("Failed to create correlation analysis: " + e.getMessage(), e);
+            throw ApiException.from("Failed to create correlation analysis", e);
         }
     }
 

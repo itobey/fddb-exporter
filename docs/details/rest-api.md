@@ -38,6 +38,54 @@ Example responses:
 2. [example response when querying a product name](/resources/example-response-products.json)
 3. [example response when retrieving stats](/resources/example-response-stats.json)
 
+## Error responses <Badge type="tip" text="2.5.0+" />
+
+Errors handled by the global exception handler use [RFC 7807](https://www.rfc-editor.org/rfc/rfc7807) *problem details*,
+served as `application/problem+json`. One parser handles all of them — there is no per-endpoint or per-error key to
+learn.
+
+```json
+{
+  "type": "https://github.com/itobey/fddb-exporter/problems/invalid-date-range",
+  "title": "Invalid Date Range",
+  "status": 400,
+  "detail": "The 'from' date cannot be after the 'to' date",
+  "instance": "/api/v2/fddbdata/range"
+}
+```
+
+`detail` is the sentence to show a user. Bean-validation failures add one extra member, `errors`, mapping each
+rejected field to its message:
+
+```json
+{
+  "title": "Validation Failed",
+  "status": 400,
+  "detail": "One or more fields of the request are invalid",
+  "errors": {
+    "fromDate": "From date must be in the format YYYY-MM-DD",
+    "toDate": "To date cannot be null"
+  }
+}
+```
+
+The same mistake always produces the same status, whichever endpoint detects it:
+
+| Status                      | Meaning                                                                                                                                         |
+|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `400 Bad Request`           | Anything the caller can fix: an inverted or oversized date range, a malformed date, a rejected parameter, or a range with no entries to average |
+| `404 Not Found`             | The requested day has no data, or the diary page could not be parsed into any                                                                   |
+| `409 Conflict`              | Another export is already running - see [only one export at a time](/details/exports-and-data.md#only-one-export-at-a-time)                     |
+| `413 Payload Too Large`     | A download would exceed the 365-day limit                                                                                                       |
+| `502 Bad Gateway`           | Logging in to fddb.info failed - the upstream site rejected the configured credentials                                                          |
+| `503 Service Unavailable`   | The endpoint needs a store that is not configured on this instance                                                                              |
+| `500 Internal Server Error` | An unexpected failure. The body is deliberately generic; the stack trace is in the server log                                                   |
+
+::: warning Before 2.5.0 the body was an ad-hoc object with a different key per error (`dateTimeError`,
+`exportError`, `authenticationError`), validation messages sat at the root of the object rather than under `errors`,
+and some endpoints answered with a bare string. Failed logins were `500` and unconfigured stores were `500`.
+:::
+
 ## Endpoints
 
 ### Retrieve All Data
@@ -337,7 +385,7 @@ Example responses:
     - Returns HTTP 409 Conflict if another export is already running - see
       [only one export at a time](/details/exports-and-data.md#only-one-export-at-a-time). The request is not queued;
       retry it once the running export has finished.
-    - Returns HTTP 500 Internal Server Error if logging in to fddb.info fails.
+    - Returns HTTP 502 Bad Gateway if logging in to fddb.info fails.
 
 ---
 
@@ -369,7 +417,7 @@ Example responses:
     - Returns HTTP 409 Conflict if another export is already running - see
       [only one export at a time](/details/exports-and-data.md#only-one-export-at-a-time). The request is not queued;
       retry it once the running export has finished.
-    - Returns HTTP 500 Internal Server Error if logging in to fddb.info fails.
+    - Returns HTTP 502 Bad Gateway if logging in to fddb.info fails.
 
 ---
 
