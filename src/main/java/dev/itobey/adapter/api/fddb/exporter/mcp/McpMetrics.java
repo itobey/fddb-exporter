@@ -3,6 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.mcp;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
+import dev.itobey.adapter.api.fddb.exporter.util.Rounding;
 
 /**
  * Reads a single {@link NutrientMetric} off a day or a set of averages, and names its unit.
@@ -68,6 +69,6 @@ final class McpMetrics {
      * @return the rounded value
      */
     static double roundToOneDecimal(double value) {
-        return Math.round(value * 10.0) / 10.0;
+        return Rounding.toOneDecimal(value);
     }
 }

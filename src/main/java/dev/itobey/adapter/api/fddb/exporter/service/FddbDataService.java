@@ -9,6 +9,7 @@ import dev.itobey.adapter.api.fddb.exporter.exception.ExportInProgressException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
+import dev.itobey.adapter.api.fddb.exporter.util.DateRanges;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -78,7 +79,7 @@ public class FddbDataService {
      */
     public List<ProductWithDateDTO> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek,
                                                   LocalDate fromDate, LocalDate toDate, Integer limit) {
-        validateRange(fromDate, toDate);
+        DateRanges.validate(fromDate, toDate);
         List<ProductWithDate> productsWithDate =
                 persistenceService.findByProduct(name, daysOfWeek, fromDate, toDate, limit);
         return fddbDataMapper.toProductWithDateDto(productsWithDate);
@@ -100,7 +101,7 @@ public class FddbDataService {
      * @throws DateTimeException if the range is inverted or longer than {@link #MAX_RANGE_DAYS}
      */
     public List<FddbDataDTO> findByDateRange(LocalDate fromDate, LocalDate toDate, boolean includeProducts) {
-        validateRange(fromDate, toDate);
+        DateRanges.validate(fromDate, toDate);
 
         long amountDays = DAYS.between(fromDate, toDate) + 1;
         if (amountDays > MAX_RANGE_DAYS) {
@@ -113,12 +114,12 @@ public class FddbDataService {
     }
 
     public ProductSummaryDTO getProductSummary(String name, LocalDate fromDate, LocalDate toDate) {
-        validateRange(fromDate, toDate);
+        DateRanges.validate(fromDate, toDate);
         return persistenceService.getProductSummary(name, fromDate, toDate);
     }
 
     public List<TopProductDTO> getTopProducts(ProductRanking ranking, LocalDate fromDate, LocalDate toDate, int limit) {
-        validateRange(fromDate, toDate);
+        DateRanges.validate(fromDate, toDate);
         return persistenceService.getTopProducts(ranking, fromDate, toDate, limit);
     }
 
@@ -198,19 +199,11 @@ public class FddbDataService {
         return statsService.countByDateRange(fromDate, toDate);
     }
 
-    private void validateRange(LocalDate fromDate, LocalDate toDate) {
-        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
-            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
-        }
-    }
-
     public ExportResultDTO exportForTimerange(DateRangeDTO dateRangeDTO) {
         LocalDate from = LocalDate.parse(dateRangeDTO.getFromDate());
         LocalDate to = LocalDate.parse(dateRangeDTO.getToDate());
 
-        if (from.isAfter(to)) {
-            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
-        }
+        DateRanges.validate(from, to);
 
         long amountDaysToExport = DAYS.between(from, to) + 1;
 

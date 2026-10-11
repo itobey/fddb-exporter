@@ -2,20 +2,14 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.StatsRepository;
+import dev.itobey.adapter.api.fddb.exporter.util.DateRanges;
+import dev.itobey.adapter.api.fddb.exporter.util.Rounding;
 import lombok.extern.slf4j.Slf4j;
-import org.bson.Document;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
-import org.springframework.data.mongodb.core.aggregation.AggregationResults;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
-import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -24,23 +18,29 @@ import java.time.temporal.IsoFields;
 import java.util.*;
 import java.util.function.ToDoubleFunction;
 
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
-
+/**
+ * Computes statistics from {@link StatsRepository} query results.
+ */
 @Slf4j
 @Service
 public class StatsService {
-
-    public static final String COLLECTION_NAME = "fddb";
 
     private static final double KCAL_PER_GRAM_FAT = 9.0;
     private static final double KCAL_PER_GRAM_CARBS = 4.0;
     private static final double KCAL_PER_GRAM_PROTEIN = 4.0;
 
-    @Autowired(required = false)
-    private MongoTemplate mongoTemplate;
+    /**
+     * Null when MongoDB persistence is disabled.
+     */
+    private final StatsRepository statsRepository;
+
+    public StatsService(ObjectProvider<StatsRepository> statsRepository) {
+        this.statsRepository = statsRepository.getIfAvailable();
+    }
 
     public StatsDTO getStats() {
-        long amountEntries = getAmountEntries();
+        requireRepository();
+        long amountEntries = statsRepository.countAll();
 
         // Handle empty database - return stats with zero/null values
         if (amountEntries == 0) {
@@ -65,12 +65,12 @@ public class StatsService {
                     .build();
         }
 
-        LocalDate firstEntryDate = getFirstEntryDate();
-        LocalDate lastEntryDate = getLastEntryDate();
-        double entryPercentage = roundToOneDecimal(calculateEntryPercentage(firstEntryDate, amountEntries));
-        StatsDTO.Averages averageTotals = roundAverages(getAverageTotals());
-        long uniqueProducts = getUniqueProductsCount();
-        long totalProducts = getTotalProductsCount();
+        LocalDate firstEntryDate = statsRepository.findFirstEntryDate();
+        LocalDate lastEntryDate = statsRepository.findLastEntryDate();
+        double entryPercentage = Rounding.toOneDecimal(calculateEntryPercentage(firstEntryDate, amountEntries));
+        StatsDTO.Averages averageTotals = roundAverages(requireAverages(null, null));
+        long uniqueProducts = statsRepository.countUniqueProducts();
+        long totalProducts = statsRepository.countTotalProducts();
         Coverage coverage = getCoverage(firstEntryDate);
 
         return StatsDTO.builder()
@@ -106,8 +106,8 @@ public class StatsService {
      * @return the coverage window, with a zero count and null dates when the diary is empty
      */
     public CoverageWindowDTO getCoverageWindow() {
-        requireMongoTemplate();
-        long amountEntries = getAmountEntries();
+        requireRepository();
+        long amountEntries = statsRepository.countAll();
 
         if (amountEntries == 0) {
             return CoverageWindowDTO.builder().entryCount(0).build();
@@ -115,43 +115,16 @@ public class StatsService {
 
         return CoverageWindowDTO.builder()
                 .entryCount(amountEntries)
-                .firstEntryDate(getFirstEntryDate())
-                .lastEntryDate(getLastEntryDate())
+                .firstEntryDate(statsRepository.findFirstEntryDate())
+                .lastEntryDate(statsRepository.findLastEntryDate())
                 .build();
     }
 
-    private long getAmountEntries() {
-        return mongoTemplate.count(new Query(), COLLECTION_NAME);
-    }
-
-    private LocalDate getFirstEntryDate() {
-        return getEntryDateAtEdge(Sort.Direction.ASC);
-    }
-
-    private LocalDate getLastEntryDate() {
-        return getEntryDateAtEdge(Sort.Direction.DESC);
-    }
-
-    private LocalDate getEntryDateAtEdge(Sort.Direction direction) {
-        requireMongoTemplate();
-        Query query = new Query().with(Sort.by(direction, "date")).limit(1);
-        query.fields().exclude("products");
-        FddbData document = mongoTemplate.findOne(query, FddbData.class, COLLECTION_NAME);
-        if (document == null) {
-            return null;
-        }
-        return document.getDate();
-    }
-
-    private StatsDTO.Averages getAverageTotals() {
-        return getAverages(null);
-    }
-
     public StatsDTO.Averages getAveragesForDateRange(LocalDate fromDate, LocalDate toDate) {
-        validateDateRange(fromDate, toDate);
+        DateRanges.validate(fromDate, toDate);
+        requireRepository();
 
-        Criteria criteria = Criteria.where("date").gte(fromDate).lte(toDate);
-        return roundAverages(getAverages(criteria));
+        return roundAverages(requireAverages(fromDate, toDate));
     }
 
     /**
@@ -166,12 +139,10 @@ public class StatsService {
      * @return the number of days in the range that have an entry
      */
     public long countByDateRange(LocalDate fromDate, LocalDate toDate) {
-        requireMongoTemplate();
-        validateDateRange(fromDate, toDate);
+        DateRanges.validate(fromDate, toDate);
+        requireRepository();
 
-        Criteria criteria = buildDateCriteria(fromDate, toDate);
-        Query query = criteria == null ? new Query() : new Query(criteria);
-        return mongoTemplate.count(query, COLLECTION_NAME);
+        return statsRepository.countInRange(fromDate, toDate);
     }
 
     /**
@@ -188,24 +159,10 @@ public class StatsService {
      */
     public List<StatsDTO.DayStats> getExtremeDays(NutrientMetric metric, ExtremeDirection direction, int limit,
                                                   LocalDate fromDate, LocalDate toDate) {
-        requireMongoTemplate();
-        validateDateRange(fromDate, toDate);
+        DateRanges.validate(fromDate, toDate);
+        requireRepository();
 
-        Sort.Direction sortDirection = direction == ExtremeDirection.LOWEST ? Sort.Direction.ASC : Sort.Direction.DESC;
-
-        List<AggregationOperation> operations = new ArrayList<>();
-        Criteria criteria = buildDateCriteria(fromDate, toDate);
-        if (criteria != null) {
-            operations.add(match(criteria));
-        }
-        operations.add(sort(sortDirection, metric.getFieldName()));
-        operations.add(limit(limit));
-        operations.add(project("date").and(metric.getFieldName()).as("total"));
-
-        AggregationResults<StatsDTO.DayStats> results =
-                mongoTemplate.aggregate(newAggregation(operations), COLLECTION_NAME, StatsDTO.DayStats.class);
-
-        return results.getMappedResults().stream()
+        return statsRepository.findExtremeDays(metric, direction, limit, fromDate, toDate).stream()
                 .map(this::roundDayStats)
                 .toList();
     }
@@ -223,11 +180,12 @@ public class StatsService {
      */
     public List<TrendPointDTO> getTrend(NutrientMetric metric, LocalDate fromDate, LocalDate toDate,
                                         TrendGranularity granularity) {
-        validateDateRange(fromDate, toDate);
+        DateRanges.validate(fromDate, toDate);
+        requireRepository();
 
         ToDoubleFunction<FddbData> valueOf = metricAccessor(metric);
         Map<String, List<FddbData>> buckets = new LinkedHashMap<>();
-        for (FddbData entry : findDailyTotals(fromDate, toDate)) {
+        for (FddbData entry : statsRepository.findDailyTotals(fromDate, toDate)) {
             buckets.computeIfAbsent(bucketLabel(entry.getDate(), granularity), key -> new ArrayList<>()).add(entry);
         }
 
@@ -239,8 +197,8 @@ public class StatsService {
                     .fromDate(entries.getFirst().getDate())
                     .toDate(entries.getLast().getDate())
                     .dayCount(entries.size())
-                    .total(roundToOneDecimal(total))
-                    .average(roundToOneDecimal(total / entries.size()))
+                    .total(Rounding.toOneDecimal(total))
+                    .average(Rounding.toOneDecimal(total / entries.size()))
                     .build());
         });
         return trend;
@@ -255,10 +213,11 @@ public class StatsService {
      * @return the averages per day of the week, Monday first
      */
     public List<WeekdayStatsDTO> getWeekdayBreakdown(LocalDate fromDate, LocalDate toDate) {
-        validateDateRange(fromDate, toDate);
+        DateRanges.validate(fromDate, toDate);
+        requireRepository();
 
         Map<DayOfWeek, List<FddbData>> byWeekday = new EnumMap<>(DayOfWeek.class);
-        for (FddbData entry : findDailyTotals(fromDate, toDate)) {
+        for (FddbData entry : statsRepository.findDailyTotals(fromDate, toDate)) {
             byWeekday.computeIfAbsent(entry.getDate().getDayOfWeek(), key -> new ArrayList<>()).add(entry);
         }
 
@@ -291,14 +250,14 @@ public class StatsService {
         return MacroSplitDTO.builder()
                 .fromDate(fromDate.toString())
                 .toDate(toDate.toString())
-                .fatCalories(roundToOneDecimal(fatCalories))
-                .carbsCalories(roundToOneDecimal(carbsCalories))
-                .proteinCalories(roundToOneDecimal(proteinCalories))
-                .macroCalories(roundToOneDecimal(macroCalories))
+                .fatCalories(Rounding.toOneDecimal(fatCalories))
+                .carbsCalories(Rounding.toOneDecimal(carbsCalories))
+                .proteinCalories(Rounding.toOneDecimal(proteinCalories))
+                .macroCalories(Rounding.toOneDecimal(macroCalories))
                 .averageCalories(averages.getAvgTotalCalories())
-                .fatPercentage(percentageOf(fatCalories, macroCalories))
-                .carbsPercentage(percentageOf(carbsCalories, macroCalories))
-                .proteinPercentage(percentageOf(proteinCalories, macroCalories))
+                .fatPercentage(Rounding.percentageOf(fatCalories, macroCalories))
+                .carbsPercentage(Rounding.percentageOf(carbsCalories, macroCalories))
+                .proteinPercentage(Rounding.percentageOf(proteinCalories, macroCalories))
                 .build();
     }
 
@@ -311,30 +270,10 @@ public class StatsService {
      * @return the missing days in chronological order
      */
     public List<LocalDate> getMissingDays(LocalDate fromDate, LocalDate toDate) {
-        validateDateRange(fromDate, toDate);
+        DateRanges.validate(fromDate, toDate);
+        requireRepository();
 
-        return collectMissingDays(findLoggedDates(fromDate, toDate), fromDate, toDate);
-    }
-
-    /**
-     * Loads the dates in a range that have an entry with at least one calorie. A day with an entry
-     * but no calories counts as unlogged, since that is what an aborted or empty export looks like.
-     *
-     * @param fromDate the first date to load
-     * @param toDate   the last date to load
-     * @return the logged dates, for cheap membership checks
-     */
-    private Set<LocalDate> findLoggedDates(LocalDate fromDate, LocalDate toDate) {
-        requireMongoTemplate();
-
-        Query query = new Query(Criteria.where("date").gte(fromDate).lte(toDate).and("totalCalories").gt(0));
-        query.fields().exclude("products");
-
-        Set<LocalDate> loggedDates = new HashSet<>();
-        for (FddbData entry : mongoTemplate.find(query, FddbData.class, COLLECTION_NAME)) {
-            loggedDates.add(entry.getDate());
-        }
-        return loggedDates;
+        return collectMissingDays(statsRepository.findLoggedDates(fromDate, toDate), fromDate, toDate);
     }
 
     private List<LocalDate> collectMissingDays(Set<LocalDate> loggedDates, LocalDate fromDate, LocalDate toDate) {
@@ -352,67 +291,13 @@ public class StatsService {
         return extremes.isEmpty() ? null : extremes.getFirst();
     }
 
-    private StatsDTO.Averages getAverages(Criteria criteria) {
-        requireMongoTemplate();
-
-        List<AggregationOperation> operations = new ArrayList<>();
-
-        if (criteria != null) {
-            operations.add(match(criteria));
-        }
-
-        operations.add(group()
-                .avg("totalCalories").as("avgTotalCalories")
-                .avg("totalFat").as("avgTotalFat")
-                .avg("totalCarbs").as("avgTotalCarbs")
-                .avg("totalSugar").as("avgTotalSugar")
-                .avg("totalProtein").as("avgTotalProtein")
-                .avg("totalFibre").as("avgTotalFibre")
-        );
-
-        Aggregation aggregation = newAggregation(operations);
-        AggregationResults<StatsDTO.Averages> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, StatsDTO.Averages.class);
-
-        StatsDTO.Averages averages = results.getUniqueMappedResult();
-        if (averages == null) {
-            // An empty range is the caller's choice of range, not a broken server: IllegalArgumentException
-            // maps to 400 with this message, where the old IllegalStateException became a 5xx and told
-            // nobody - neither a REST client nor an MCP model - what to do about it.
-            throw new IllegalArgumentException(
-                    "No entries in the requested range, so there is nothing to average - pick a range that has data");
-        }
-
-        return averages;
-    }
-
-
-    private long getUniqueProductsCount() {
-        Aggregation aggregation = newAggregation(
-                unwind("products"),
-                group("products.name"),
-                count().as("uniqueCount")
-        );
-        AggregationResults<Document> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, Document.class);
-        Document doc = results.getUniqueMappedResult();
-        if (doc == null) {
-            return 0L;
-        }
-        Object val = doc.get("uniqueCount");
-        return val instanceof Number ? ((Number) val).longValue() : 0L;
-    }
-
-    private long getTotalProductsCount() {
-        Aggregation aggregation = newAggregation(
-                unwind("products"),
-                count().as("totalCount")
-        );
-        AggregationResults<Document> results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, Document.class);
-        Document doc = results.getUniqueMappedResult();
-        if (doc == null) {
-            return 0L;
-        }
-        Object val = doc.get("totalCount");
-        return val instanceof Number ? ((Number) val).longValue() : 0L;
+    /**
+     * Rejects empty ranges with HTTP 400.
+     */
+    private StatsDTO.Averages requireAverages(LocalDate fromDate, LocalDate toDate) {
+        return statsRepository.averages(fromDate, toDate)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No entries in the requested range, so there is nothing to average - pick a range that has data"));
     }
 
     /**
@@ -431,22 +316,14 @@ public class StatsService {
         return Math.min(100.0, (double) documentCount / daysSince * 100);
     }
 
-    private double roundToOneDecimal(double value) {
-        return Math.round(value * 10.0) / 10.0;
-    }
-
-    private double percentageOf(double part, double whole) {
-        return whole == 0 ? 0.0 : roundToOneDecimal(part / whole * 100);
-    }
-
     private StatsDTO.Averages roundAverages(StatsDTO.Averages averages) {
         return StatsDTO.Averages.builder()
-                .avgTotalCalories(roundToOneDecimal(averages.getAvgTotalCalories()))
-                .avgTotalFat(roundToOneDecimal(averages.getAvgTotalFat()))
-                .avgTotalCarbs(roundToOneDecimal(averages.getAvgTotalCarbs()))
-                .avgTotalSugar(roundToOneDecimal(averages.getAvgTotalSugar()))
-                .avgTotalProtein(roundToOneDecimal(averages.getAvgTotalProtein()))
-                .avgTotalFibre(roundToOneDecimal(averages.getAvgTotalFibre()))
+                .avgTotalCalories(Rounding.toOneDecimal(averages.getAvgTotalCalories()))
+                .avgTotalFat(Rounding.toOneDecimal(averages.getAvgTotalFat()))
+                .avgTotalCarbs(Rounding.toOneDecimal(averages.getAvgTotalCarbs()))
+                .avgTotalSugar(Rounding.toOneDecimal(averages.getAvgTotalSugar()))
+                .avgTotalProtein(Rounding.toOneDecimal(averages.getAvgTotalProtein()))
+                .avgTotalFibre(Rounding.toOneDecimal(averages.getAvgTotalFibre()))
                 .build();
     }
 
@@ -456,7 +333,7 @@ public class StatsService {
         }
         return StatsDTO.DayStats.builder()
                 .date(dayStats.getDate())
-                .total(roundToOneDecimal(dayStats.getTotal()))
+                .total(Rounding.toOneDecimal(dayStats.getTotal()))
                 .build();
     }
 
@@ -469,7 +346,7 @@ public class StatsService {
      * @return the coverage figures, with null values if they cannot be determined
      */
     private Coverage getCoverage(LocalDate firstEntryDate) {
-        if (mongoTemplate == null) {
+        if (statsRepository == null) {
             return Coverage.unknown();
         }
 
@@ -480,7 +357,7 @@ public class StatsService {
             }
 
             LocalDate today = LocalDate.now();
-            Set<LocalDate> loggedDates = findLoggedDates(firstEntryDate, today);
+            Set<LocalDate> loggedDates = statsRepository.findLoggedDates(firstEntryDate, today);
 
             // today is deliberately left out of the gaps: a day still in progress is not a missing day
             LocalDate lastCompleteDay = today.minusDays(1);
@@ -540,24 +417,6 @@ public class StatsService {
         }
     }
 
-    /**
-     * Loads the daily totals for a range without the products array, which keeps the in-memory
-     * grouping below cheap even for multi-year ranges.
-     */
-    private List<FddbData> findDailyTotals(LocalDate fromDate, LocalDate toDate) {
-        requireMongoTemplate();
-
-        Query query = new Query();
-        Criteria criteria = buildDateCriteria(fromDate, toDate);
-        if (criteria != null) {
-            query.addCriteria(criteria);
-        }
-        query.fields().exclude("products");
-        query.with(Sort.by(Sort.Direction.ASC, "date"));
-
-        return mongoTemplate.find(query, FddbData.class, COLLECTION_NAME);
-    }
-
     private StatsDTO.Averages averageOf(List<FddbData> entries) {
         return StatsDTO.Averages.builder()
                 .avgTotalCalories(averageOf(entries, FddbData::getTotalCalories))
@@ -570,7 +429,7 @@ public class StatsService {
     }
 
     private double averageOf(List<FddbData> entries, ToDoubleFunction<FddbData> accessor) {
-        return roundToOneDecimal(entries.stream().mapToDouble(accessor).average().orElse(0.0));
+        return Rounding.toOneDecimal(entries.stream().mapToDouble(accessor).average().orElse(0.0));
     }
 
     private ToDoubleFunction<FddbData> metricAccessor(NutrientMetric metric) {
@@ -593,33 +452,8 @@ public class StatsService {
         };
     }
 
-    private Criteria buildDateCriteria(LocalDate fromDate, LocalDate toDate) {
-        if (fromDate == null && toDate == null) {
-            return null;
-        }
-        Criteria criteria = Criteria.where("date");
-        if (fromDate != null) {
-            criteria.gte(fromDate);
-        }
-        if (toDate != null) {
-            criteria.lte(toDate);
-        }
-        return criteria;
-    }
-
-    /**
-     * Deliberately the same exception type as {@code FddbDataService.validateRange}: the same user
-     * mistake must not answer 400 here and something else there, so both throw
-     * {@link DateTimeException} and {@code GlobalExceptionHandler} maps it once.
-     */
-    private void validateDateRange(LocalDate fromDate, LocalDate toDate) {
-        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
-            throw new DateTimeException("The 'from' date cannot be after the 'to' date");
-        }
-    }
-
-    private void requireMongoTemplate() {
-        if (mongoTemplate == null) {
+    private void requireRepository() {
+        if (statsRepository == null) {
             throw new IllegalStateException("MongoDB is not configured");
         }
     }

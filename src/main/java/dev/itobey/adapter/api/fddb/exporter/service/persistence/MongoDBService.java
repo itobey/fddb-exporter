@@ -4,6 +4,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
+import dev.itobey.adapter.api.fddb.exporter.util.Rounding;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -21,6 +22,8 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import static dev.itobey.adapter.api.fddb.exporter.service.persistence.MongoQueries.COLLECTION_NAME;
+import static dev.itobey.adapter.api.fddb.exporter.service.persistence.MongoQueries.buildDateCriteria;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
 /**
@@ -31,8 +34,6 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 @Service
 @ConditionalOnProperty(name = "fddb-exporter.persistence.mongodb.enabled", havingValue = "true")
 public class MongoDBService {
-
-    private static final String COLLECTION_NAME = "fddb";
 
     @Autowired(required = false)
     private FddbDataRepository fddbDataRepository;
@@ -276,7 +277,7 @@ public class MongoDBService {
 
         return results.getMappedResults().stream()
                 .map(document -> document.getString("_id"))
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .toList();
     }
 
@@ -447,20 +448,6 @@ public class MongoDBService {
         }
     }
 
-    private Criteria buildDateCriteria(LocalDate fromDate, LocalDate toDate) {
-        if (fromDate == null && toDate == null) {
-            return null;
-        }
-        Criteria criteria = Criteria.where("date");
-        if (fromDate != null) {
-            criteria = criteria.gte(fromDate);
-        }
-        if (toDate != null) {
-            criteria = criteria.lte(toDate);
-        }
-        return criteria;
-    }
-
     private TopProductDTO round(TopProductDTO product) {
         product.setTotalCalories(round(product.getTotalCalories()));
         product.setTotalFat(round(product.getTotalFat()));
@@ -471,7 +458,7 @@ public class MongoDBService {
     }
 
     private double round(double value) {
-        return Math.round(value * 10.0) / 10.0;
+        return Rounding.toOneDecimal(value);
     }
 
 }
