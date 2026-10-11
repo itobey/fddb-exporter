@@ -326,7 +326,14 @@ public class FddbDataService {
         }
     }
 
-    private void exportForDate(LocalDate date) throws ParseException, AuthenticationException {
+    /**
+     * Scrapes and stores one day.
+     *
+     * @param date the day to export
+     * @throws ParseException          if diary data is missing or malformed
+     * @throws AuthenticationException if the login to fddb.info was not accepted
+     */
+    private void exportForDate(LocalDate date) {
         log.debug("exporting data for {}", date);
         TimeframeDTO timeframeDTO = timeframeCalculator.calculateTimeframeFor(date);
         FddbData fddbData = exportService.exportData(timeframeDTO);

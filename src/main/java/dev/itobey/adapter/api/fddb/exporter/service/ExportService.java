@@ -20,7 +20,15 @@ public class ExportService {
     private final FddbAdapter fddbAdapter;
     private final FddbParserService fddbParserService;
 
-    public FddbData exportData(TimeframeDTO timeframeDTO) throws AuthenticationException, ParseException {
+    /**
+     * Fetches one day from fddb.info and parses it.
+     *
+     * @param timeframeDTO the epoch-second window to fetch
+     * @return the parsed diary day with its export date
+     * @throws AuthenticationException if fddb.info answered with the logged-out page
+     * @throws ParseException          if diary data is missing or malformed
+     */
+    public FddbData exportData(TimeframeDTO timeframeDTO) {
         String response = fddbAdapter.retrieveDataToTimeframe(timeframeDTO);
         log.trace("HTML response: {}", response);
         FddbData fddbData = fddbParserService.parseDiary(response);

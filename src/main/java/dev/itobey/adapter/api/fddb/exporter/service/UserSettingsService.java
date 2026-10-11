@@ -3,7 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 import dev.itobey.adapter.api.fddb.exporter.domain.UserSettings;
 import dev.itobey.adapter.api.fddb.exporter.repository.UserSettingsRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +19,14 @@ import java.util.Optional;
 @Slf4j
 public class UserSettingsService {
 
-    @Autowired(required = false)
-    private UserSettingsRepository userSettingsRepository;
+    /**
+     * Null when the optional repository is unavailable.
+     */
+    private final UserSettingsRepository userSettingsRepository;
+
+    public UserSettingsService(ObjectProvider<UserSettingsRepository> userSettingsRepository) {
+        this.userSettingsRepository = userSettingsRepository.getIfAvailable();
+    }
 
     /**
      * Gets the current user settings.
