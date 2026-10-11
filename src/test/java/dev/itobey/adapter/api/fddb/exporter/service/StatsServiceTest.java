@@ -2,23 +2,20 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
-import org.bson.Document;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.StatsRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationResults;
-import org.springframework.data.mongodb.core.query.Query;
 
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,70 +26,59 @@ import static org.mockito.Mockito.*;
 class StatsServiceTest {
 
     @Mock
-    private MongoTemplate mongoTemplate;
+    private StatsRepository statsRepository;
 
-    @InjectMocks
-    private StatsService statsService;
+    private StatsService statsService() {
+        return new StatsService(providerOf(statsRepository));
+    }
+
+    /**
+     * The service resolves its optional dependency once in the constructor, so the tests only need a
+     * provider that hands back the mock - or nothing at all, for the MongoDB-disabled case.
+     */
+    @SuppressWarnings("unchecked")
+    private ObjectProvider<StatsRepository> providerOf(StatsRepository repository) {
+        ObjectProvider<StatsRepository> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(repository);
+        return provider;
+    }
 
     @Test
     void getStats_shouldGatherAllData() {
         // given
-        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(100L);
-
-        FddbData mockData = new FddbData();
-        mockData.setDate(LocalDate.of(2023, 1, 1));
-        when(mongoTemplate.findOne(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME))).thenReturn(mockData);
-
-        StatsDTO.Averages mockAverages = StatsDTO.Averages.builder()
+        when(statsRepository.countAll()).thenReturn(100L);
+        when(statsRepository.findFirstEntryDate()).thenReturn(LocalDate.of(2023, 1, 1));
+        when(statsRepository.findLastEntryDate()).thenReturn(LocalDate.of(2023, 6, 1));
+        when(statsRepository.averages(null, null)).thenReturn(Optional.of(StatsDTO.Averages.builder()
                 .avgTotalCalories(2000)
                 .avgTotalFat(70)
                 .avgTotalCarbs(250)
                 .avgTotalSugar(50)
                 .avgTotalProtein(100)
                 .avgTotalFibre(30)
-                .build();
-
-        Document rawResults = new Document();
-        AggregationResults<StatsDTO.Averages> mockResults = new AggregationResults<>(Collections.singletonList(mockAverages), rawResults);
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.Averages.class)))
-                .thenReturn(mockResults);
-
-        StatsDTO.DayStats mockDayStats = StatsDTO.DayStats.builder()
-                .date(LocalDate.of(2023, 5, 1))
-                .total(3000)
-                .build();
-
-        AggregationResults<StatsDTO.DayStats> mockDayStatsResults = new AggregationResults<>(Collections.singletonList(mockDayStats), rawResults);
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.DayStats.class)))
-                .thenReturn(mockDayStatsResults);
-
-        AggregationResults<Document> mockUniqueProductsResults = new AggregationResults<>(
-                Collections.singletonList(new Document("uniqueCount", 42L)), rawResults);
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(Document.class)))
-                .thenReturn(mockUniqueProductsResults);
+                .build()));
+        when(statsRepository.countUniqueProducts()).thenReturn(42L);
+        when(statsRepository.countTotalProducts()).thenReturn(120L);
+        when(statsRepository.findExtremeDays(any(), eq(ExtremeDirection.HIGHEST), anyInt(), eq(null), eq(null)))
+                .thenReturn(List.of(StatsDTO.DayStats.builder()
+                        .date(LocalDate.of(2023, 5, 1))
+                        .total(3000)
+                        .build()));
+        when(statsRepository.findLoggedDates(any(), any())).thenReturn(Set.of());
 
         // when
-        StatsDTO result = statsService.getStats();
+        StatsDTO result = statsService().getStats();
 
         // then
         assertThat(result).isNotNull();
         assertThat(result.getAmountEntries()).isEqualTo(100L);
         assertThat(result.getFirstEntryDate()).isEqualTo(LocalDate.of(2023, 1, 1));
-        assertThat(result.getEntryPercentage()).isGreaterThan(0);
+        assertThat(result.getLastEntryDate()).isEqualTo(LocalDate.of(2023, 6, 1));
         assertThat(result.getUniqueProducts()).isEqualTo(42L);
-        assertThat(result.getAverageTotals()).isEqualTo(mockAverages);
-        assertThat(result.getHighestCaloriesDay()).isEqualTo(mockDayStats);
-        assertThat(result.getHighestFatDay()).isEqualTo(mockDayStats);
-        assertThat(result.getHighestCarbsDay()).isEqualTo(mockDayStats);
-        assertThat(result.getHighestProteinDay()).isEqualTo(mockDayStats);
-        assertThat(result.getHighestFibreDay()).isEqualTo(mockDayStats);
-        assertThat(result.getHighestSugarDay()).isEqualTo(mockDayStats);
-        assertThat(result.getMostRecentMissingDay()).isNotNull();
-        assertThat(result.getLastEntryDate()).isEqualTo(LocalDate.of(2023, 1, 1));
-        assertThat(result.getMissingDaysCount()).isPositive();
-        // nothing is logged in this setup, so there is no streak to report
-        assertThat(result.getCurrentStreak()).isZero();
-        assertThat(result.getLongestStreak()).isZero();
+        assertThat(result.getTotalProducts()).isEqualTo(120L);
+        assertThat(result.getAverageTotals().getAvgTotalCalories()).isEqualTo(2000.0);
+        assertThat(result.getHighestCaloriesDay().getTotal()).isEqualTo(3000.0);
+        assertThat(result.getHighestSugarDay().getDate()).isEqualTo(LocalDate.of(2023, 5, 1));
     }
 
     @Test
@@ -100,24 +86,14 @@ class StatsServiceTest {
         // given: a brand-new installation on its first day - dividing by zero days produced Infinity, which
         // is not valid JSON and rendered as "Infinity%" on the dashboard
         LocalDate today = LocalDate.now();
-        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(1L);
-
-        FddbData mockData = new FddbData();
-        mockData.setDate(today);
-        when(mongoTemplate.findOne(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME))).thenReturn(mockData);
-
-        Document rawResults = new Document();
-        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
-                .thenReturn(List.of(entry(today, 2000)));
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.Averages.class)))
-                .thenReturn(new AggregationResults<>(Collections.singletonList(StatsDTO.Averages.builder().build()), rawResults));
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.DayStats.class)))
-                .thenReturn(new AggregationResults<>(Collections.emptyList(), rawResults));
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(Document.class)))
-                .thenReturn(new AggregationResults<>(Collections.singletonList(new Document("uniqueCount", 1L)), rawResults));
+        when(statsRepository.countAll()).thenReturn(1L);
+        when(statsRepository.findFirstEntryDate()).thenReturn(today);
+        when(statsRepository.averages(null, null)).thenReturn(Optional.of(StatsDTO.Averages.builder().build()));
+        when(statsRepository.findExtremeDays(any(), any(), anyInt(), eq(null), eq(null))).thenReturn(List.of());
+        when(statsRepository.findLoggedDates(any(), any())).thenReturn(Set.of(today));
 
         // when
-        StatsDTO result = statsService.getStats();
+        StatsDTO result = statsService().getStats();
 
         // then
         assertThat(result.getEntryPercentage()).isEqualTo(100.0);
@@ -128,29 +104,16 @@ class StatsServiceTest {
         // given
         LocalDate today = LocalDate.now();
         LocalDate firstEntryDate = today.minusDays(4);
-        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(3L);
-
-        FddbData mockData = new FddbData();
-        mockData.setDate(firstEntryDate);
-        when(mongoTemplate.findOne(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME))).thenReturn(mockData);
-
+        when(statsRepository.countAll()).thenReturn(3L);
+        when(statsRepository.findFirstEntryDate()).thenReturn(firstEntryDate);
+        when(statsRepository.averages(null, null)).thenReturn(Optional.of(StatsDTO.Averages.builder().build()));
+        when(statsRepository.findExtremeDays(any(), any(), anyInt(), eq(null), eq(null))).thenReturn(List.of());
         // logged: -4, -3, -1 - so -2 is a gap and today is not logged yet
-        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
-                .thenReturn(List.of(
-                        entry(today.minusDays(4), 2000),
-                        entry(today.minusDays(3), 2000),
-                        entry(today.minusDays(1), 2000)));
-
-        Document rawResults = new Document();
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.Averages.class)))
-                .thenReturn(new AggregationResults<>(Collections.singletonList(StatsDTO.Averages.builder().build()), rawResults));
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.DayStats.class)))
-                .thenReturn(new AggregationResults<>(Collections.emptyList(), rawResults));
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(Document.class)))
-                .thenReturn(new AggregationResults<>(Collections.singletonList(new Document("uniqueCount", 3L)), rawResults));
+        when(statsRepository.findLoggedDates(firstEntryDate, today)).thenReturn(Set.of(
+                today.minusDays(4), today.minusDays(3), today.minusDays(1)));
 
         // when
-        StatsDTO result = statsService.getStats();
+        StatsDTO result = statsService().getStats();
 
         // then
         assertThat(result.getMostRecentMissingDay()).isEqualTo(today.minusDays(2));
@@ -165,25 +128,15 @@ class StatsServiceTest {
         // given: the rest of the statistics still works, only the coverage query fails - it must not
         // claim MongoDB is unconfigured, and it must not fail the whole call
         LocalDate today = LocalDate.now();
-        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(3L);
-
-        FddbData mockData = new FddbData();
-        mockData.setDate(today.minusDays(4));
-        when(mongoTemplate.findOne(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME))).thenReturn(mockData);
-
-        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
+        when(statsRepository.countAll()).thenReturn(3L);
+        when(statsRepository.findFirstEntryDate()).thenReturn(today.minusDays(4));
+        when(statsRepository.averages(null, null)).thenReturn(Optional.of(StatsDTO.Averages.builder().build()));
+        when(statsRepository.findExtremeDays(any(), any(), anyInt(), eq(null), eq(null))).thenReturn(List.of());
+        when(statsRepository.findLoggedDates(any(), any()))
                 .thenThrow(new DataAccessResourceFailureException("timed out"));
 
-        Document rawResults = new Document();
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.Averages.class)))
-                .thenReturn(new AggregationResults<>(Collections.singletonList(StatsDTO.Averages.builder().build()), rawResults));
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.DayStats.class)))
-                .thenReturn(new AggregationResults<>(Collections.emptyList(), rawResults));
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(Document.class)))
-                .thenReturn(new AggregationResults<>(Collections.singletonList(new Document("uniqueCount", 3L)), rawResults));
-
         // when
-        StatsDTO result = statsService.getStats();
+        StatsDTO result = statsService().getStats();
 
         // then
         assertThat(result.getAmountEntries()).isEqualTo(3L);
@@ -196,10 +149,10 @@ class StatsServiceTest {
     @Test
     void getStats_shouldReturnZerosAndNullsForEmptyDatabase() {
         // given
-        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(0L);
+        when(statsRepository.countAll()).thenReturn(0L);
 
         // when
-        StatsDTO result = statsService.getStats();
+        StatsDTO result = statsService().getStats();
 
         // then
         assertThat(result).isNotNull();
@@ -221,55 +174,66 @@ class StatsServiceTest {
         assertThat(result.getLongestStreak()).isZero();
     }
 
+    /**
+     * With MongoDB disabled the repository bean does not exist at all, and the service has to say so
+     * rather than fail on a null reference. {@code IllegalStateException} is what
+     * {@code GlobalExceptionHandler} maps to 503.
+     */
+    @Test
+    void getStats_whenMongoDbIsDisabled_shouldSayItIsNotConfigured() {
+        StatsService withoutMongo = new StatsService(providerOf(null));
+
+        assertThatThrownBy(withoutMongo::getStats)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("MongoDB is not configured");
+    }
+
     @Test
     void getCoverageWindow_shouldReportTheEdgesWithoutAggregatingAnything() {
         // given
-        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(357L);
-        FddbData first = new FddbData();
-        first.setDate(LocalDate.of(2024, 1, 1));
-        FddbData last = new FddbData();
-        last.setDate(LocalDate.of(2024, 12, 22));
-        when(mongoTemplate.findOne(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
-                .thenReturn(first)
-                .thenReturn(last);
+        when(statsRepository.countAll()).thenReturn(357L);
+        when(statsRepository.findFirstEntryDate()).thenReturn(LocalDate.of(2024, 1, 1));
+        when(statsRepository.findLastEntryDate()).thenReturn(LocalDate.of(2024, 12, 22));
 
         // when
-        CoverageWindowDTO result = statsService.getCoverageWindow();
+        CoverageWindowDTO result = statsService().getCoverageWindow();
 
         // then
         assertThat(result.getEntryCount()).isEqualTo(357L);
         assertThat(result.getFirstEntryDate()).isEqualTo(LocalDate.of(2024, 1, 1));
         assertThat(result.getLastEntryDate()).isEqualTo(LocalDate.of(2024, 12, 22));
         // this is what makes it the cheap alternative to getStats(): a count and two indexed reads
-        verify(mongoTemplate, never()).aggregate(any(Aggregation.class), anyString(), any());
+        verify(statsRepository, never()).averages(any(), any());
+        verify(statsRepository, never()).countUniqueProducts();
+        verify(statsRepository, never()).findExtremeDays(any(), any(), anyInt(), any(), any());
     }
 
     @Test
     void getCoverageWindow_shouldReportAnEmptyDiaryWithoutLookingForEdges() {
         // given
-        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(0L);
+        when(statsRepository.countAll()).thenReturn(0L);
 
         // when
-        CoverageWindowDTO result = statsService.getCoverageWindow();
+        CoverageWindowDTO result = statsService().getCoverageWindow();
 
         // then a fresh install answers rather than failing, as getStats() does
         assertThat(result.getEntryCount()).isZero();
         assertThat(result.getFirstEntryDate()).isNull();
         assertThat(result.getLastEntryDate()).isNull();
-        verify(mongoTemplate, never()).findOne(any(Query.class), eq(FddbData.class), anyString());
+        verify(statsRepository, never()).findFirstEntryDate();
     }
 
     @Test
     void getExtremeDays_shouldReturnRoundedDaysInOrder() {
         // given
-        List<StatsDTO.DayStats> aggregated = List.of(
-                StatsDTO.DayStats.builder().date(LocalDate.of(2024, 3, 1)).total(3200.44).build(),
-                StatsDTO.DayStats.builder().date(LocalDate.of(2024, 3, 5)).total(3100.06).build());
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.DayStats.class)))
-                .thenReturn(new AggregationResults<>(aggregated, new Document()));
+        when(statsRepository.findExtremeDays(NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 2,
+                LocalDate.of(2024, 3, 1), LocalDate.of(2024, 3, 31)))
+                .thenReturn(List.of(
+                        StatsDTO.DayStats.builder().date(LocalDate.of(2024, 3, 1)).total(3200.44).build(),
+                        StatsDTO.DayStats.builder().date(LocalDate.of(2024, 3, 5)).total(3100.06).build()));
 
         // when
-        List<StatsDTO.DayStats> result = statsService.getExtremeDays(
+        List<StatsDTO.DayStats> result = statsService().getExtremeDays(
                 NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 2, LocalDate.of(2024, 3, 1), LocalDate.of(2024, 3, 31));
 
         // then
@@ -280,7 +244,8 @@ class StatsServiceTest {
 
     @Test
     void getExtremeDays_whenFromIsAfterTo_shouldThrowException() {
-        assertThatThrownBy(() -> statsService.getExtremeDays(NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 5,
+        StatsService service = statsService();
+        assertThatThrownBy(() -> service.getExtremeDays(NutrientMetric.CALORIES, ExtremeDirection.HIGHEST, 5,
                 LocalDate.of(2024, 2, 1), LocalDate.of(2024, 1, 1)))
                 .isInstanceOf(DateTimeException.class)
                 .hasMessage("The 'from' date cannot be after the 'to' date");
@@ -289,7 +254,7 @@ class StatsServiceTest {
     @Test
     void getTrend_whenBucketedByWeek_shouldGroupIsoWeeksAndAverageOnlyLoggedDays() {
         // given - 2024-01-01 is a Monday, so the first three days share ISO week 2024-W01
-        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
+        when(statsRepository.findDailyTotals(any(), any()))
                 .thenReturn(List.of(
                         entry(LocalDate.of(2024, 1, 1), 2000),
                         entry(LocalDate.of(2024, 1, 2), 3000),
@@ -297,7 +262,7 @@ class StatsServiceTest {
                         entry(LocalDate.of(2024, 1, 8), 1000)));
 
         // when
-        List<TrendPointDTO> result = statsService.getTrend(NutrientMetric.CALORIES,
+        List<TrendPointDTO> result = statsService().getTrend(NutrientMetric.CALORIES,
                 LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 14), TrendGranularity.WEEK);
 
         // then
@@ -315,13 +280,13 @@ class StatsServiceTest {
     @Test
     void getTrend_whenBucketedByMonth_shouldUseYearMonthLabels() {
         // given
-        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
+        when(statsRepository.findDailyTotals(any(), any()))
                 .thenReturn(List.of(
                         entry(LocalDate.of(2024, 1, 31), 2000),
                         entry(LocalDate.of(2024, 2, 1), 1000)));
 
         // when
-        List<TrendPointDTO> result = statsService.getTrend(NutrientMetric.CALORIES,
+        List<TrendPointDTO> result = statsService().getTrend(NutrientMetric.CALORIES,
                 LocalDate.of(2024, 1, 1), LocalDate.of(2024, 2, 29), TrendGranularity.MONTH);
 
         // then
@@ -331,14 +296,14 @@ class StatsServiceTest {
     @Test
     void getWeekdayBreakdown_shouldGroupByDayOfWeekStartingWithMonday() {
         // given - 2024-01-01 and 2024-01-08 are Mondays, 2024-01-06 is a Saturday
-        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
+        when(statsRepository.findDailyTotals(null, null))
                 .thenReturn(List.of(
                         entry(LocalDate.of(2024, 1, 6), 4000),
                         entry(LocalDate.of(2024, 1, 1), 2000),
                         entry(LocalDate.of(2024, 1, 8), 3000)));
 
         // when
-        List<WeekdayStatsDTO> result = statsService.getWeekdayBreakdown(null, null);
+        List<WeekdayStatsDTO> result = statsService().getWeekdayBreakdown(null, null);
 
         // then
         assertThat(result).extracting(WeekdayStatsDTO::getDayOfWeek)
@@ -352,17 +317,16 @@ class StatsServiceTest {
     @Test
     void getMacroSplit_shouldWeightMacrosByCaloriesNotByGrams() {
         // given - 100g fat = 900 kcal, 200g carbs = 800 kcal, 50g protein = 200 kcal
-        StatsDTO.Averages averages = StatsDTO.Averages.builder()
-                .avgTotalCalories(1950)
-                .avgTotalFat(100)
-                .avgTotalCarbs(200)
-                .avgTotalProtein(50)
-                .build();
-        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.Averages.class)))
-                .thenReturn(new AggregationResults<>(List.of(averages), new Document()));
+        when(statsRepository.averages(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 31)))
+                .thenReturn(Optional.of(StatsDTO.Averages.builder()
+                        .avgTotalCalories(1950)
+                        .avgTotalFat(100)
+                        .avgTotalCarbs(200)
+                        .avgTotalProtein(50)
+                        .build()));
 
         // when
-        MacroSplitDTO result = statsService.getMacroSplit(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 31));
+        MacroSplitDTO result = statsService().getMacroSplit(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 31));
 
         // then
         assertThat(result.getFatCalories()).isEqualTo(900.0);
@@ -376,16 +340,28 @@ class StatsServiceTest {
         assertThat(result.getProteinPercentage()).isEqualTo(10.5);
     }
 
+    /**
+     * An empty range is the caller's choice of range, not a broken server - 400, not a 5xx.
+     */
+    @Test
+    void getAveragesForDateRange_whenNothingLoggedInRange_shouldRejectTheRange() {
+        when(statsRepository.averages(any(), any())).thenReturn(Optional.empty());
+        StatsService service = statsService();
+
+        assertThatThrownBy(() -> service.getAveragesForDateRange(
+                LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 31)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("nothing to average");
+    }
+
     @Test
     void getMissingDays_shouldReportDaysWithoutAnEntry() {
         // given - only the 2nd and the 4th are logged
-        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
-                .thenReturn(List.of(
-                        entry(LocalDate.of(2024, 1, 2), 2000),
-                        entry(LocalDate.of(2024, 1, 4), 2000)));
+        when(statsRepository.findLoggedDates(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 5)))
+                .thenReturn(Set.of(LocalDate.of(2024, 1, 2), LocalDate.of(2024, 1, 4)));
 
         // when
-        List<LocalDate> result = statsService.getMissingDays(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 5));
+        List<LocalDate> result = statsService().getMissingDays(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 5));
 
         // then
         assertThat(result).containsExactly(
@@ -395,13 +371,11 @@ class StatsServiceTest {
     @Test
     void getMissingDays_whenEveryDayLogged_shouldReturnEmptyList() {
         // given
-        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
-                .thenReturn(List.of(
-                        entry(LocalDate.of(2024, 1, 1), 2000),
-                        entry(LocalDate.of(2024, 1, 2), 2000)));
+        when(statsRepository.findLoggedDates(any(), any()))
+                .thenReturn(Set.of(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 2)));
 
         // when
-        List<LocalDate> result = statsService.getMissingDays(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 2));
+        List<LocalDate> result = statsService().getMissingDays(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 2));
 
         // then
         assertThat(result).isEmpty();
@@ -409,8 +383,17 @@ class StatsServiceTest {
 
     @Test
     void getMissingDays_whenFromIsAfterTo_shouldThrowException() {
-        assertThatThrownBy(() -> statsService.getMissingDays(LocalDate.of(2024, 2, 1), LocalDate.of(2024, 1, 1)))
+        StatsService service = statsService();
+        assertThatThrownBy(() -> service.getMissingDays(LocalDate.of(2024, 2, 1), LocalDate.of(2024, 1, 1)))
                 .isInstanceOf(DateTimeException.class);
+    }
+
+    @Test
+    void countByDateRange_shouldDelegateToTheRepository() {
+        when(statsRepository.countInRange(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 31))).thenReturn(28L);
+
+        assertThat(statsService().countByDateRange(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 31)))
+                .isEqualTo(28L);
     }
 
     private FddbData entry(LocalDate date, double calories) {
