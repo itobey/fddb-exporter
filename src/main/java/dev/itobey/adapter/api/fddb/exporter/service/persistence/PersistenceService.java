@@ -8,7 +8,7 @@ import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
@@ -28,16 +28,27 @@ import java.util.Optional;
 @Slf4j
 public class PersistenceService {
 
-    @Autowired
-    private FddbDataMapper fddbDataMapper;
-    @Autowired(required = false)
-    private FddbDataRepository fddbDataRepository;
-    @Autowired(required = false)
-    private MongoDBService mongoDBService;
-    @Autowired(required = false)
-    private InfluxDBService influxDBService;
-    @Autowired
-    private FddbExporterProperties properties;
+    private final FddbDataMapper fddbDataMapper;
+    private final FddbExporterProperties properties;
+
+    /**
+     * Optional store dependencies are null when unavailable; store-enabled checks guard write access.
+     */
+    private final FddbDataRepository fddbDataRepository;
+    private final MongoDBService mongoDBService;
+    private final InfluxDBService influxDBService;
+
+    public PersistenceService(FddbDataMapper fddbDataMapper,
+                              FddbExporterProperties properties,
+                              ObjectProvider<FddbDataRepository> fddbDataRepository,
+                              ObjectProvider<MongoDBService> mongoDBService,
+                              ObjectProvider<InfluxDBService> influxDBService) {
+        this.fddbDataMapper = fddbDataMapper;
+        this.properties = properties;
+        this.fddbDataRepository = fddbDataRepository.getIfAvailable();
+        this.mongoDBService = mongoDBService.getIfAvailable();
+        this.influxDBService = influxDBService.getIfAvailable();
+    }
 
     public long countAllEntries() {
         return mongoDBService.countAllEntries();

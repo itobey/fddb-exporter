@@ -12,9 +12,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -28,7 +28,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PersistenceServiceTest {
 
-    @InjectMocks
     private PersistenceService persistenceService;
     @Mock
     private FddbDataMapper fddbDataMapper;
@@ -45,8 +44,20 @@ class PersistenceServiceTest {
 
     @BeforeEach
     void setUp() {
+        persistenceService = new PersistenceService(fddbDataMapper, properties,
+                providerOf(fddbDataRepository), providerOf(mongoDBService), providerOf(influxDBService));
         testFddbData = new FddbData();
         testFddbData.setDate(LocalDate.now());
+    }
+
+    /**
+     * Supplies optional dependency mocks to the constructor.
+     */
+    @SuppressWarnings("unchecked")
+    private <T> ObjectProvider<T> providerOf(T bean) {
+        ObjectProvider<T> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(bean);
+        return provider;
     }
 
     @Test

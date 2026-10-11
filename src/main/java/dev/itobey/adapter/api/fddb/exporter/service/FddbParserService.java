@@ -37,7 +37,15 @@ public class FddbParserService {
     private static final int COLUMN_CARBS = 4;
     private static final int COLUMN_PROTEIN = 5;
 
-    public FddbData parseDiary(String input) throws AuthenticationException, ParseException {
+    /**
+     * Parses one diary page into its products and daily totals.
+     *
+     * @param input the raw HTML of an fddb.info diary response
+     * @return the parsed day, without a date
+     * @throws AuthenticationException if the page is the logged-out one
+     * @throws ParseException          if diary data is missing or malformed
+     */
+    public FddbData parseDiary(String input) {
         Document doc = Jsoup.parse(input, "UTF-8");
         checkAuthentication(doc);
         checkDataAvailable(doc);
@@ -74,7 +82,11 @@ public class FddbParserService {
         return !Jsoup.parse(html, "UTF-8").selectXpath(XPATH_AUTH_STATUS).isEmpty();
     }
 
-    public void checkAuthentication(Document doc) throws AuthenticationException {
+    /**
+     * @param doc the parsed response page
+     * @throws AuthenticationException if the page shows the login link instead of the diary
+     */
+    public void checkAuthentication(Document doc) {
         Elements authStatus = doc.selectXpath(XPATH_AUTH_STATUS);
         if (!authStatus.isEmpty()) {
             String errorMsg = "Login to FDDB not successful, please check credentials";
@@ -196,7 +208,11 @@ public class FddbParserService {
         }
     }
 
-    private void checkDataAvailable(Document doc) throws ParseException {
+    /**
+     * @param doc the parsed response page
+     * @throws ParseException if the page holds no diary rows, which usually means nothing was logged
+     */
+    private void checkDataAvailable(Document doc) {
         Elements lastRow = doc.selectXpath(XPATH_PRODUCT_TABLE + "[last()]/td");
         if (lastRow.isEmpty()) {
             throw new ParseException("cannot parse input. it's likely there is no data available for the given day");

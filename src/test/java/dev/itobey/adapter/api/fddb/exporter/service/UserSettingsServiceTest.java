@@ -3,12 +3,13 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 import dev.itobey.adapter.api.fddb.exporter.domain.RollingAveragePreset;
 import dev.itobey.adapter.api.fddb.exporter.domain.UserSettings;
 import dev.itobey.adapter.api.fddb.exporter.repository.UserSettingsRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataAccessResourceFailureException;
 
 import java.time.LocalDate;
@@ -25,8 +26,18 @@ class UserSettingsServiceTest {
     @Mock
     private UserSettingsRepository userSettingsRepository;
 
-    @InjectMocks
     private UserSettingsService userSettingsService;
+
+    /**
+     * Supplies the optional repository mock to the constructor.
+     */
+    @BeforeEach
+    @SuppressWarnings("unchecked")
+    void setUp() {
+        ObjectProvider<UserSettingsRepository> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(userSettingsRepository);
+        userSettingsService = new UserSettingsService(provider);
+    }
 
     @Test
     void saveSettings_shouldPersistWithTheSingletonId() {
