@@ -5,6 +5,7 @@ import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
@@ -13,8 +14,10 @@ import java.time.DayOfWeek;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
@@ -37,6 +40,19 @@ class FddbDataClientTest {
         restTemplate = new RestTemplate();
         server = MockRestServiceServer.createServer(restTemplate);
         client = new FddbDataClient(restTemplate, new ApiBaseUrl(9090, "/fddb", false));
+    }
+
+    @Test
+    void getAllEntries_shouldShowProblemDetailMessage() {
+        server.expect(requestTo(BASE))
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE)
+                        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                        .body("{\"status\":503,\"detail\":\"MongoDB is unavailable\"}"));
+
+        assertThatThrownBy(client::getAllEntries)
+                .isInstanceOf(ApiException.class)
+                .hasMessage("Failed to retrieve entries: MongoDB is unavailable");
+        server.verify();
     }
 
     @Test

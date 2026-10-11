@@ -34,7 +34,7 @@ public class MigrationClient {
             return restTemplate.postForObject(getBaseUrl() + MIGRATION_URL, null, String.class);
         } catch (RestClientException e) {
             log.error("Failed to migrate to InfluxDB", e);
-            throw new ApiException("Failed to migrate to InfluxDB: " + e.getMessage(), e);
+            throw ApiException.from("Failed to migrate to InfluxDB", e);
         }
     }
 

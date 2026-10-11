@@ -4,6 +4,9 @@
 
 ### ⚠️ Breaking Changes
 
+- **REST errors now use `application/problem+json`**, with messages in `detail` and field-validation errors in
+  `errors`. Invalid requests return 400, upstream login failures 502, unavailable dependencies 503, and unparseable
+  diary data 404. The Web UI displays the server's error message.
 - **`mostRecentMissingDay` now returns a date or `null`**, replacing the MongoDB-only message. Coverage failures
   are logged; `missingDaysCount` is `0` for a gapless diary and `null` when coverage is unavailable.
 - **MongoDB now enforces one entry per day with a unique index.** `date` is indexed unique and the indexes are

@@ -81,12 +81,8 @@ public class FddbDataStatsResourceV2 {
     public ResponseEntity<?> getRollingAverages(@Valid DateRangeDTO dateRangeDTO) {
         log.debug("V2: Calculating rolling averages for date range: {} to {}",
                 dateRangeDTO.getFromDate(), dateRangeDTO.getToDate());
-        try {
-            RollingAveragesDTO result = fddbDataService.getRollingAverages(dateRangeDTO);
-            return ResponseEntity.ok(result);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
-        }
+        RollingAveragesDTO result = fddbDataService.getRollingAverages(dateRangeDTO);
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -118,11 +114,7 @@ public class FddbDataStatsResourceV2 {
             @Parameter(description = "Bucket size", example = "WEEK")
             @RequestParam(defaultValue = "DAY") TrendGranularity granularity) {
         log.debug("V2: Retrieving {} trend for {} from {} to {}", granularity, metric, fromDate, toDate);
-        try {
-            return ResponseEntity.ok(fddbDataService.getTrend(metric, fromDate, toDate, granularity));
-        } catch (IllegalArgumentException illegalArgumentException) {
-            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
-        }
+        return ResponseEntity.ok(fddbDataService.getTrend(metric, fromDate, toDate, granularity));
     }
 
     /**
@@ -148,11 +140,7 @@ public class FddbDataStatsResourceV2 {
             @Parameter(description = "Optional end date (inclusive), format: YYYY-MM-DD", example = "2024-12-31")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         log.debug("V2: Retrieving weekday breakdown for range {} to {}", fromDate, toDate);
-        try {
-            return ResponseEntity.ok(fddbDataService.getWeekdayBreakdown(fromDate, toDate));
-        } catch (IllegalArgumentException illegalArgumentException) {
-            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
-        }
+        return ResponseEntity.ok(fddbDataService.getWeekdayBreakdown(fromDate, toDate));
     }
 
     /**
@@ -178,11 +166,7 @@ public class FddbDataStatsResourceV2 {
             @Parameter(description = "End date (inclusive), format: YYYY-MM-DD", example = "2024-12-31", required = true)
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         log.debug("V2: Retrieving macro split for range {} to {}", fromDate, toDate);
-        try {
-            return ResponseEntity.ok(fddbDataService.getMacroSplit(fromDate, toDate));
-        } catch (IllegalArgumentException illegalArgumentException) {
-            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
-        }
+        return ResponseEntity.ok(fddbDataService.getMacroSplit(fromDate, toDate));
     }
 
     /**
@@ -208,11 +192,7 @@ public class FddbDataStatsResourceV2 {
             @Parameter(description = "End date (inclusive), format: YYYY-MM-DD", example = "2024-12-31", required = true)
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         log.debug("V2: Retrieving missing days for range {} to {}", fromDate, toDate);
-        try {
-            return ResponseEntity.ok(fddbDataService.getMissingDays(fromDate, toDate));
-        } catch (IllegalArgumentException illegalArgumentException) {
-            return ResponseEntity.badRequest().body(illegalArgumentException.getMessage());
-        }
+        return ResponseEntity.ok(fddbDataService.getMissingDays(fromDate, toDate));
     }
 }
 

@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -53,7 +52,7 @@ public class FddbDataClient {
             return restTemplate.postForObject(getBaseUrl() + FDDBDATA_URL, dateRange, ExportResultDTO.class);
         } catch (RestClientException e) {
             log.error("Failed to export for date range", e);
-            throw new ApiException("Failed to export for date range: " + describe(e), e);
+            throw ApiException.from("Failed to export for date range", e);
         }
     }
 
@@ -71,28 +70,8 @@ public class FddbDataClient {
             return restTemplate.getForObject(url, ExportResultDTO.class, days, includeToday);
         } catch (RestClientException e) {
             log.error("Failed to export for days back", e);
-            throw new ApiException("Failed to export for days back: " + describe(e), e);
+            throw ApiException.from("Failed to export for days back", e);
         }
-    }
-
-    /**
-     * What to show a user about a failed call.
-     * <p>
-     * The message of an error status alone is just "500 on GET request for ...", which says nothing
-     * about what actually went wrong. The API puts that into the response body, so the body is what
-     * belongs on screen whenever there is one.
-     *
-     * @param restClientException the failure of the call
-     * @return the reason reported by the API, or the message of the exception
-     */
-    private String describe(RestClientException restClientException) {
-        if (restClientException instanceof RestClientResponseException responseException) {
-            String body = responseException.getResponseBodyAsString();
-            if (!body.isBlank()) {
-                return body;
-            }
-        }
-        return restClientException.getMessage();
     }
 
     /**
@@ -113,7 +92,7 @@ public class FddbDataClient {
             return response.getBody();
         } catch (RestClientException e) {
             log.error("Failed to get all entries", e);
-            throw new ApiException("Failed to retrieve entries: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve entries", e);
         }
     }
 
@@ -133,7 +112,7 @@ public class FddbDataClient {
             throw new ApiException("No data available for this day.");
         } catch (RestClientException e) {
             log.error("Failed to get data for date: {}", date, e);
-            throw new ApiException("Failed to retrieve data for date: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve data for date", e);
         }
     }
 
@@ -160,10 +139,10 @@ public class FddbDataClient {
             return response.getBody();
         } catch (HttpClientErrorException.BadRequest e) {
             log.error("Invalid date range {} to {}", fromDate, toDate, e);
-            throw new ApiException("Invalid date range: " + e.getResponseBodyAsString(), e);
+            throw ApiException.from("Invalid date range", e);
         } catch (RestClientException e) {
             log.error("Failed to get entries for range {} to {}", fromDate, toDate, e);
-            throw new ApiException("Failed to retrieve entries for the date range: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve entries for the date range", e);
         }
     }
 
@@ -196,7 +175,7 @@ public class FddbDataClient {
             return response.getBody();
         } catch (RestClientException e) {
             log.error("Failed to get top products", e);
-            throw new ApiException("Failed to retrieve top products: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve top products", e);
         }
     }
 
@@ -223,7 +202,7 @@ public class FddbDataClient {
             return restTemplate.getForObject(uriBuilder.build().encode().toUri(), ProductSummaryDTO.class);
         } catch (RestClientException e) {
             log.error("Failed to summarize product: {}", name, e);
-            throw new ApiException("Failed to summarize product: " + e.getMessage(), e);
+            throw ApiException.from("Failed to summarize product", e);
         }
     }
 
@@ -249,7 +228,7 @@ public class FddbDataClient {
             return response.getBody();
         } catch (RestClientException e) {
             log.error("Failed to get distinct product names", e);
-            throw new ApiException("Failed to retrieve product names: " + e.getMessage(), e);
+            throw ApiException.from("Failed to retrieve product names", e);
         }
     }
 
@@ -318,7 +297,7 @@ public class FddbDataClient {
             return response.getBody();
         } catch (RestClientException e) {
             log.error("Failed to search products: {}", name, e);
-            throw new ApiException("Failed to search products: " + e.getMessage(), e);
+            throw ApiException.from("Failed to search products", e);
         }
     }
 
