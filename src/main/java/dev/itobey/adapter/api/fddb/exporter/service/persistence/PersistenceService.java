@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -54,11 +55,11 @@ public class PersistenceService {
         return mongoDBService.findByProduct(name);
     }
 
-    public List<ProductWithDate> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek) {
+    public List<ProductWithDate> findByProduct(String name, List<DayOfWeek> daysOfWeek) {
         return mongoDBService.findByProduct(name, daysOfWeek);
     }
 
-    public List<ProductWithDate> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek,
+    public List<ProductWithDate> findByProduct(String name, List<DayOfWeek> daysOfWeek,
                                                LocalDate fromDate, LocalDate toDate, Integer limit) {
         return mongoDBService.findByProduct(name, daysOfWeek, fromDate, toDate, limit);
     }

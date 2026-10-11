@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.DateTimeException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +69,7 @@ public class FddbDataService {
         return fddbDataMapper.toProductWithDateDto(productsWithDate);
     }
 
-    public List<ProductWithDateDTO> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek) {
+    public List<ProductWithDateDTO> findByProduct(String name, List<DayOfWeek> daysOfWeek) {
         List<ProductWithDate> productsWithDate = persistenceService.findByProduct(name, daysOfWeek);
         return fddbDataMapper.toProductWithDateDto(productsWithDate);
     }
@@ -77,7 +78,7 @@ public class FddbDataService {
      * Searches for a product, optionally narrowed down by days of the week, a date range and a
      * maximum number of results.
      */
-    public List<ProductWithDateDTO> findByProduct(String name, List<java.time.DayOfWeek> daysOfWeek,
+    public List<ProductWithDateDTO> findByProduct(String name, List<DayOfWeek> daysOfWeek,
                                                   LocalDate fromDate, LocalDate toDate, Integer limit) {
         DateRanges.validate(fromDate, toDate);
         List<ProductWithDate> productsWithDate =
