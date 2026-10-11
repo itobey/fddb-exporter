@@ -636,11 +636,30 @@ Example responses:
     - Returns data in the same structure as the `/api/v2/fddbdata` endpoint, but filtered by the specified date range if
       provided.
 
+#### Maximum download size <Badge type="tip" text="2.5.0+" />
+
+A single download may cover at most **365 days** (roughly one year of daily logging). The whole result is held in
+memory while it is being formatted, so an open-ended request is not allowed to grow without limit along with the
+database.
+
+Requests above the limit are refused with HTTP 413 Payload Too Large and a plain-text body naming the number of days
+found and the limit, for example:
+
+```
+This download would cover 500 days, which is more than the maximum of 365 days per download. Narrow the range with
+the fromDate and toDate parameters and download the data in several parts.
+```
+
+The limit applies to the number of days returned, not to a fixed time span: pass `fromDate` and `toDate` to download a
+larger diary in several parts. There is no cap on how far apart those two dates may be, only on how many days the
+result contains.
+
 - **Error Responses:**
     - Returns HTTP 400 Bad Request if `fromDate` is after `toDate`.
     - Returns HTTP 400 Bad Request if an invalid `format`, `decimalSeparator`, or date format is provided.
     - Returns HTTP 400 Bad Request with `This operation requires MongoDB to be enabled` if MongoDB is disabled. The
       download reads individual entries, which only MongoDB stores.
+    - Returns HTTP 413 Payload Too Large if the request covers more than 365 days (see above).
 
 ---
 

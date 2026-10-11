@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -201,6 +202,26 @@ class DataDownloadResourceV2Test {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition",
                         "form-data; name=\"attachment\"; filename=\"fddb-data-2024-01-01-to-2024-12-31.json\""));
+    }
+
+    @Test
+    @SneakyThrows
+    void downloadData_shouldReturnPayloadTooLarge_whenTooManyEntries() {
+        // given
+        when(dataDownloadService.downloadData(isNull(), isNull(),
+                eq(DownloadFormat.CSV), eq(false), eq(",")))
+                .thenThrow(new DataDownloadService.DownloadTooLargeException(5000));
+
+        // when & then
+        mockMvc.perform(get("/api/v2/fddbdata/download")
+                        .param("format", "CSV"))
+                .andExpect(status().is(413))
+                .andExpect(content().contentType("text/plain;charset=UTF-8"))
+                .andExpect(content().string(containsString("5000")))
+                .andExpect(content().string(containsString(
+                        String.valueOf(DataDownloadService.MAX_DOWNLOAD_ENTRIES))))
+                .andExpect(content().string(containsString("fromDate")))
+                .andExpect(header().doesNotExist("Content-Disposition"));
     }
 
     @Test

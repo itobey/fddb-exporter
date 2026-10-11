@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
@@ -28,6 +29,43 @@ import static org.mockito.Mockito.*;
 class DataDownloadServiceTest {
 
     private static final String TEST_DATA_PATH = "testdata/download-service/";
+
+    @Test
+    void downloadData_shouldAllow365Entries() {
+        when(persistenceService.countAllEntries()).thenReturn(365L);
+        when(persistenceService.findAllEntries()).thenReturn(testFddbData);
+        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(testFddbDataDTO);
+        when(fddbDataMapper.toFddbDataDTOWithoutProducts(anyList())).thenReturn(testFddbDataDTO);
+
+        assertThat(dataDownloadService.downloadData(null, null, DownloadFormat.CSV, false, "."))
+                .isNotEmpty();
+        verify(persistenceService).findAllEntries();
+    }
+
+    @Test
+    void downloadData_shouldReject366EntriesBeforeLoadingAllData() {
+        when(persistenceService.countAllEntries()).thenReturn(366L);
+
+        assertThatThrownBy(() -> dataDownloadService.downloadData(null, null, DownloadFormat.CSV, false, "."))
+                .isInstanceOf(DataDownloadService.DownloadTooLargeException.class)
+                .hasMessageContaining("366 days")
+                .hasMessageContaining("maximum of 365 days");
+        verify(persistenceService, never()).findAllEntries();
+        verifyNoInteractions(fddbDataMapper);
+    }
+
+    @Test
+    void downloadData_shouldReject366EntriesInDateRangeBeforeMapping() {
+        LocalDate from = LocalDate.of(2024, 1, 1);
+        LocalDate to = LocalDate.of(2024, 12, 31);
+        when(persistenceService.findByDateBetween(from, to))
+                .thenReturn(java.util.Collections.nCopies(366, testFddbData.getFirst()));
+
+        assertThatThrownBy(() -> dataDownloadService.downloadData(from, to, DownloadFormat.JSON, true, "."))
+                .isInstanceOf(DataDownloadService.DownloadTooLargeException.class)
+                .hasMessageContaining("maximum of 365 days");
+        verifyNoInteractions(fddbDataMapper);
+    }
 
     @Mock
     private PersistenceService persistenceService;
