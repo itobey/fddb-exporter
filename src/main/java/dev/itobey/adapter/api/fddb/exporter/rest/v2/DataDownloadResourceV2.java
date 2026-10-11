@@ -67,7 +67,8 @@ public class DataDownloadResourceV2 {
                             @Content(mediaType = "text/csv"),
                             @Content(mediaType = "application/json")
                     }),
-            @ApiResponse(responseCode = "400", description = "Invalid parameters, or MongoDB is disabled", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB is disabled", content = @Content),
             @ApiResponse(responseCode = "413", description = "The requested range covers more days than a single download may return; narrow it with fromDate/toDate",
                     content = @Content(mediaType = "text/plain"))
     })

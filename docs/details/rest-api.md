@@ -705,8 +705,8 @@ result contains.
 - **Error Responses:**
     - Returns HTTP 400 Bad Request if `fromDate` is after `toDate`.
     - Returns HTTP 400 Bad Request if an invalid `format`, `decimalSeparator`, or date format is provided.
-    - Returns HTTP 400 Bad Request with `This operation requires MongoDB to be enabled` if MongoDB is disabled. The
-      download reads individual entries, which only MongoDB stores.
+    - Returns HTTP 503 Service Unavailable with `This operation requires MongoDB to be enabled` if MongoDB is
+      disabled. The download reads individual entries, which only MongoDB stores. <Badge type="warning" text="was 400 before 2.5.0" />
     - Returns HTTP 413 Payload Too Large if the request covers more than 365 days (see above).
 
 ---

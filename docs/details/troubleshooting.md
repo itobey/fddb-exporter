@@ -138,10 +138,13 @@ finish and retry. Each day is a separate request to fddb.info taking roughly a s
 If you get this and believe nothing is running, a previous export may still be working through its range — check the
 log for progress, or `/api/v2/stats` for the days appearing one by one.
 
-### `400 Bad Request` with "This operation requires MongoDB to be enabled"
+### `503 Service Unavailable` with "This operation requires MongoDB to be enabled"
 
 The endpoint queries individual entries, which only MongoDB stores. InfluxDB holds daily totals only. Either enable
 MongoDB or use an endpoint that works from totals.
+
+Before 2.5.0 this returned `400 Bad Request`. It now returns 503 because the required store is unavailable.
+The same applies to `This operation requires InfluxDB to be enabled`.
 
 ### `400 Bad Request` on an export by days
 
