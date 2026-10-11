@@ -6,6 +6,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.config.TestConfig;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
@@ -31,7 +32,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -44,7 +44,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
  * This test acts as an e2e test to verify the application is working correctly.
  * Wiremock will serve HTML of FDDB sites and the application will parse these and save the results in a MongoDB container.
  */
-@SpringBootTest
+@SpringBootTest(properties = "fddb-exporter.timezone=Europe/Berlin")
 @Testcontainers
 @EnableFeignClients
 @ActiveProfiles("test")
@@ -77,6 +77,9 @@ class ApplicationIT {
 
     @Autowired
     private InfluxDBClient influxDBClient;
+
+    @Autowired
+    private FddbExporterProperties properties;
 
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
@@ -171,7 +174,7 @@ class ApplicationIT {
         assertThat(tables.getFirst().getRecords()).hasSize(2);
 
         FluxRecord record1 = tables.getFirst().getRecords().getFirst();
-        ZonedDateTime expectedTime1 = ZonedDateTime.of(2024, 8, 27, 0, 0, 0, 0, ZoneId.systemDefault());
+        ZonedDateTime expectedTime1 = ZonedDateTime.of(2024, 8, 27, 0, 0, 0, 0, properties.resolveZone());
         assertThat(record1.getTime()).isEqualTo(expectedTime1.toInstant());
         assertThat(record1.getValueByKey("calories")).isEqualTo(2128.0);
         assertThat(record1.getValueByKey("fat")).isEqualTo(69.3);
@@ -181,7 +184,7 @@ class ApplicationIT {
         assertThat(record1.getValueByKey("fibre")).isEqualTo(24.0);
 
         FluxRecord record2 = tables.getFirst().getRecords().get(1);
-        ZonedDateTime expectedTime2 = ZonedDateTime.of(2024, 8, 29, 0, 0, 0, 0, ZoneId.systemDefault());
+        ZonedDateTime expectedTime2 = ZonedDateTime.of(2024, 8, 29, 0, 0, 0, 0, properties.resolveZone());
         assertThat(record2.getTime()).isEqualTo(expectedTime2.toInstant());
         assertThat(record2.getValueByKey("calories")).isEqualTo(2633.0);
         assertThat(record2.getValueByKey("fat")).isEqualTo(130.8);
