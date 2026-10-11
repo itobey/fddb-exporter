@@ -1,9 +1,5 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.opencsv.CSVWriter;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.DownloadFormat;
@@ -11,10 +7,11 @@ import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductDTO;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
@@ -67,17 +64,13 @@ public class DataDownloadService {
 
     private final PersistenceService persistenceService;
     private final FddbDataMapper fddbDataMapper;
+    /**
+     * The application's single, Spring-configured Jackson mapper - the same one that serializes the REST API,
+     * so the download and the API can never drift apart in date format, property naming or null inclusion.
+     * Pretty-printing is the one deliberate difference and is applied per write in
+     * {@link #convertToJson(Object)}, not on this shared mapper.
+     */
     private final ObjectMapper objectMapper;
-
-    private ObjectMapper jsonExportMapper;
-
-    @PostConstruct
-    void initJsonExportMapper() {
-        jsonExportMapper = objectMapper.copy()
-                .registerModule(new JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .enable(SerializationFeature.INDENT_OUTPUT);
-    }
 
     /**
      * Downloads data in the specified format.
@@ -238,12 +231,16 @@ public class DataDownloadService {
                 CSVWriter.DEFAULT_QUOTE_CHARACTER, CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END);
     }
 
+    /**
+     * Serializes with the shared mapper but a pretty-printing writer: a downloaded file is meant to be opened and
+     * read by a human, while the REST responses that share this mapper stay compact.
+     */
     private byte[] convertToJson(Object data) {
         try {
-            return jsonExportMapper.writeValueAsBytes(data);
-        } catch (JsonProcessingException jsonProcessingException) {
-            log.error("Error generating JSON", jsonProcessingException);
-            throw new RuntimeException("Failed to generate JSON", jsonProcessingException);
+            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(data);
+        } catch (JacksonException jacksonException) {
+            log.error("Error generating JSON", jacksonException);
+            throw new RuntimeException("Failed to generate JSON", jacksonException);
         }
     }
 

@@ -1,6 +1,5 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +10,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -36,8 +37,9 @@ class VersionCheckServiceTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
-        objectMapper.findAndRegisterModules(); // For ZonedDateTime support
+        // Same shape as the bean Spring Boot 4 autoconfigures; java.time support (ZonedDateTime) is built into
+        // Jackson 3's databind core, so no module registration is needed here or in production.
+        objectMapper = JsonMapper.builder().build();
         versionCheckService = new VersionCheckService(Optional.of(buildProperties), objectMapper);
     }
 

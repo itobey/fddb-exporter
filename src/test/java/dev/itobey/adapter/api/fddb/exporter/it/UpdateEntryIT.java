@@ -1,7 +1,5 @@
 package dev.itobey.adapter.api.fddb.exporter.it;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.query.FluxRecord;
@@ -34,6 +32,7 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -82,7 +81,7 @@ class UpdateEntryIT {
     @Autowired
     private InfluxDBClient influxDBClient;
     @Autowired
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private ObjectMapper objectMapper;
 
     @AfterAll
     static void afterAll() {

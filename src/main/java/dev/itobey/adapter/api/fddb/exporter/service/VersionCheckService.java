@@ -1,6 +1,5 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.itobey.adapter.api.fddb.exporter.dto.GitHubReleaseDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +8,7 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -32,6 +32,12 @@ public class VersionCheckService {
             .build();
 
     private final Optional<BuildProperties> buildProperties;
+
+    /**
+     * The application's single, Spring-configured Jackson mapper. Reading GitHub's release JSON needs no
+     * special settings: unknown properties are ignored by default in Jackson 3, and {@code java.time} support
+     * is part of the databind core rather than an add-on module.
+     */
     private final ObjectMapper objectMapper;
 
     private final AtomicReference<String> latestVersion = new AtomicReference<>();
