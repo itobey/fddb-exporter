@@ -75,11 +75,11 @@ Nothing is stored next to the jar, so there is nothing to migrate on disk.
 ## What a version bump touches
 
 - **Your data:** nothing. The exporter only ever inserts days or updates them in place. Documents written by an older
-  version are read by a newer one. The one clean-up ever required is the duplicate-day removal for 2.4.0 above.
+  version are read by a newer one. The one clean-up ever required is the duplicate-day removal for 2.5.0 above.
 - **Your configuration:** possibly. See the changelog note above.
 - **The database schema:** MongoDB has none to migrate. New fields simply appear on newly written documents; older
   documents keep whatever they were written with, so a field added in a later version is absent for older days until you
-  re-export them. Indexes are the one exception — see the duplicate-day cleanup above for 2.4.0.
+  re-export them. Indexes are the one exception — see the duplicate-day cleanup above for 2.5.0.
 - **UI preferences** (custom rolling-average presets) live in MongoDB alongside the data and survive upgrades.
 
 ## Backing up

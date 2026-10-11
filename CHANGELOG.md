@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.5.0 - Unreleased
+## 2.5.0
 
 ### ⚠️ Breaking Changes
 
