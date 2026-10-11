@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
+import dev.itobey.adapter.api.fddb.exporter.config.CacheConfig;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.StatsRepository;
@@ -7,6 +8,7 @@ import dev.itobey.adapter.api.fddb.exporter.util.DateRanges;
 import dev.itobey.adapter.api.fddb.exporter.util.Rounding;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
@@ -38,6 +40,12 @@ public class StatsService {
         this.statsRepository = statsRepository.getIfAvailable();
     }
 
+    /**
+     * Overall statistics, cached until a persistence write or expiry; see {@link CacheConfig}.
+     *
+     * @return the overall statistics
+     */
+    @Cacheable(CacheConfig.STATS_CACHE)
     public StatsDTO getStats() {
         requireRepository();
         long amountEntries = statsRepository.countAll();
@@ -72,6 +80,7 @@ public class StatsService {
         long uniqueProducts = statsRepository.countUniqueProducts();
         long totalProducts = statsRepository.countTotalProducts();
         Coverage coverage = getCoverage(firstEntryDate);
+        Map<NutrientMetric, StatsDTO.DayStats> highestDays = statsRepository.findHighestDayPerMetric();
 
         return StatsDTO.builder()
                 .amountEntries(amountEntries)
@@ -84,12 +93,12 @@ public class StatsService {
                 .entryPercentage(entryPercentage)
                 .uniqueProducts(uniqueProducts)
                 .totalProducts(totalProducts)
-                .highestCaloriesDay(getDayWithHighestTotal(NutrientMetric.CALORIES))
-                .highestFatDay(getDayWithHighestTotal(NutrientMetric.FAT))
-                .highestCarbsDay(getDayWithHighestTotal(NutrientMetric.CARBS))
-                .highestProteinDay(getDayWithHighestTotal(NutrientMetric.PROTEIN))
-                .highestFibreDay(getDayWithHighestTotal(NutrientMetric.FIBRE))
-                .highestSugarDay(getDayWithHighestTotal(NutrientMetric.SUGAR))
+                .highestCaloriesDay(roundDayStats(highestDays.get(NutrientMetric.CALORIES)))
+                .highestFatDay(roundDayStats(highestDays.get(NutrientMetric.FAT)))
+                .highestCarbsDay(roundDayStats(highestDays.get(NutrientMetric.CARBS)))
+                .highestProteinDay(roundDayStats(highestDays.get(NutrientMetric.PROTEIN)))
+                .highestFibreDay(roundDayStats(highestDays.get(NutrientMetric.FIBRE)))
+                .highestSugarDay(roundDayStats(highestDays.get(NutrientMetric.SUGAR)))
                 .averageTotals(averageTotals)
                 .build();
     }
@@ -284,11 +293,6 @@ public class StatsService {
             }
         }
         return missingDays;
-    }
-
-    private StatsDTO.DayStats getDayWithHighestTotal(NutrientMetric metric) {
-        List<StatsDTO.DayStats> extremes = getExtremeDays(metric, ExtremeDirection.HIGHEST, 1, null, null);
-        return extremes.isEmpty() ? null : extremes.getFirst();
     }
 
     /**

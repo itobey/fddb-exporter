@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.service.persistence;
 
+import dev.itobey.adapter.api.fddb.exporter.config.CacheConfig;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
@@ -8,6 +9,7 @@ import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
 import dev.itobey.adapter.api.fddb.exporter.repository.FddbDataRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -96,6 +98,10 @@ public class PersistenceService {
         return mongoDBService.findByDateBetween(fromDate, toDate);
     }
 
+    /**
+     * Saves diary data and clears the statistics cache after a successful write.
+     */
+    @CacheEvict(value = CacheConfig.STATS_CACHE, allEntries = true)
     public void saveOrUpdate(FddbData dataToPersist) {
         saveToMongoDbIfEnabled(dataToPersist);
         saveToInfluxDbIfEnabled(dataToPersist);

@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.it;
 
+import dev.itobey.adapter.api.fddb.exporter.config.CacheConfig;
 import dev.itobey.adapter.api.fddb.exporter.config.TestConfig;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.Product;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -59,6 +61,8 @@ class AggregationIT {
     private FddbDataRepository fddbDataRepository;
     @Autowired
     private MongoTemplate mongoTemplate;
+    @Autowired
+    private CacheManager cacheManager;
 
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
@@ -70,6 +74,9 @@ class AggregationIT {
         // deletes the documents rather than the collection: dropping it would take the declared indexes
         // with it, and the unique index on date is part of what these tests exercise
         mongoTemplate.remove(new Query(), FddbData.class);
+        // getStats() is cached and normally evicted by PersistenceService; this fixture writes through
+        // the repository directly, so it has to clear the cache itself between tests
+        cacheManager.getCache(CacheConfig.STATS_CACHE).clear();
         // 2024-01-01 Mon, 2024-01-02 Tue, 2024-01-06 Sat, 2024-01-08 Mon; 2024-01-03..05 and 07 are gaps
         fddbDataRepository.saveAll(List.of(
                 day(LocalDate.of(2024, 1, 1), 2000, 100, 200, 50,
@@ -252,6 +259,28 @@ class AggregationIT {
                 LocalDate.of(2024, 1, 4),
                 LocalDate.of(2024, 1, 5),
                 LocalDate.of(2024, 1, 7));
+    }
+
+    /**
+     * The six all-time extremes come out of a single {@code $max} over {@code {v, d}} documents,
+     * which only returns the right day because MongoDB compares documents field by field. That is
+     * not something a mocked {@code MongoTemplate} can confirm, so it is asserted here.
+     */
+    @Test
+    void getStats_shouldReportTheHighestDayPerMetricFromOneAggregation() {
+        StatsDTO result = fddbDataService.getStats();
+
+        // 2024-01-06 is the highest day for every metric in the fixture
+        assertThat(result.getHighestCaloriesDay().getDate()).isEqualTo(LocalDate.of(2024, 1, 6));
+        assertThat(result.getHighestCaloriesDay().getTotal()).isEqualTo(3500.0);
+        assertThat(result.getHighestFatDay().getDate()).isEqualTo(LocalDate.of(2024, 1, 6));
+        assertThat(result.getHighestFatDay().getTotal()).isEqualTo(150.0);
+        assertThat(result.getHighestCarbsDay().getDate()).isEqualTo(LocalDate.of(2024, 1, 6));
+        assertThat(result.getHighestProteinDay().getDate()).isEqualTo(LocalDate.of(2024, 1, 6));
+        assertThat(result.getHighestProteinDay().getTotal()).isEqualTo(70.0);
+        // sugar and fibre are zero on every fixture day, so the tie is broken by the later date
+        assertThat(result.getHighestSugarDay().getTotal()).isZero();
+        assertThat(result.getHighestFibreDay().getTotal()).isZero();
     }
 
     @Test
