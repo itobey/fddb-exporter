@@ -43,6 +43,8 @@
 
 ### Changed
 
+- **CSV exports now prefix formula-like fields with an apostrophe**, preventing product names and other text
+  from being evaluated as spreadsheet formulas. Ordinary fields are unchanged.
 - **Overall statistics now use one aggregation for nutrient extremes and a two-minute cache**, cleared on data
   writes. Tied extremes now select the latest day; the response format is unchanged.
 - **Export dates and InfluxDB timestamps now share a configurable timezone**, set via `fddb-exporter.timezone`
