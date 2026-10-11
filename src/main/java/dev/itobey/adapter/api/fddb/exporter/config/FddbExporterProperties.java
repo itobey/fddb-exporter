@@ -3,9 +3,16 @@ package dev.itobey.adapter.api.fddb.exporter.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.ZoneId;
+
 @ConfigurationProperties(prefix = "fddb-exporter")
 @Data
 public class FddbExporterProperties {
+
+    /**
+     * Shared timezone for scrape windows, export dates and InfluxDB timestamps, independent of JVM defaults.
+     */
+    private String timezone = "Europe/Berlin";
 
     private Fddb fddb;
     private Scheduler scheduler;
@@ -16,6 +23,16 @@ public class FddbExporterProperties {
     private Notification notification;
     private Ui ui;
     private Mcp mcp;
+
+    /**
+     * Resolves {@link #timezone}; avoids a getter so the binder does not treat it as a nested property.
+     *
+     * @return the configured zone
+     * @throws java.time.DateTimeException for an invalid zone ID
+     */
+    public ZoneId resolveZone() {
+        return ZoneId.of(timezone);
+    }
 
     @Data
     public static class Fddb {

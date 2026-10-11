@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.dto.TimeframeDTO;
 import org.junit.jupiter.api.Test;
 
@@ -10,18 +11,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Characterization test for @{@link TimeframeCalculator}.
- * <p>
- * This class decides which 24 hours of FDDB data get attributed to which calendar day, so these tests pin the
- * exact epoch-second boundaries the current implementation produces rather than just their ordering: a summer
- * date (CEST, UTC+2), a winter date (CET, UTC+1) and both DST transition Sundays. The DST cases document
- * the current overlap and gap behaviour so changes to these boundaries are visible and deliberate.
+ * Pins exact scrape boundaries for summer, winter and DST transitions.
  */
 public class TimeframeCalculatorTest {
 
     private static final ZoneId ZONE_BERLIN = ZoneId.of("Europe/Berlin");
 
-    private final TimeframeCalculator timeframeCalculator = new TimeframeCalculator();
+    private final TimeframeCalculator timeframeCalculator = new TimeframeCalculator(berlinProperties());
+
+    private static FddbExporterProperties berlinProperties() {
+        FddbExporterProperties properties = new FddbExporterProperties();
+        properties.setTimezone("Europe/Berlin");
+        return properties;
+    }
 
     @Test
     public void calculateTimeframeFor_summerDate_shouldSpan0200CestToNextDay0159() {
@@ -31,7 +33,7 @@ public class TimeframeCalculatorTest {
         // when
         TimeframeDTO timeframe = timeframeCalculator.calculateTimeframeFor(summerDate);
 
-        // then: 2024-07-15T02:00+02:00 (CEST) == 1721001600, end is 24h later minus one second
+        // 02:00 CEST through the next day's boundary minus one second.
         assertEquals(1721001600L, timeframe.getFrom());
         assertEquals(1721087999L, timeframe.getTo());
         assertEquals(86399L, timeframe.getTo() - timeframe.getFrom());
@@ -45,65 +47,87 @@ public class TimeframeCalculatorTest {
         // when
         TimeframeDTO timeframe = timeframeCalculator.calculateTimeframeFor(winterDate);
 
-        // then: 2024-01-15T02:00+01:00 (CET) == 1705280400, end is 24h later minus one second
+        // 02:00 CET through the next day's boundary minus one second.
         assertEquals(1705280400L, timeframe.getFrom());
         assertEquals(1705366799L, timeframe.getTo());
         assertEquals(86399L, timeframe.getTo() - timeframe.getFrom());
     }
 
     /**
-     * Spring-forward Sunday: at 02:00 CET the clock jumps to 03:00 CEST, so 02:00 local does not exist.
-     * <p>
-     * {@code atStartOfDay().plusHours(2)} adds two
-     * <em>absolute</em> hours, which lands on 03:00 CEST instead of the nominal 02:00 boundary, and
-     * {@code plusHours(24)} adds 24 absolute hours, so the window ends at 03:00 CEST the next day. The window
-     * is therefore shifted one hour later than on any other day and overlaps the following day's window by
-     * one hour.
+     * Spring DST: 03:00 CEST to the next day's 02:00 CEST, spanning 23 hours without overlap.
      */
     @Test
-    public void calculateTimeframeFor_springForwardSunday_shouldUseAbsoluteHoursAndShiftTheWindow() {
+    public void calculateTimeframeFor_springForwardSunday_shouldRunToTheNextLocal0200AndBe23Hours() {
         // given
         LocalDate springForward = LocalDate.of(2024, 3, 31);
 
         // when
         TimeframeDTO timeframe = timeframeCalculator.calculateTimeframeFor(springForward);
 
-        // then: start is 2024-03-31T03:00+02:00 (CEST) == 1711846800, i.e. 03:00 local, not 02:00
+        // 02:00 falls in the DST gap, so the start is 03:00 CEST.
         assertEquals(1711846800L, timeframe.getFrom());
-        // end is 2024-04-01T03:00+02:00 minus one second == 1711933199
-        assertEquals(1711933199L, timeframe.getTo());
-        // still exactly 24 absolute hours minus one second, unlike the 23-hour local day
-        assertEquals(86399L, timeframe.getTo() - timeframe.getFrom());
+        // Next day's 02:00 CEST minus one second.
+        assertEquals(1711929599L, timeframe.getTo());
+        assertEquals(82799L, timeframe.getTo() - timeframe.getFrom());
     }
 
     /**
-     * Autumn-back Sunday: at 03:00 CEST the clock falls back to 02:00 CET, so the local day is 25 hours long.
-     * <p>
-     * The start is the nominal 02:00 CEST, but
-     * {@code plusHours(24)} adds 24 <em>absolute</em> hours into a 25-hour local day, so the window ends at
-     * 01:00 CET the next day — one hour short of the nominal boundary, leaving a one-hour gap before the
-     * following day's window.
+     * Autumn DST: the first 02:00 CEST to the next day's 02:00 CET, spanning 25 hours without a gap.
      */
     @Test
-    public void calculateTimeframeFor_autumnBackSunday_shouldUseAbsoluteHoursAndEndAnHourEarly() {
+    public void calculateTimeframeFor_autumnBackSunday_shouldRunToTheNextLocal0200AndBe25Hours() {
         // given
         LocalDate autumnBack = LocalDate.of(2024, 10, 27);
 
         // when
         TimeframeDTO timeframe = timeframeCalculator.calculateTimeframeFor(autumnBack);
 
-        // then: start is 2024-10-27T02:00+02:00 (CEST) == 1729987200
+        // First occurrence of 02:00 (CEST).
         assertEquals(1729987200L, timeframe.getFrom());
-        // end is 2024-10-28T01:00+01:00 (CET) minus one second == 1730073599, not 02:00 local
-        assertEquals(1730073599L, timeframe.getTo());
-        // still exactly 24 absolute hours minus one second, unlike the 25-hour local day
-        assertEquals(86399L, timeframe.getTo() - timeframe.getFrom());
+        // Next day's 02:00 CET minus one second.
+        assertEquals(1730077199L, timeframe.getTo());
+        assertEquals(89999L, timeframe.getTo() - timeframe.getFrom());
     }
 
     /**
-     * {@code calculateTimeframeForYesterday()} reads {@code LocalDate.now(Europe/Berlin)} internally and takes
-     * no clock, so this asserts the relationship to "yesterday in Berlin" rather than a literal. The date is
-     * sampled before and after the call so a run that crosses midnight cannot flake.
+     * Adjacent windows have no gaps or overlaps across DST changes.
+     */
+    @Test
+    public void calculateTimeframeFor_adjacentDays_shouldTileWithoutGapOrOverlapAcrossDstTransitions() {
+        assertTilesInto(LocalDate.of(2024, 3, 30), LocalDate.of(2024, 3, 31));
+        assertTilesInto(LocalDate.of(2024, 3, 31), LocalDate.of(2024, 4, 1));
+        assertTilesInto(LocalDate.of(2024, 10, 26), LocalDate.of(2024, 10, 27));
+        assertTilesInto(LocalDate.of(2024, 10, 27), LocalDate.of(2024, 10, 28));
+    }
+
+    private void assertTilesInto(LocalDate first, LocalDate second) {
+        TimeframeDTO earlier = timeframeCalculator.calculateTimeframeFor(first);
+        TimeframeDTO later = timeframeCalculator.calculateTimeframeFor(second);
+
+        assertEquals(earlier.getTo() + 1, later.getFrom(),
+                "expected " + second + " to start the second after " + first + " ended");
+    }
+
+    /**
+     * The configured timezone determines the scrape boundary.
+     */
+    @Test
+    public void calculateTimeframeFor_configuredZone_shouldDecideTheBoundary() {
+        // given
+        FddbExporterProperties utcProperties = new FddbExporterProperties();
+        utcProperties.setTimezone("UTC");
+        TimeframeCalculator utcCalculator = new TimeframeCalculator(utcProperties);
+
+        // when
+        TimeframeDTO timeframe = utcCalculator.calculateTimeframeFor(LocalDate.of(2024, 7, 15));
+
+        // 02:00 UTC, two hours later than Berlin.
+        assertEquals(1721008800L, timeframe.getFrom());
+        assertEquals(1721095199L, timeframe.getTo());
+    }
+
+    /**
+     * Samples yesterday before and after the call to tolerate crossing midnight.
      */
     @Test
     public void calculateTimeframeForYesterday_shouldEqualTheTimeframeOfBerlinYesterday() {

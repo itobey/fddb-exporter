@@ -12,7 +12,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -36,7 +35,7 @@ public class InfluxDBService {
      * @param fddbData The FddbData object containing the data to be saved.
      */
     public void saveToInfluxDB(FddbData fddbData) {
-        Instant time = fddbData.getDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Instant time = fddbData.getDate().atStartOfDay(properties.resolveZone()).toInstant();
 
         Point point = Point.measurement(DAILY_TOTALS)
                 .addField("calories", fddbData.getTotalCalories())

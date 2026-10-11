@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -53,6 +54,8 @@ class FddbDataServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Match test dates; doReturn avoids deep-stubbing the sealed ZoneId.
+        lenient().doReturn(ZoneId.systemDefault()).when(properties).resolveZone();
         mockFddbData = mock(FddbData.class);
         mockFddbDataDTO = mock(FddbDataDTO.class);
         mockProductWithDate = mock(ProductWithDate.class);

@@ -5,6 +5,7 @@ import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import com.influxdb.exceptions.InfluxException;
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.InfluxDBService;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,6 +33,7 @@ class InfluxDBServiceTest {
 
     private static final String MEASUREMENT = "dailyTotals";
     private static final LocalDate DATE = LocalDate.of(2024, 1, 15);
+    private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
 
     @Mock
     private InfluxDBClient influxDBClient;
@@ -43,12 +44,15 @@ class InfluxDBServiceTest {
     @Captor
     private ArgumentCaptor<Point> pointCaptor;
 
-    @InjectMocks
     private InfluxDBService influxDBService;
 
     @BeforeEach
     void setUp() {
         when(influxDBClient.getWriteApiBlocking()).thenReturn(writeApi);
+        // Pin the timezone for reproducible timestamps.
+        FddbExporterProperties properties = new FddbExporterProperties();
+        properties.setTimezone(ZONE.getId());
+        influxDBService = new InfluxDBService(influxDBClient, properties);
     }
 
     @Test
@@ -78,7 +82,7 @@ class InfluxDBServiceTest {
                 .containsEntry("fibre", 25.25);
 
         assertThat(capturedPoint.getTime()).isNotNull();
-        Instant expectedTime = DATE.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Instant expectedTime = DATE.atStartOfDay(ZONE).toInstant();
         Instant capturedTime = Instant.ofEpochSecond(0, capturedPoint.getTime().longValue());
         assertThat(capturedTime).isEqualTo(expectedTime);
         assertThat(capturedPoint.getPrecision()).isEqualTo(WritePrecision.NS);
