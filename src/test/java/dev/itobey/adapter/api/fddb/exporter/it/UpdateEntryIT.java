@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.config.TestConfig;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
@@ -36,7 +37,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -45,7 +45,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@SpringBootTest
+@SpringBootTest(properties = "fddb-exporter.timezone=Europe/Berlin")
 @Testcontainers
 @EnableFeignClients
 @ActiveProfiles("test")
@@ -80,6 +80,9 @@ class UpdateEntryIT {
     private MongoTemplate mongoTemplate;
     @Autowired
     private InfluxDBClient influxDBClient;
+
+    @Autowired
+    private FddbExporterProperties properties;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -160,7 +163,7 @@ class UpdateEntryIT {
         assertThat(tables.getFirst().getRecords()).hasSize(1);
 
         FluxRecord record1 = tables.getFirst().getRecords().getFirst();
-        ZonedDateTime expectedTime2 = ZonedDateTime.of(2024, 9, 6, 0, 0, 0, 0, ZoneId.systemDefault());
+        ZonedDateTime expectedTime2 = ZonedDateTime.of(2024, 9, 6, 0, 0, 0, 0, properties.resolveZone());
         AssertionsForClassTypes.assertThat(record1.getTime()).isEqualTo(expectedTime2.toInstant());
         AssertionsForClassTypes.assertThat(record1.getValueByKey("calories")).isEqualTo(2656.0);
         AssertionsForClassTypes.assertThat(record1.getValueByKey("fat")).isEqualTo(131.7);

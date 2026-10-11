@@ -65,13 +65,24 @@ expression is rejected at startup. `/actuator/scheduledtasks` lists the schedule
 
 FDDB Exporter keys every entry on its diary date and stores it as midnight of that date in the configured timezone, so
 the timezone is semantically relevant rather than cosmetic — see
-[time and date](/details/persistence.md#time-and-date). A container defaults to UTC, so set this to your own timezone.
+[time and date](/details/persistence.md#time-and-date).
 
-| Variable | Default | Description                                                                                 |
-|----------|---------|---------------------------------------------------------------------------------------------|
-| `TZ`     | UTC     | Timezone of the container, e.g. `Europe/Berlin`. The Helm chart calls this value `timezone` |
+| Variable                 | Default         | Description                                                                                     |
+|--------------------------|-----------------|-------------------------------------------------------------------------------------------------|
+| `FDDB-EXPORTER_TIMEZONE` | `Europe/Berlin` | The timezone that decides what "a day" is <Badge type="tip" text="2.5.0+" />                    |
+| `TZ`                     | UTC             | Timezone of the container, affecting log timestamps. The Helm chart calls this value `timezone` |
 
-Changing `TZ` does not rewrite entries that already exist. If days look shifted by one, see
+`FDDB-EXPORTER_TIMEZONE` is what actually decides which hours are scraped for a calendar date, which date "yesterday"
+resolves to for the scheduler, and at which instant a day's totals are written to InfluxDB. A day runs from **02:00 to
+02:00** in that timezone rather than midnight to midnight, matching FDDB's own day boundary, so food logged just after
+midnight still counts towards the evening it belongs to.
+
+It is deliberately independent of `TZ`: before 2.5.0 the scrape window was hardcoded to `Europe/Berlin` while
+"yesterday" was read from the JVM's default timezone, so the two disagreed for anyone who did not set
+`TZ=Europe/Berlin`. Setting `TZ` is still worthwhile so log timestamps read in your local time, but it no longer
+changes which day gets exported.
+
+Changing the timezone does not rewrite entries that already exist. If days look shifted by one, see
 [Troubleshooting](/details/troubleshooting.md#days-are-shifted-by-one).
 
 ### MongoDB Configuration

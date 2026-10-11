@@ -52,6 +52,10 @@
 
 ### Changed
 
+- **Export dates and InfluxDB timestamps now share a configurable timezone**, set via `fddb-exporter.timezone`
+  (`FDDB-EXPORTER_TIMEZONE`, default `Europe/Berlin`), independently of the JVM's `TZ`.
+- **DST scrape windows now span 23 or 25 hours**, ending at the next day's boundary without gaps or overlaps.
+  No migration is needed; re-export affected days to correct existing data.
 - **Version checks now have their own schedule**, configured via `FDDB-EXPORTER_VERSION-CHECK_CRON` (4 AM daily
   by default). Set it to your telemetry cron to preserve a previously shared custom schedule.
 - **Downloads are limited to 365 days**, returning HTTP 413 for larger results. Use `fromDate`/`toDate` to download

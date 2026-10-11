@@ -246,7 +246,9 @@ public class FddbDataService {
     }
 
     public ExportResultDTO exportForDaysBack(int days, boolean includeToday) {
-        return exportForDaysBack(days, includeToday ? LocalDate.now() : LocalDate.now().minusDays(1));
+        // Keep export dates aligned with the scrape timezone.
+        LocalDate today = LocalDate.now(properties.resolveZone());
+        return exportForDaysBack(days, includeToday ? today : today.minusDays(1));
     }
 
     /**

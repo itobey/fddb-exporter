@@ -96,6 +96,8 @@ management:
       enabled: false
 
 fddb-exporter:
+  # Shared timezone for export dates, scrape windows and InfluxDB timestamps.
+  timezone: Europe/Berlin
   ui:
     fddb-link-prefix: https://fddb.info
   fddb:
