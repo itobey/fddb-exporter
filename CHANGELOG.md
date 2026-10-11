@@ -4,6 +4,8 @@
 
 ### ⚠️ Breaking Changes
 
+- **Endpoints requiring a disabled store now return HTTP 503 instead of 400**, with the reason in a standard
+  `ProblemDetail` response. Update clients that check for 400 when MongoDB or InfluxDB is disabled.
 - **REST errors now use `application/problem+json`**, with messages in `detail` and field-validation errors in
   `errors`. Invalid requests return 400, upstream login failures 502, unavailable dependencies 503, and unparseable
   diary data 404. The Web UI displays the server's error message.

@@ -53,7 +53,7 @@ public class FddbDataStatsResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = StatsDTO.class))),
-            @ApiResponse(responseCode = "400", description = "MongoDB is disabled", content = @Content)
+            @ApiResponse(responseCode = "503", description = "MongoDB is disabled", content = @Content)
     })
     @GetMapping
     @RequiresMongoDb
@@ -74,7 +74,8 @@ public class FddbDataStatsResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Rolling averages calculated successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = RollingAveragesDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid date range, or MongoDB is disabled", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB is disabled", content = @Content)
     })
     @GetMapping("/averages")
     @RequiresMongoDb
@@ -100,7 +101,8 @@ public class FddbDataStatsResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Trend time series",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TrendPointDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid date range, or MongoDB is disabled", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB is disabled", content = @Content)
     })
     @GetMapping("/trend")
     @RequiresMongoDb
@@ -130,7 +132,8 @@ public class FddbDataStatsResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Averages per day of the week",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = WeekdayStatsDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid date range, or MongoDB is disabled", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB is disabled", content = @Content)
     })
     @GetMapping("/weekdays")
     @RequiresMongoDb
@@ -156,7 +159,8 @@ public class FddbDataStatsResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Macro split",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = MacroSplitDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid date range, or MongoDB is disabled", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB is disabled", content = @Content)
     })
     @GetMapping("/macro-split")
     @RequiresMongoDb
@@ -182,7 +186,8 @@ public class FddbDataStatsResourceV2 {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Missing days",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Invalid date range, or MongoDB is disabled", content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid date range", content = @Content),
+            @ApiResponse(responseCode = "503", description = "MongoDB is disabled", content = @Content)
     })
     @GetMapping("/missing-days")
     @RequiresMongoDb
