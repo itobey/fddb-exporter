@@ -1,8 +1,5 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.views;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -30,6 +27,7 @@ import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.CorrelationClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -67,15 +65,13 @@ public class CorrelationView extends VerticalLayout {
     public CorrelationView(CorrelationClient correlationClient,
                            dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient,
                            FddbExporterProperties properties,
-                           @Autowired(required = false) UserSettingsService userSettingsService) {
+                           @Autowired(required = false) UserSettingsService userSettingsService,
+                           ObjectMapper objectMapper) {
         this.correlationClient = correlationClient;
         this.statsClient = statsClient;
         this.properties = properties;
         this.userSettingsService = userSettingsService;
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new JavaTimeModule());
-        this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        this.objectMapper = objectMapper;
 
         addClassName("correlation-view");
         setSpacing(true);
@@ -489,7 +485,9 @@ public class CorrelationView extends VerticalLayout {
         }
 
         try {
-            String json = objectMapper.writeValueAsString(lastCorrelationResult);
+            // pretty-printed per write: this JSON is meant to be pasted somewhere and read, unlike the compact
+            // REST responses that the same shared mapper produces
+            String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(lastCorrelationResult);
             getElement().executeJs(
                     "navigator.clipboard.writeText($0).then(() => {}, (err) => { console.error('Failed to copy: ', err); });",
                     json

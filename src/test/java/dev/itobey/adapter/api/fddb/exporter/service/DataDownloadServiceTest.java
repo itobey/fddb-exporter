@@ -1,7 +1,5 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.DownloadFormat;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
@@ -12,9 +10,9 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -73,10 +71,6 @@ class DataDownloadServiceTest {
     @Mock
     private FddbDataMapper fddbDataMapper;
 
-    @Mock
-    private ObjectMapper objectMapper;
-
-    @InjectMocks
     private DataDownloadService dataDownloadService;
 
     private List<FddbData> testFddbData;
@@ -84,16 +78,8 @@ class DataDownloadServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Return a copy configured exactly like the injected bean (config/JacksonConfig): a raw Jackson 2 mapper with
-        // JavaTimeModule and nothing else - so WRITE_DATES_AS_TIMESTAMPS is still ON here. Disabling it and enabling
-        // INDENT_OUTPUT is the production code's job (DataDownloadService.initJsonExportMapper), which is what the
-        // wire-format assertions below actually pin. Pre-configuring the copy here would make them tautological.
-        ObjectMapper mockMapperCopy = new ObjectMapper();
-        mockMapperCopy.registerModule(new JavaTimeModule());
-        when(objectMapper.copy()).thenReturn(mockMapperCopy);
-
-        // Manually invoke the @PostConstruct method since @InjectMocks doesn't trigger it
-        dataDownloadService.initJsonExportMapper();
+        // Match Boot's Jackson 3 defaults: ISO dates by default, pretty-printing applied by the service.
+        dataDownloadService = new DataDownloadService(persistenceService, fddbDataMapper, JsonMapper.builder().build());
 
         // Load test data from JSON fixtures
         testFddbData = TestDataLoader.loadListFromJson(TEST_DATA_PATH + "fddb-data-input.json", FddbData.class);
@@ -226,11 +212,10 @@ class DataDownloadServiceTest {
     }
 
     /**
-     * Pins the JSON download's date format. The download is serialized by a hand-built Jackson 2 mapper
-     * (see {@link DataDownloadService#initJsonExportMapper()}), while the REST API is serialized by Spring Boot's
-     * Jackson 3 mapper - two independent configurations that happen to agree on ISO-8601 today. If they are ever
-     * unified, this assertion and its REST counterpart
-     * ({@code rest/v2/FddbDataQueryResourceV2WebMvcTest}) must keep agreeing.
+     * Pins the JSON download's date format. Download and REST API now share one mapper - Spring Boot 4's
+     * autoconfigured Jackson 3 {@code JsonMapper} - so this assertion and its REST counterpart
+     * ({@code rest/v2/FddbDataQueryResourceV2WebMvcTest}) pin the two ends of the same configuration and must
+     * keep agreeing.
      */
     @Test
     @SneakyThrows
@@ -255,9 +240,10 @@ class DataDownloadServiceTest {
     }
 
     /**
-     * Pins that the JSON download is pretty-printed (INDENT_OUTPUT): two-space indentation and {@code " : "} around
-     * the key/value separator. This is the one place where the download deliberately differs from the compact REST
-     * responses, so a mapper unification must preserve it explicitly rather than inherit it.
+     * Pins that the JSON download is pretty-printed: two-space indentation and {@code " : "} around the
+     * key/value separator. This is the one place where the download deliberately differs from the compact REST
+     * responses, and since both share a mapper it has to come from a per-write
+     * {@code writerWithDefaultPrettyPrinter()} rather than from mapper state.
      */
     @Test
     @SneakyThrows
