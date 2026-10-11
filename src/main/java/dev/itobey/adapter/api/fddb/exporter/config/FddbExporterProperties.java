@@ -10,6 +10,7 @@ public class FddbExporterProperties {
     private Fddb fddb;
     private Scheduler scheduler;
     private Telemetry telemetry;
+    private VersionCheck versionCheck;
     private Persistence persistence;
     private Influxdb influxdb;
     private Notification notification;
@@ -36,6 +37,15 @@ public class FddbExporterProperties {
         private String url;
         private String username;
         private String token;
+        private String cron;
+    }
+
+    /**
+     * The scheduled check for a new release. It shares nothing with telemetry but used to run on the
+     * telemetry cron, so a deployment that retimed telemetry retimed this too.
+     */
+    @Data
+    public static class VersionCheck {
         private String cron;
     }
 

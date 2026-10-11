@@ -112,6 +112,8 @@ fddb-exporter:
     username: fddb-exporter
     token: geXXjmYGbxfCxe3EX8onXH7yyg8ywxy9 #hard coded to prevent bots from accessing public endpoint
     cron: "0 0 4 * * *"
+  version-check:
+    cron: "0 0 4 * * *"
   persistence:
     mongodb:
       enabled: true

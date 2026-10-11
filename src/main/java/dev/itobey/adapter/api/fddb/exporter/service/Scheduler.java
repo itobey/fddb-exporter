@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * This class is used to schedule the export of FDDb data and telemetry data.
@@ -32,7 +33,21 @@ public class Scheduler implements SchedulingConfigurer {
             taskRegistrar.addCronTask(this::runFddbExportForYesterday, properties.getScheduler().getCron());
         }
         taskRegistrar.addCronTask(this::sendTelemetryData, properties.getTelemetry().getCron());
-        taskRegistrar.addCronTask(this::checkForNewVersion, properties.getTelemetry().getCron());
+        taskRegistrar.addCronTask(this::checkForNewVersion, resolveVersionCheckCron());
+    }
+
+    /**
+     * The version check used to run on the telemetry cron, so retiming telemetry silently retimed it too.
+     * It has its own {@code fddb-exporter.version-check.cron} now; the telemetry cron is only used as a
+     * fallback for a configuration that removed the new property altogether.
+     */
+    private String resolveVersionCheckCron() {
+        FddbExporterProperties.VersionCheck versionCheck = properties.getVersionCheck();
+        if (versionCheck == null || !StringUtils.hasText(versionCheck.getCron())) {
+            log.debug("no version check cron configured, falling back to the telemetry cron");
+            return properties.getTelemetry().getCron();
+        }
+        return versionCheck.getCron();
     }
 
     private void sendTelemetryData() {

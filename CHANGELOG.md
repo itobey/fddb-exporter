@@ -49,6 +49,8 @@
 
 ### Changed
 
+- **Version checks now have their own schedule**, configured via `FDDB-EXPORTER_VERSION-CHECK_CRON` (4 AM daily
+  by default). Set it to your telemetry cron to preserve a previously shared custom schedule.
 - **Downloads are limited to 365 days**, returning HTTP 413 for larger results. Use `fromDate`/`toDate` to download
   larger diaries in parts. CSV generation also uses less memory.
 - **InfluxDB writes now send all six daily totals in one point**, reducing write overhead while preserving existing
