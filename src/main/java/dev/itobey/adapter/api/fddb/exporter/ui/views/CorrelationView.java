@@ -18,6 +18,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.UserSettings;
+import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationDetail;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationInputDto;
 import dev.itobey.adapter.api.fddb.exporter.dto.correlation.CorrelationOutputDto;
@@ -138,7 +139,7 @@ public class CorrelationView extends VerticalLayout {
         startDatePicker = new DatePicker("Start Date");
         // Try to get earliest entry date from stats, fallback to 3 months ago
         try {
-            dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO stats = statsClient.getStats();
+            StatsDTO stats = statsClient.getStats();
             if (stats != null && stats.getFirstEntryDate() != null) {
                 startDatePicker.setValue(stats.getFirstEntryDate());
             } else {
