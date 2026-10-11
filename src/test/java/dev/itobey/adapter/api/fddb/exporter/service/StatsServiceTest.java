@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
@@ -156,6 +157,39 @@ class StatsServiceTest {
         // yesterday is logged and today being unlogged does not break the streak yet
         assertThat(result.getCurrentStreak()).isEqualTo(1);
         assertThat(result.getLongestStreak()).isEqualTo(2);
+    }
+
+    @Test
+    void getStats_shouldReportCoverageAsNull_whenTheCoverageQueryFails() {
+        // given: the rest of the statistics still works, only the coverage query fails - it must not
+        // claim MongoDB is unconfigured, and it must not fail the whole call
+        LocalDate today = LocalDate.now();
+        when(mongoTemplate.count(any(Query.class), eq(StatsService.COLLECTION_NAME))).thenReturn(3L);
+
+        FddbData mockData = new FddbData();
+        mockData.setDate(today.minusDays(4));
+        when(mongoTemplate.findOne(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME))).thenReturn(mockData);
+
+        when(mongoTemplate.find(any(Query.class), eq(FddbData.class), eq(StatsService.COLLECTION_NAME)))
+                .thenThrow(new DataAccessResourceFailureException("timed out"));
+
+        Document rawResults = new Document();
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.Averages.class)))
+                .thenReturn(new AggregationResults<>(Collections.singletonList(StatsDTO.Averages.builder().build()), rawResults));
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(StatsDTO.DayStats.class)))
+                .thenReturn(new AggregationResults<>(Collections.emptyList(), rawResults));
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq(StatsService.COLLECTION_NAME), eq(Document.class)))
+                .thenReturn(new AggregationResults<>(Collections.singletonList(new Document("uniqueCount", 3L)), rawResults));
+
+        // when
+        StatsDTO result = statsService.getStats();
+
+        // then
+        assertThat(result.getAmountEntries()).isEqualTo(3L);
+        assertThat(result.getMostRecentMissingDay()).isNull();
+        assertThat(result.getMissingDaysCount()).isNull();
+        assertThat(result.getCurrentStreak()).isNull();
+        assertThat(result.getLongestStreak()).isNull();
     }
 
     @Test

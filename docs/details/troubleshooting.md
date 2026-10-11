@@ -150,8 +150,11 @@ default). Raise the maximum if you deliberately want a longer backfill.
 
 ### Stats show `null` for missing days and streaks
 
-`missingDaysCount`, `currentStreak` and `longestStreak` need per-day entries, so they are `null` when MongoDB is
-disabled. Everything else on `/api/v2/stats` works from totals.
+`mostRecentMissingDay`, `missingDaysCount`, `currentStreak` and `longestStreak` need per-day entries, so they are
+`null` when MongoDB is disabled. Everything else on `/api/v2/stats` works from totals. If MongoDB *is* enabled and they
+are still `null`, the coverage query failed — the application logs `Could not compute coverage` with the cause.
+A `mostRecentMissingDay` of `null` together with a `missingDaysCount` of `0` is not a failure: it means the diary has
+no gaps.
 
 ### `currentStreak` is 0 although I logged all week
 

@@ -1045,27 +1045,26 @@ components:
         highestSugarDay:
           $ref: '#/components/schemas/DayStats'
         mostRecentMissingDay:
-          description: Most recent day with no entry (excluding today). Returns date or 'only available with MongoDB' when MongoDB is not configured
-          oneOf:
-            - type: string
-              format: date
-            - type: string
+          type: string
+          format: date
+          nullable: true
+          description: Most recent day with no entry (excluding today). Null when there is no such day, and also when the coverage figures could not be computed - missingDaysCount tells the two apart
           example: "2024-12-20"
         missingDaysCount:
           type: integer
           format: int64
           nullable: true
-          description: Number of days between the first entry and yesterday that have no entry. Null when MongoDB is not configured
+          description: Number of days between the first entry and yesterday that have no entry. Null when the coverage figures could not be computed
           example: 18
         currentStreak:
           type: integer
           nullable: true
-          description: Days logged in a row up to now. Today is only counted once it has an entry, so a day still in progress does not break the streak. Null when MongoDB is not configured
+          description: Days logged in a row up to now. Today is only counted once it has an entry, so a day still in progress does not break the streak. Null when the coverage figures could not be computed
           example: 12
         longestStreak:
           type: integer
           nullable: true
-          description: Longest run of consecutive logged days since the first entry. Null when MongoDB is not configured
+          description: Longest run of consecutive logged days since the first entry. Null when the coverage figures could not be computed
           example: 94
 
     Averages:

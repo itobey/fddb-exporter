@@ -53,16 +53,16 @@ public class StatsDTO {
     @Schema(description = "Day with highest sugar intake")
     DayStats highestSugarDay;
 
-    @Schema(description = "Most recent day with no entry (excluding today). Returns date or 'only available with MongoDB' when MongoDB is not configured", example = "2024-12-20")
-    Object mostRecentMissingDay;
+    @Schema(description = "Most recent day with no entry (excluding today). Null when there is no such day, and also when the coverage figures could not be computed - missingDaysCount tells the two apart", example = "2024-12-20")
+    LocalDate mostRecentMissingDay;
 
-    @Schema(description = "Number of days between the first entry and yesterday that have no entry. Null when MongoDB is not configured", example = "18")
+    @Schema(description = "Number of days between the first entry and yesterday that have no entry. Null when the coverage figures could not be computed", example = "18")
     Long missingDaysCount;
 
-    @Schema(description = "Days logged in a row up to now. Today is only counted once it has an entry, so a day still in progress does not break the streak. Null when MongoDB is not configured", example = "12")
+    @Schema(description = "Days logged in a row up to now. Today is only counted once it has an entry, so a day still in progress does not break the streak. Null when the coverage figures could not be computed", example = "12")
     Integer currentStreak;
 
-    @Schema(description = "Longest run of consecutive logged days since the first entry. Null when MongoDB is not configured", example = "94")
+    @Schema(description = "Longest run of consecutive logged days since the first entry. Null when the coverage figures could not be computed", example = "94")
     Integer longestStreak;
 
     @Data

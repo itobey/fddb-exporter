@@ -380,9 +380,13 @@ Example responses:
 - **Description:** Retrieve the stats to the saved data.
 - **Note:** The `last7DaysAverage` and `last30DaysAverage` fields have been removed from this endpoint. Use the new
   rolling averages endpoint for flexible period-based averages.
-- **Note:** `missingDaysCount`, `currentStreak` and `longestStreak` are `null` when MongoDB is not configured, since
-  they require querying individual entries rather than aggregated totals. `currentStreak` only counts today once it has
-  an entry, so a day still in progress does not break the streak.
+- **Note:** `mostRecentMissingDay`, `missingDaysCount`, `currentStreak` and `longestStreak` require querying individual
+  entries rather than aggregated totals, and are `null` when those figures could not be computed. `currentStreak` only
+  counts today once it has an entry, so a day still in progress does not break the streak.
+- **Note:** `mostRecentMissingDay` is a date or `null` <Badge type="tip" text="2.5.0+" />. Before 2.5.0 it also carried
+  the string `only available with MongoDB`. `null` means either that there is no missing day or that the coverage
+  figures could not be computed — `missingDaysCount` tells the two apart, being `0` in the first case and `null` in the
+  second.
 - **Response:** A JSON object containing the data (see [example response](/resources/example-response-stats.json)).
 
     ```json
