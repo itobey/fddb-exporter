@@ -38,6 +38,8 @@
 
 ### Changed
 
+- **Downloads are limited to 365 days**, returning HTTP 413 for larger results. Use `fromDate`/`toDate` to download
+  larger diaries in parts. CSV generation also uses less memory.
 - **InfluxDB writes now send all six daily totals in one point**, reducing write overhead while preserving existing
   data, queries, and dashboards.
 - **Data Export view** now uses reusable card components for its export sections, for a more consistent layout.

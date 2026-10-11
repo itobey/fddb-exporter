@@ -16,7 +16,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.StringWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -31,6 +33,23 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class DataDownloadService {
+
+    /**
+     * The largest number of daily entries a single download may cover.
+     * <p>
+     * A download holds the whole result set in memory more than once — the documents, the DTOs and the
+     * serialized bytes — and the endpoint is unauthenticated and repeatable. Rather than let an open-ended
+     * request grow with the database, anything above this is refused with a message telling the caller to
+     * narrow the range; the range itself is not capped in time, so a larger diary is still fully
+     * downloadable in chunks. 365 entries is roughly one year of daily logging.
+     */
+    public static final int MAX_DOWNLOAD_ENTRIES = 365;
+
+    /**
+     * Initial size of the CSV buffer, chosen so a typical download does not spend its time growing the
+     * array. Roughly one screenful of rows; it grows from there.
+     */
+    private static final int INITIAL_CSV_BUFFER_BYTES = 32 * 1024;
 
     private static final char CSV_SEPARATOR = ';';
     private static final String COMMA_DECIMAL_SEPARATOR = ",";
@@ -69,6 +88,7 @@ public class DataDownloadService {
      * @param includeProducts  whether to include product details
      * @param decimalSeparator the decimal separator for CSV format (. or ,)
      * @return the data as a byte array in the specified format
+     * @throws DownloadTooLargeException if the request would cover more than {@link #MAX_DOWNLOAD_ENTRIES} entries
      */
     public byte[] downloadData(LocalDate fromDate, LocalDate toDate, DownloadFormat format,
                                boolean includeProducts, String decimalSeparator) {
@@ -96,9 +116,15 @@ public class DataDownloadService {
     }
 
     private List<FddbDataDTO> fetchData(LocalDate fromDate, LocalDate toDate) {
-        List<FddbData> entries = fromDate == null && toDate == null
-                ? persistenceService.findAllEntries()
-                : persistenceService.findByDateBetween(fromDate, toDate);
+        List<FddbData> entries;
+        if (fromDate == null && toDate == null) {
+            // count first: the unbounded case is the one that must never be read into memory to find out how big it is
+            requireWithinLimit(persistenceService.countAllEntries());
+            entries = persistenceService.findAllEntries();
+        } else {
+            entries = persistenceService.findByDateBetween(fromDate, toDate);
+            requireWithinLimit(entries.size());
+        }
 
         List<FddbDataDTO> data = fddbDataMapper.toFddbDataDTO(entries);
         data.sort(Comparator.comparing(FddbDataDTO::getDate));
@@ -106,9 +132,15 @@ public class DataDownloadService {
         return data;
     }
 
+    private void requireWithinLimit(long entryCount) {
+        if (entryCount > MAX_DOWNLOAD_ENTRIES) {
+            throw new DownloadTooLargeException(entryCount);
+        }
+    }
+
     private byte[] convertTotalsToCsv(List<FddbDataDTO> totals, String decimalSeparator) {
-        StringWriter stringWriter = new StringWriter();
-        try (CSVWriter csvWriter = createCsvWriter(stringWriter)) {
+        ByteArrayOutputStream output = new ByteArrayOutputStream(INITIAL_CSV_BUFFER_BYTES);
+        try (CSVWriter csvWriter = createCsvWriter(output)) {
             csvWriter.writeNext(TOTALS_CSV_HEADER);
 
             for (FddbDataDTO total : totals) {
@@ -118,7 +150,7 @@ public class DataDownloadService {
             log.error("Error generating CSV for totals", exception);
             throw new RuntimeException("Failed to generate CSV", exception);
         }
-        return stringWriter.toString().getBytes(StandardCharsets.UTF_8);
+        return output.toByteArray();
     }
 
     private String[] createTotalsRow(FddbDataDTO total, String decimalSeparator) {
@@ -134,8 +166,8 @@ public class DataDownloadService {
     }
 
     private byte[] convertFullDataToCsv(List<FddbDataDTO> data, String decimalSeparator) {
-        StringWriter stringWriter = new StringWriter();
-        try (CSVWriter csvWriter = createCsvWriter(stringWriter)) {
+        ByteArrayOutputStream output = new ByteArrayOutputStream(INITIAL_CSV_BUFFER_BYTES);
+        try (CSVWriter csvWriter = createCsvWriter(output)) {
             csvWriter.writeNext(FULL_DATA_CSV_HEADER);
 
             for (FddbDataDTO entry : data) {
@@ -145,7 +177,7 @@ public class DataDownloadService {
             log.error("Error generating CSV for full data", exception);
             throw new RuntimeException("Failed to generate CSV", exception);
         }
-        return stringWriter.toString().getBytes(StandardCharsets.UTF_8);
+        return output.toByteArray();
     }
 
     private void writeEntryRows(CSVWriter csvWriter, FddbDataDTO entry, String decimalSeparator) {
@@ -197,9 +229,13 @@ public class DataDownloadService {
         };
     }
 
-    private CSVWriter createCsvWriter(StringWriter stringWriter) {
-        return new CSVWriter(stringWriter, CSV_SEPARATOR, CSVWriter.DEFAULT_QUOTE_CHARACTER,
-                CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END);
+    /**
+     * Writes UTF-8 straight into the byte buffer that is handed back to the caller. Encoding on the way
+     * out rather than building a {@code String} first saves one full copy of the whole export.
+     */
+    private CSVWriter createCsvWriter(OutputStream output) {
+        return new CSVWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8), CSV_SEPARATOR,
+                CSVWriter.DEFAULT_QUOTE_CHARACTER, CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END);
     }
 
     private byte[] convertToJson(Object data) {
@@ -216,6 +252,27 @@ public class DataDownloadService {
         return COMMA_DECIMAL_SEPARATOR.equals(decimalSeparator)
                 ? formatted.replace(".", ",")
                 : formatted;
+    }
+
+    /**
+     * Thrown when a download would cover more than {@link #MAX_DOWNLOAD_ENTRIES} entries. Its message is
+     * written for a human: the browser shows it verbatim, since the Web UI navigates straight to the
+     * download URL rather than fetching it.
+     */
+    public static class DownloadTooLargeException extends RuntimeException {
+
+        private final long entryCount;
+
+        public DownloadTooLargeException(long entryCount) {
+            super("This download would cover " + entryCount + " days, which is more than the maximum of "
+                    + MAX_DOWNLOAD_ENTRIES + " days per download. Narrow the range with the fromDate and toDate "
+                    + "parameters and download the data in several parts.");
+            this.entryCount = entryCount;
+        }
+
+        public long getEntryCount() {
+            return entryCount;
+        }
     }
 
 }
