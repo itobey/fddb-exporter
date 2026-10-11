@@ -176,7 +176,7 @@ public class DashboardView extends VerticalLayout {
                 createStatCard("Unique Products", String.valueOf(stats.getUniqueProducts()), "different products"),
                 createStatCard("Total Products", String.valueOf(stats.getTotalProducts()), "entries logged"),
                 createStatCard("First Entry", stats.getFirstEntryDate() != null ? stats.getFirstEntryDate().toString() : "N/A", "start date"),
-                createStatCard("Missing Day", stats.getMostRecentMissingDay() != null ? stats.getMostRecentMissingDay().toString() : "N/A", "most recent")
+                createStatCard("Missing Day", formatMostRecentMissingDay(stats), "most recent")
         );
         add(overviewCards);
 
@@ -216,6 +216,17 @@ public class DashboardView extends VerticalLayout {
             highestCards.add(createHighestCard("Fibre", stats.getHighestFibreDay(), "🥦", "g"));
         }
         add(highestCards);
+    }
+
+    /**
+     * Renders the most recent gap. The date is null both for a diary without gaps and for coverage
+     * figures that could not be computed, which {@code missingDaysCount} tells apart.
+     */
+    private String formatMostRecentMissingDay(StatsDTO stats) {
+        if (stats.getMostRecentMissingDay() != null) {
+            return stats.getMostRecentMissingDay().toString();
+        }
+        return stats.getMissingDaysCount() != null ? "None" : "N/A";
     }
 
     private Component createHighestCard(String nutrient, StatsDTO.DayStats dayStats, String emoji, String unit) {

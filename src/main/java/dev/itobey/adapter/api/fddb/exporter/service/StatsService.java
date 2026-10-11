@@ -2,8 +2,10 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
+import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -23,6 +25,7 @@ import java.util.function.ToDoubleFunction;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
+@Slf4j
 @Service
 public class StatsService {
 
@@ -462,7 +465,7 @@ public class StatsService {
      */
     private Coverage getCoverage(LocalDate firstEntryDate) {
         if (mongoTemplate == null) {
-            return Coverage.unavailable();
+            return Coverage.unknown();
         }
 
         try {
@@ -485,8 +488,11 @@ public class StatsService {
                     (long) missingDays.size(),
                     currentStreak(loggedDates, firstEntryDate, today),
                     longestStreak(loggedDates, firstEntryDate, today));
-        } catch (Exception e) {
-            return Coverage.unavailable();
+        } catch (DataAccessException e) {
+            // the diary itself is still worth reporting, so a failing coverage query degrades to
+            // null values rather than failing the whole stats call - but it must not do so silently
+            log.warn("Could not compute coverage", e);
+            return Coverage.unknown();
         }
     }
 
@@ -517,14 +523,12 @@ public class StatsService {
 
     /**
      * How completely the diary is filled in: the most recent gap, the number of gaps and the
-     * streaks. Every value is null when it cannot be determined without MongoDB.
+     * streaks. Every value is null when it could not be determined; {@code mostRecentMissingDay}
+     * is also null when there simply is no gap, which {@code missingDaysCount} tells apart - it is
+     * {@code 0} for a gapless diary and null for figures that could not be computed.
      */
-    private record Coverage(Object mostRecentMissingDay, Long missingDaysCount, Integer currentStreak,
+    private record Coverage(LocalDate mostRecentMissingDay, Long missingDaysCount, Integer currentStreak,
                             Integer longestStreak) {
-
-        private static Coverage unavailable() {
-            return new Coverage("only available with MongoDB", null, null, null);
-        }
 
         private static Coverage unknown() {
             return new Coverage(null, null, null, null);

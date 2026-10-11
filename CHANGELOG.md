@@ -4,6 +4,8 @@
 
 ### ⚠️ Breaking Changes
 
+- **`mostRecentMissingDay` now returns a date or `null`**, replacing the MongoDB-only message. Coverage failures
+  are logged; `missingDaysCount` is `0` for a gapless diary and `null` when coverage is unavailable.
 - **MongoDB now enforces one entry per day with a unique index.** `date` is indexed unique and the indexes are
   created automatically on startup. This closes a race where two concurrent exports could both insert a document
   for the same day, silently corrupting every average and count for it. **If your database already contains
