@@ -18,6 +18,7 @@ import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductDTO;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
+import dev.itobey.adapter.api.fddb.exporter.ui.components.MobileEntriesList;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
@@ -41,7 +42,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
     private DatePicker entriesFromDatePicker;
     private DatePicker entriesToDatePicker;
     private Grid<FddbDataDTO> allEntriesGrid;
-    private Grid<FddbDataDTO> mobileEntriesGrid;
+    private MobileEntriesList mobileEntriesList;
     private Span allEntriesCountLabel;
     private final Div entriesFeedback = createFeedbackRegion();
     private final Div dateFeedback = createFeedbackRegion();
@@ -159,33 +160,13 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
             }
         });
 
-        mobileEntriesGrid = createGrid(FddbDataDTO.class);
-        mobileEntriesGrid.addClassName("entries-mobile-grid");
-        mobileEntriesGrid.setHeight("480px");
-        mobileEntriesGrid.addComponentColumn(this::createDaySummary).setHeader("Logged days").setFlexGrow(1);
-        layout.add(topRow, hint, entriesFeedback, allEntriesGrid, mobileEntriesGrid);
-        return layout;
-    }
-
-    private Div createDaySummary(FddbDataDTO day) {
-        Button viewDay = new Button(String.valueOf(day.getDate()), e -> {
-            if (day.getDate() != null) {
-                tabSheet.setSelectedIndex(1);
-                searchDatePicker.setValue(day.getDate());
-                searchByDate();
-            }
+        mobileEntriesList = new MobileEntriesList(date -> {
+            tabSheet.setSelectedIndex(1);
+            searchDatePicker.setValue(date);
+            searchByDate();
         });
-        viewDay.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        viewDay.setAriaLabel("View products for " + day.getDate());
-        viewDay.setEnabled(day.getDate() != null);
-        Span calories = new Span(formatNumber(day.getTotalCalories()) + " kcal");
-        Span macros = new Span("Protein " + formatNumber(day.getTotalProtein()) + " g · Carbs "
-                + formatNumber(day.getTotalCarbs()) + " g · Fat " + formatNumber(day.getTotalFat()) + " g");
-        Span additional = new Span("Sugar " + formatNumber(day.getTotalSugar()) + " g · Fibre "
-                + formatNumber(day.getTotalFibre()) + " g · " + size(day.getProducts()) + " products");
-        Div summary = new Div(viewDay, calories, macros, additional);
-        summary.addClassName("entry-day-summary");
-        return summary;
+        layout.add(topRow, hint, entriesFeedback, allEntriesGrid, mobileEntriesList);
+        return layout;
     }
 
     private VerticalLayout createMissingDaysTab() {
@@ -402,8 +383,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
                     ? fddbDataClient.getByDateRange(from.format(DATE_FORMAT), to.format(DATE_FORMAT), true)
                     : fddbDataClient.getAllEntries();
             int count = populateGrid(allEntriesGrid, allEntriesCountLabel, entries, size(entries) + " entries");
-            mobileEntriesGrid.setItems(entries != null ? entries : List.of());
-            mobileEntriesGrid.setVisible(count > 0);
+            mobileEntriesList.setItems(entries);
 
             if (count > 0) {
                 showSuccess("Loaded " + count + " entries");
@@ -415,8 +395,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
         } catch (ApiException e) {
             showInlineError(entriesFeedback, e.getMessage(), this::loadAllEntries);
             clearGrid(allEntriesGrid, allEntriesCountLabel);
-            mobileEntriesGrid.setVisible(false);
-            mobileEntriesGrid.setItems();
+            mobileEntriesList.setItems(List.of());
         }
     }
 

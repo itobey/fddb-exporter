@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.6.0 (Unreleased)
+
+### Added
+
+- **Undo preset deletion** in Settings to restore a deleted rolling-average preset.
+
+### Changed
+
+- **Clearer navigation:** pages are grouped by Diary, Insights, and Data; Data Export is now "Sync from FDDB"
+  and Data Download is "Download file", with descriptions explaining each action.
+- **Trends are easier to explore:** tap or use the keyboard to inspect periods, scroll through longer ranges,
+  and see which periods have incomplete diary coverage.
+- **Entries are easier to read on mobile**, with expandable day summaries, date sorting, and a "View Details"
+  button. Long histories are split into 30-day pages; the desktop table is unchanged.
+- **Clearer feedback:** query failures appear inline with retry buttons, empty results explain what to do next,
+  and error notifications stay visible until dismissed.
+- **Form validation highlights the affected fields**, including missing or reversed date ranges and duplicate
+  preset names, while preserving your input.
+
 ## 2.5.0
 
 ### ⚠️ Breaking Changes
