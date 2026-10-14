@@ -20,6 +20,7 @@ import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
+import dev.itobey.adapter.api.fddb.exporter.ui.components.TrendChart;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 
@@ -38,10 +39,7 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 public class TrendView extends VerticalLayout {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    // Two steps of the same identity: the fill draws the average line, the text variant labels it.
-    private static final String HIGHLIGHT_FILL = "var(--highlight)";
     private static final String HIGHLIGHT_TEXT = "var(--highlight-text)";
-    private static final String CHART_HEIGHT = "260px";
     private static final int INLINE_GRID_ROWS = 15;
 
     private final StatsClient statsClient;
@@ -63,8 +61,8 @@ public class TrendView extends VerticalLayout {
         applyResponsivePadding(this);
 
         add(new H2("Trends"));
-        add(new Paragraph("Follow a single nutritional metric over time, bucketed by day, week or month. "
-                + "Buckets without a single entry are omitted, so unlogged days never drag an average down."));
+        add(new Paragraph("Follow a nutritional metric by day, week or month. "
+                + "Averages use logged days only. Periods with no entries are omitted."));
 
         if (!isMongoDbEnabled(properties)) {
             add(createMongoDbDisabledWarning("Trends"));
@@ -86,7 +84,7 @@ public class TrendView extends VerticalLayout {
         metricSelect.setAllowCustomValue(false);
         metricSelect.setWidthFull();
 
-        granularitySelect = new ComboBox<>("Granularity");
+        granularitySelect = new ComboBox<>("Group by");
         granularitySelect.setItems(TrendGranularity.values());
         granularitySelect.setItemLabelGenerator(TrendView::granularityLabel);
         granularitySelect.setValue(TrendGranularity.WEEK);
@@ -241,8 +239,16 @@ public class TrendView extends VerticalLayout {
 
         content.add(new H3(metricLabel(metric) + " per " + bucketNoun(granularity)));
         content.add(createSummaryCards(points, metric));
-        content.add(createChart(points, metric));
-        content.add(createTrendGrid(points, metric));
+        Paragraph comparison = new Paragraph(points.size() < 2
+                ? "Change needs at least two periods with entries."
+                : "Change compares the last period's daily average with the first: "
+                + points.getFirst().getBucket() + " (" + TrendChart.coverage(points.getFirst(), granularity)
+                + ") → " + points.getLast().getBucket() + " (" + TrendChart.coverage(points.getLast(), granularity)
+                + "). Incomplete coverage may reflect the selected range or missing diary days.");
+        comparison.addClassName("trend-comparison-note");
+        content.add(comparison);
+        content.add(createChart(points, metric, granularity));
+        content.add(createTrendGrid(points, metric, granularity));
 
         resultDiv.add(content);
     }
@@ -265,12 +271,13 @@ public class TrendView extends VerticalLayout {
 
         Div cards = createCardsGrid("140px");
         cards.add(
-                createStatCard("Buckets", String.valueOf(points.size()), "with at least one entry"),
-                createStatCard("Days logged", String.valueOf(totalDays), "across all buckets"),
+                createStatCard("Periods", String.valueOf(points.size()), "with at least one entry"),
+                createStatCard("Days logged", String.valueOf(totalDays), "across all periods"),
                 createStatCard("Daily average", formatNumber(overallAverage) + " " + unit, "per logged day"),
                 createStatCard("Highest", formatNumber(highest.getAverage()) + " " + unit, highest.getBucket()),
                 createStatCard("Lowest", formatNumber(lowest.getAverage()) + " " + unit, lowest.getBucket()),
-                createStatCard("Change", formatChange(change, unit), first.getBucket() + " ⮕ " + last.getBucket())
+                createStatCard("Change", points.size() > 1 ? formatChange(change, unit) : "N/A",
+                        points.size() > 1 ? "Last vs first daily average" : "Only one period")
         );
         return cards;
     }
@@ -281,119 +288,22 @@ public class TrendView extends VerticalLayout {
     }
 
     /**
-     * Renders the time series as a CSS column chart - the project ships no charting library,
-     * so the bars are plain divs sized relative to the highest bucket.
+     * The chart owns scales, period inspection and coverage markers.
      */
-    private Component createChart(List<TrendPointDTO> points, NutrientMetric metric) {
-        String unit = unitOf(metric);
-
-        double max = points.stream().mapToDouble(TrendPointDTO::getAverage).max().orElse(0);
-        long totalDays = points.stream().mapToLong(TrendPointDTO::getDayCount).sum();
-        double totalValue = points.stream().mapToDouble(TrendPointDTO::getTotal).sum();
-        double average = totalDays > 0 ? totalValue / totalDays : 0;
-
-        VerticalLayout container = new VerticalLayout();
-        container.addClassName("trend-chart");
-        container.addClassNames(LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
-        container.setWidthFull();
-        container.setPadding(true);
-        container.setSpacing(false);
-        container.getStyle().set("padding", "1rem").set("box-sizing", "border-box");
-
-        Span maxLabel = new Span("Peak " + formatNumber(max) + " " + unit);
-        maxLabel.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        container.add(maxLabel);
-
-        Div plotArea = new Div();
-        plotArea.setWidthFull();
-        plotArea.setHeight(CHART_HEIGHT);
-        plotArea.getStyle()
-                .set("position", "relative")
-                .set("display", "flex")
-                .set("flex-direction", "row")
-                .set("align-items", "flex-end")
-                .set("gap", points.size() > 60 ? "1px" : "3px")
-                .set("border-bottom", "1px solid var(--lumo-contrast-20pct)")
-                .set("margin-top", "0.5rem")
-                .set("box-sizing", "border-box");
-
-        for (TrendPointDTO point : points) {
-            plotArea.add(createBar(point, max, unit, fillOf(metric)));
-        }
-
-        if (max > 0) {
-            plotArea.add(createAverageLine(average, max));
-        }
-
-        container.add(plotArea);
-
-        Div axis = new Div();
-        axis.setWidthFull();
-        axis.getStyle()
-                .set("display", "flex")
-                .set("justify-content", "space-between")
-                .set("margin-top", "0.25rem");
-        axis.add(axisLabel(points.getFirst().getBucket()), axisLabel(points.getLast().getBucket()));
-        container.add(axis);
-
-        Span legend = new Span("┈ Average " + formatNumber(average) + " " + unit + " per logged day");
-        legend.addClassNames(LumoUtility.FontSize.SMALL);
-        legend.getStyle().set("color", HIGHLIGHT_TEXT).set("margin-top", "0.5rem");
-        container.add(legend);
-
-        return container;
+    private Component createChart(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity) {
+        return new TrendChart(points, granularity, unitOf(metric), fillOf(metric));
     }
 
-    private Div createBar(TrendPointDTO point, double max, String unit, String fill) {
-        Div column = new Div();
-        column.getStyle()
-                .set("flex", "1 1 0")
-                .set("min-width", "2px")
-                .set("height", "100%")
-                .set("display", "flex")
-                .set("align-items", "flex-end");
-
-        double heightPercentage = max > 0 ? (point.getAverage() / max) * 100 : 0;
-
-        Div bar = new Div();
-        bar.setWidthFull();
-        bar.getStyle()
-                .set("height", Math.max(heightPercentage, 1) + "%")
-                .set("background-color", fill)
-                .set("border-radius", "2px 2px 0 0");
-        bar.getElement().setAttribute("title", point.getBucket()
-                + ": " + formatNumber(point.getAverage()) + " " + unit
-                + " (" + point.getDayCount() + (point.getDayCount() == 1 ? " day" : " days") + ")");
-
-        column.add(bar);
-        return column;
-    }
-
-    private Div createAverageLine(double average, double max) {
-        Div line = new Div();
-        line.getStyle()
-                .set("position", "absolute")
-                .set("left", "0")
-                .set("right", "0")
-                .set("bottom", ((average / max) * 100) + "%")
-                .set("border-top", "1px dashed " + HIGHLIGHT_FILL)
-                .set("pointer-events", "none");
-        return line;
-    }
-
-    private Span axisLabel(String text) {
-        Span label = new Span(text);
-        label.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
-        return label;
-    }
-
-    private Component createTrendGrid(List<TrendPointDTO> points, NutrientMetric metric) {
+    private Component createTrendGrid(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity) {
         String unit = unitOf(metric);
 
         Grid<TrendPointDTO> grid = new Grid<>(TrendPointDTO.class, false);
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
 
-        grid.addColumn(TrendPointDTO::getBucket).setHeader("Bucket").setAutoWidth(true);
+        grid.addColumn(TrendPointDTO::getBucket).setHeader("Period").setAutoWidth(true);
+        grid.addColumn(point -> TrendChart.isIncomplete(point, granularity)
+                        ? "Incomplete: " + TrendChart.coverage(point, granularity) : "Complete")
+                .setHeader("Coverage").setAutoWidth(true);
         grid.addColumn(TrendPointDTO::getFromDate).setHeader("From").setAutoWidth(true);
         grid.addColumn(TrendPointDTO::getToDate).setHeader("To").setAutoWidth(true);
         grid.addColumn(TrendPointDTO::getDayCount).setHeader("Days").setAutoWidth(true);

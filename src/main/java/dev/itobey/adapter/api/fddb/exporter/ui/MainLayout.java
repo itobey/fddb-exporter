@@ -113,20 +113,32 @@ public class MainLayout extends AppLayout {
         drawerHeader.setAlignItems(FlexComponent.Alignment.CENTER);
         drawerHeader.addClassName("drawer-header");
 
+        SideNav home = navigationGroup("Overview",
+                new SideNavItem("Dashboard", DashboardView.class, new Icon(VaadinIcon.DASHBOARD)));
+        SideNav diary = navigationGroup("Diary",
+                new SideNavItem("Entries", EntriesView.class, new Icon(VaadinIcon.SEARCH)),
+                new SideNavItem("Products", ProductsView.class, new Icon(VaadinIcon.CUBES)));
+        SideNav insights = navigationGroup("Insights",
+                new SideNavItem("Rolling Averages", RollingAveragesView.class, new Icon(VaadinIcon.TRENDING_UP)),
+                new SideNavItem("Trends", TrendView.class, new Icon(VaadinIcon.LINE_CHART)),
+                new SideNavItem("Correlation Analysis", CorrelationView.class, new Icon(VaadinIcon.CHART)));
+        SideNav data = navigationGroup("Data",
+                new SideNavItem("Sync from FDDB", DataExportView.class, new Icon(VaadinIcon.REFRESH)),
+                new SideNavItem("Download file", DataDownloadView.class, new Icon(VaadinIcon.DOWNLOAD)));
+        SideNav settings = navigationGroup("Settings",
+                new SideNavItem("Settings", SettingsView.class, new Icon(VaadinIcon.COGS)));
+        home.setLabel(null);
+        settings.setLabel(null);
+        addToDrawer(drawerHeader, home, diary, insights, data, settings, createAboutStrip());
+    }
+
+    private SideNav navigationGroup(String label, SideNavItem... items) {
         SideNav nav = new SideNav();
-        nav.addClassNames(LumoUtility.Padding.SMALL);
-
-        nav.addItem(new SideNavItem("Dashboard", DashboardView.class, new Icon(VaadinIcon.DASHBOARD)));
-        nav.addItem(new SideNavItem("Data Export", DataExportView.class, new Icon(VaadinIcon.DOWNLOAD)));
-        nav.addItem(new SideNavItem("Entries", EntriesView.class, new Icon(VaadinIcon.SEARCH)));
-        nav.addItem(new SideNavItem("Products", ProductsView.class, new Icon(VaadinIcon.CUBES)));
-        nav.addItem(new SideNavItem("Rolling Averages", RollingAveragesView.class, new Icon(VaadinIcon.TRENDING_UP)));
-        nav.addItem(new SideNavItem("Trends", TrendView.class, new Icon(VaadinIcon.LINE_CHART)));
-        nav.addItem(new SideNavItem("Correlation Analysis", CorrelationView.class, new Icon(VaadinIcon.CHART)));
-        nav.addItem(new SideNavItem("Data Download", DataDownloadView.class, new Icon(VaadinIcon.CLOUD_DOWNLOAD)));
-        nav.addItem(new SideNavItem("Settings", SettingsView.class, new Icon(VaadinIcon.COGS)));
-
-        addToDrawer(drawerHeader, nav, createAboutStrip());
+        nav.setLabel(label);
+        nav.getElement().setAttribute("aria-label", label);
+        nav.addClassName("drawer-nav-group");
+        nav.addItem(items);
+        return nav;
     }
 
     /**

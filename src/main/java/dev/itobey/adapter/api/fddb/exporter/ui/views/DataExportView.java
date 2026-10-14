@@ -29,7 +29,7 @@ import java.util.Locale;
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 
 @Route(value = "export", layout = MainLayout.class)
-@PageTitle("Data Export | FDDB Exporter")
+@PageTitle("Sync from FDDB | FDDB Exporter")
 public class DataExportView extends VerticalLayout {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -63,8 +63,8 @@ public class DataExportView extends VerticalLayout {
         setPadding(true);
         applyResponsivePadding(this);
 
-        add(new H2("Data Export"));
-        add(new Paragraph("Export FDDB data from your account to the database."));
+        add(new H2("Sync from FDDB"));
+        add(new Paragraph("Import diary entries from your FDDB account into this app's configured storage. Existing days are updated."));
 
         Div sectionsLayout = new Div();
         sectionsLayout.setWidthFull();
@@ -76,8 +76,8 @@ public class DataExportView extends VerticalLayout {
 
     private Div createDateRangeSection() {
         Div section = createExportCard(VaadinIcon.CALENDAR,
-                "Export by Date Range",
-                "Export all data within a specified date range.");
+                "Sync by Date Range",
+                "Import diary entries for a specific date range.");
 
         FormLayout form = new FormLayout();
 
@@ -99,7 +99,7 @@ public class DataExportView extends VerticalLayout {
 
         dateRangeResult = createResultContainer();
 
-        Button exportButton = createExportButton("Export Date Range", this::exportDateRange, dateRangeResult);
+        Button exportButton = createExportButton("Sync Date Range", this::exportDateRange, dateRangeResult);
 
         section.add(form, exportButton, dateRangeResult);
         return section;
@@ -107,12 +107,12 @@ public class DataExportView extends VerticalLayout {
 
     private Div createDaysBackSection() {
         Div section = createExportCard(VaadinIcon.CALENDAR_CLOCK,
-                "Export Recent Days",
-                "Export data for a number of recent days.");
+                "Sync Recent Days",
+                "Import diary entries for a number of recent days.");
 
         FormLayout form = new FormLayout();
 
-        daysBackField = new IntegerField("Days to Export");
+        daysBackField = new IntegerField("Days to Sync");
         daysBackField.setValue(7);
         daysBackField.setMin(1);
         daysBackField.setMax(365);
@@ -129,7 +129,7 @@ public class DataExportView extends VerticalLayout {
 
         daysBackResult = createResultContainer();
 
-        Button exportButton = createExportButton("Export Recent Days", this::exportDaysBack, daysBackResult);
+        Button exportButton = createExportButton("Sync Recent Days", this::exportDaysBack, daysBackResult);
 
         section.add(form, exportButton, daysBackResult);
         return section;
@@ -137,12 +137,12 @@ public class DataExportView extends VerticalLayout {
 
     private Div createYesterdaySection() {
         Div section = createExportCard(VaadinIcon.CLOCK,
-                "Export Yesterday",
-                "Quickly export data for yesterday only.");
+                "Sync Yesterday",
+                "Import yesterday's diary entries from FDDB.");
 
         yesterdayResult = createResultContainer();
 
-        Button exportButton = createExportButton("Export Yesterday", this::exportYesterday, yesterdayResult);
+        Button exportButton = createExportButton("Sync Yesterday", this::exportYesterday, yesterdayResult);
 
         section.add(exportButton, yesterdayResult);
         return section;
@@ -248,7 +248,7 @@ public class DataExportView extends VerticalLayout {
     private void exportDaysBack() {
         daysBackField.setInvalid(false);
         if (daysBackField.getValue() == null || daysBackField.getValue() < 1) {
-            daysBackField.setErrorMessage("Enter at least 1 day to export.");
+            daysBackField.setErrorMessage("Enter at least 1 day to sync.");
             daysBackField.setInvalid(true);
             clearPending(daysBackResult);
             return;
@@ -268,7 +268,7 @@ public class DataExportView extends VerticalLayout {
         try {
             displayResult(yesterdayResult, fddbDataClient.exportForDaysBack(1, false));
         } catch (ApiException e) {
-            showError("Could not export yesterday: " + e.getMessage());
+            showError("Could not sync yesterday: " + e.getMessage());
         }
     }
 
@@ -290,12 +290,12 @@ public class DataExportView extends VerticalLayout {
 
         if (!hasSuccess && !hasFailures) {
             resultDiv.add(createStatusLine("neutral", "No days returned", finishedAt));
-            showSuccess("Export finished — no days returned");
+            showSuccess("Sync finished — no days returned");
             return;
         }
 
         if (hasSuccess) {
-            resultDiv.add(createStatusLine("ok", dayCount(successful.size()) + " exported", finishedAt));
+            resultDiv.add(createStatusLine("ok", dayCount(successful.size()) + " synced", finishedAt));
             resultDiv.add(createChipList(successful, "export-chip--ok"));
         }
 
@@ -306,9 +306,9 @@ public class DataExportView extends VerticalLayout {
         }
 
         if (hasFailures) {
-            showError(dayCount(unsuccessful.size()) + " could not be exported");
+            showError(dayCount(unsuccessful.size()) + " could not be synced");
         } else {
-            showSuccess(dayCount(successful.size()) + " exported");
+            showSuccess(dayCount(successful.size()) + " synced");
         }
     }
 

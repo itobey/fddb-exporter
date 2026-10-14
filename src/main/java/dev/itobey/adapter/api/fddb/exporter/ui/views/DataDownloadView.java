@@ -33,7 +33,7 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
  * - Include or exclude product details (daily totals only)
  */
 @Route(value = "download", layout = MainLayout.class)
-@PageTitle("Data Download | FDDB Exporter")
+@PageTitle("Download file | FDDB Exporter")
 public class DataDownloadView extends VerticalLayout {
 
     private static final String DATE_RANGE_ALL = "All Data";
@@ -58,11 +58,11 @@ public class DataDownloadView extends VerticalLayout {
         setPadding(true);
         applyResponsivePadding(this);
 
-        add(new H2("Data Download"));
-        add(new Paragraph("Download your FDDB nutrition data in CSV or JSON format."));
+        add(new H2("Download file"));
+        add(new Paragraph("Save diary entries already stored in this app as a CSV or JSON file."));
 
         if (!isMongoDbEnabled(properties)) {
-            add(createMongoDbDisabledWarning("Data Download"));
+            add(createMongoDbDisabledWarning("Download file"));
             return;
         }
 
@@ -131,7 +131,7 @@ public class DataDownloadView extends VerticalLayout {
         decimalSeparatorContainer.setVisible(true); // Show by default since CSV is the initial format
 
         // Download button
-        Button downloadButton = new Button("Download Data");
+        Button downloadButton = new Button("Download file");
         downloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
         downloadButton.addClickListener(e -> triggerDownload());
         downloadButton.setWidthFull();

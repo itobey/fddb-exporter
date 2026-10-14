@@ -410,7 +410,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
             } else {
                 showEmptyState(entriesFeedback, from != null
                         ? "No entries from " + from + " to " + to + ". Widen the range or clear both dates to load all entries."
-                        : "No entries stored yet. Use Data Export to import your FDDB diary, then load entries again.");
+                        : "No entries stored yet. Use Sync from FDDB to import your FDDB diary, then load entries again.");
             }
         } catch (ApiException e) {
             showInlineError(entriesFeedback, e.getMessage(), this::loadAllEntries);
@@ -450,7 +450,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
             } else {
                 dateStatsCards.setVisible(false);
                 showEmptyState(dateFeedback, "No products logged for " + date
-                        + ". Choose another date, or use Data Export to import this day from FDDB.");
+                        + ". Choose another date, or use Sync from FDDB to import this day from FDDB.");
             }
         } catch (ApiException e) {
             showInlineError(dateFeedback, e.getMessage(), this::searchByDate);

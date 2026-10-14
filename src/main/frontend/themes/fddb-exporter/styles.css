@@ -1577,7 +1577,7 @@ vaadin-progress-bar::part(indeterminate) {
 }
 
 .export-result--pending::before {
-    content: "Exporting…";
+    content: "Syncing…";
     display: block;
     font-size: var(--lumo-font-size-s);
     font-weight: 600;
@@ -2231,4 +2231,134 @@ vaadin-app-layout ::part(navbar) {
     .dashboard-nutrition {
         gap: 0.5rem !important;
     }
+}
+
+.drawer-nav-group {
+    padding: 0.125rem 0.5rem;
+}
+
+.drawer-nav-group > [slot="label"] {
+    margin: 0;
+}
+
+.drawer-nav-group::part(label) {
+    padding: 0.5rem 0.5rem 0.125rem;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 600;
+}
+
+.drawer-nav-group[aria-label="Diary"]::part(label) {
+    padding-top: 0.25rem;
+}
+
+.drawer-nav-group[aria-label="Settings"] {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--lumo-contrast-20pct);
+}
+
+.trend-chart {
+    box-sizing: border-box;
+    padding: 1rem;
+    border-radius: var(--lumo-border-radius-m);
+    background: var(--lumo-contrast-5pct);
+}
+
+.trend-chart-help,
+.trend-chart-legend,
+.trend-comparison-note {
+    font-size: var(--lumo-font-size-s);
+    line-height: 1.6;
+    color: var(--lumo-secondary-text-color);
+}
+
+.trend-chart-help {
+    margin: 0.5rem 0 1rem;
+}
+
+.trend-chart-frame {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: 0.5rem;
+}
+
+.trend-value-axis {
+    height: 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: right;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.trend-chart-scroller {
+    overflow-x: auto;
+    padding: 3px;
+    min-width: 0;
+}
+
+.trend-plot {
+    position: relative;
+    display: flex;
+    gap: 4px;
+    align-items: end;
+    height: 260px;
+    border-bottom: 1px solid var(--lumo-contrast-20pct);
+}
+
+.trend-period {
+    appearance: none;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    flex: 1 1 0;
+    min-width: 44px;
+    height: 100%;
+    display: flex;
+    align-items: end;
+    cursor: pointer;
+}
+
+.trend-period__bar {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 2px 2px 0 0;
+}
+
+.trend-period--incomplete .trend-period__bar {
+    border: 2px dotted var(--lumo-body-text-color);
+}
+
+.trend-period[aria-pressed="true"] .trend-period__bar {
+    outline: 2px solid var(--highlight-text);
+    outline-offset: 1px;
+}
+
+.trend-average-line {
+    position: absolute;
+    inset-inline: 0;
+    border-top: 1px dashed var(--highlight-text);
+    pointer-events: none;
+}
+
+.trend-date-axis {
+    display: grid;
+    gap: 4px;
+    margin-top: 0.5rem;
+    font-size: var(--lumo-font-size-xs);
+    color: var(--lumo-secondary-text-color);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.trend-period-detail {
+    margin: 1rem 0 0;
+    min-height: 3rem;
+    line-height: 1.6;
+    font-variant-numeric: tabular-nums;
 }
