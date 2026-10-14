@@ -916,15 +916,14 @@ vaadin-date-picker-overlay ::slotted(vaadin-button) {
 @media (max-width: 576px) {
     vaadin-text-field::part(input-field),
     vaadin-date-picker::part(input-field),
+    vaadin-combo-box::part(input-field),
+    vaadin-select::part(input-field),
+    vaadin-integer-field::part(input-field),
     vaadin-text-area::part(input-field) {
         min-height: 44px;
         padding: 8px 10px;
     }
 
-    vaadin-vertical-layout.data-query-tab-layout,
-    .data-query-tab-layout {
-        display: contents !important;
-    }
 }
 
 /* Notifications */
@@ -1361,7 +1360,8 @@ vaadin-tab-sheet::part(tabs) {
     }
 
     vaadin-horizontal-layout.keyword-input-row vaadin-button {
-        width: 20% !important;
+        width: auto !important;
+        min-width: 4rem;
         flex-shrink: 0 !important;
     }
 
@@ -2010,4 +2010,97 @@ vaadin-app-layout ::part(navbar) {
     min-width: calc(50% - 0.25rem) !important;
     max-width: calc(50% - 0.25rem) !important;
     box-sizing: border-box !important;
+}
+
+/* Page introductions share one rhythm, independent of default heading/paragraph margins.
+   Entries and Products wrap theirs in a layout; the other views use direct children. */
+:is(.dashboard-view, .data-export-view, .rolling-averages-view, .trend-view,
+    .correlation-view, .data-download-view, .settings-view) > h2,
+:is(.data-query-view, .products-view) > vaadin-vertical-layout:first-child > h2 {
+    margin: 0;
+    padding: 0;
+}
+
+:is(.data-export-view, .rolling-averages-view, .trend-view,
+    .correlation-view, .data-download-view, .settings-view) > h2 + p {
+    margin: -0.5rem 0 0.5rem;
+}
+
+:is(.data-query-view, .products-view) > vaadin-vertical-layout:first-child {
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+:is(.data-query-view, .products-view) > vaadin-vertical-layout:first-child > h2 + p {
+    margin: 0;
+}
+
+@media (max-width: 576px) {
+    /* A readable edge gutter, shared by titles, subtitles and content. */
+    vaadin-vertical-layout:is(.dashboard-view, .data-query-view, .products-view, .data-export-view,
+        .rolling-averages-view, .trend-view, .correlation-view,
+        .data-download-view, .settings-view) {
+        padding: 0.75rem !important;
+    }
+
+    :is(.dashboard-view, .data-export-view, .rolling-averages-view, .trend-view,
+        .correlation-view, .data-download-view, .settings-view) > h2,
+    :is(.data-query-view, .products-view) > vaadin-vertical-layout:first-child > h2 {
+        font-size: 1.5rem;
+    }
+
+    :is(.data-query-view, .products-view) > vaadin-vertical-layout:first-child {
+        padding: 0 !important;
+    }
+
+    /* The page owns vertical scrolling; keep only the virtualized grid's own scroller. */
+    :is(.data-query-view, .products-view),
+    :is(.data-query-view, .products-view) > vaadin-tabsheet,
+    .data-query-tab-layout {
+        height: auto !important;
+        flex: none;
+    }
+
+    :is(.data-query-view, .products-view) > vaadin-tabsheet::part(content) {
+        overflow: visible;
+        flex: none;
+    }
+
+    :is(.data-query-view, .products-view) > vaadin-tabsheet {
+        --vaadin-tabsheet-padding: 0;
+    }
+
+    .data-query-tab-layout {
+        display: flex;
+        padding: 0.75rem 0 !important;
+    }
+
+    .data-query-grid:not([all-rows-visible]) {
+        height: clamp(20rem, 60dvh, 40rem) !important;
+        flex-shrink: 0;
+    }
+
+    /* Three equal, wrapping targets keep every Entries mode visible on a small phone. */
+    .data-query-view vaadin-tabs {
+        width: 100%;
+    }
+
+    .data-query-view vaadin-tabs::part(tabs) {
+        overflow: visible;
+    }
+
+    .data-query-view vaadin-tabs::part(back-button),
+    .data-query-view vaadin-tabs::part(forward-button) {
+        display: none;
+    }
+
+    .data-query-view vaadin-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 0.5rem 0.25rem;
+        white-space: normal;
+        text-align: center;
+        font-size: 0.75rem;
+        letter-spacing: 0;
+    }
 }
