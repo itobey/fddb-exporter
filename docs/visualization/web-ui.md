@@ -36,8 +36,7 @@ desktop and mobile versions provide the same features and functionality - the di
 adaptations for optimal display on different screen sizes.
 
 ::: info
-The screenshots below were taken with version 2.1.0 and do not show features added since then — for example the
-[Trends](#trends) view introduced in 2.3.0. The current UI may differ in details.
+The screenshots below were captured from version 2.5.1-SNAPSHOT on October 15, 2026.
 :::
 
 ### Desktop Views
