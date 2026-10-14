@@ -43,6 +43,28 @@ class FddbDataClientTest {
     }
 
     @Test
+    void getByDate_shouldTreatMissingDiaryDayAsAnEmptyResult() throws ApiException {
+        server.expect(requestTo(BASE + "/2026-10-01"))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND));
+
+        assertThat(client.getByDate("2026-10-01")).isNull();
+        server.verify();
+    }
+
+    @Test
+    void getByDate_shouldKeepServiceFailuresDistinctFromMissingDays() {
+        server.expect(requestTo(BASE + "/2026-10-01"))
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE)
+                        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                        .body("{\"status\":503,\"detail\":\"MongoDB is unavailable\"}"));
+
+        assertThatThrownBy(() -> client.getByDate("2026-10-01"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("MongoDB is unavailable");
+        server.verify();
+    }
+
+    @Test
     void getAllEntries_shouldShowProblemDetailMessage() {
         server.expect(requestTo(BASE))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE)

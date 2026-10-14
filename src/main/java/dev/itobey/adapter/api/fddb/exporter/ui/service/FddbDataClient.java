@@ -100,7 +100,7 @@ public class FddbDataClient {
      * Get FDDB data for a specific date.
      *
      * @param date the date in YYYY-MM-DD format
-     * @return FddbDataDTO for the date
+     * @return FddbDataDTO for the date, or null when this diary day is not stored
      * @throws ApiException if the API call fails
      */
     public FddbDataDTO getByDate(String date) throws ApiException {
@@ -108,8 +108,8 @@ public class FddbDataClient {
             String url = getBaseUrl() + DATE_URL;
             return restTemplate.getForObject(url, FddbDataDTO.class, date);
         } catch (HttpClientErrorException.NotFound e) {
-            log.error("No data found for date: {}", date);
-            throw new ApiException("No data available for this day.");
+            log.debug("No data found for date: {}", date);
+            return null;
         } catch (RestClientException e) {
             log.error("Failed to get data for date: {}", date, e);
             throw ApiException.from("Failed to retrieve data for date", e);

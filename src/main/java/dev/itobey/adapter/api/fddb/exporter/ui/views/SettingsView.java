@@ -34,6 +34,7 @@ public class SettingsView extends VerticalLayout {
     private Div resultDiv;
     private ProgressBar progressBar;
     private Div presetsListDiv;
+    private final Div presetFeedback = createFeedbackRegion();
 
     public SettingsView(MigrationClient migrationClient,
                         @org.springframework.beans.factory.annotation.Autowired(required = false) UserSettingsService userSettingsService) {
@@ -231,7 +232,7 @@ public class SettingsView extends VerticalLayout {
 
         VerticalLayout addForm = createAddPresetForm();
 
-        section.add(sectionHeader, description, presetsListDiv, new H3("Add New Preset"), addForm);
+        section.add(sectionHeader, description, presetFeedback, presetsListDiv, new H3("Add New Preset"), addForm);
         return section;
     }
 
@@ -271,6 +272,8 @@ public class SettingsView extends VerticalLayout {
             Button deleteButton = new Button(new Icon(VaadinIcon.TRASH));
             deleteButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
             deleteButton.setTooltipText("Delete preset");
+            deleteButton.setAriaLabel("Delete preset " + preset.getName());
+            deleteButton.addClassName("preset-delete-button");
             deleteButton.addClickListener(e -> deletePreset(preset.getName()));
 
             row.add(infoDiv, deleteButton);
@@ -306,19 +309,25 @@ public class SettingsView extends VerticalLayout {
         addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         addButton.addClickListener(e -> {
             String name = nameField.getValue().trim();
+            nameField.setInvalid(false);
             if (name.isEmpty()) {
-                showError("Preset name must not be empty.");
+                nameField.setErrorMessage("Enter a name for this preset.");
+                nameField.setInvalid(true);
                 return;
             }
-            if (fromDatePicker.getValue() == null || toDatePicker.getValue() == null) {
-                showError("Please select both from and to dates.");
+            if (!validateDateRange(fromDatePicker, toDatePicker, false)) {
                 return;
             }
-            if (fromDatePicker.getValue().isAfter(toDatePicker.getValue())) {
-                showError("From date must be before or equal to to date.");
+            boolean nameExists = userSettingsService.getSettings().getRollingAveragePresets().stream()
+                    .anyMatch(p -> p.getName().equalsIgnoreCase(name));
+            if (nameExists) {
+                nameField.setErrorMessage("A preset with this name already exists. Choose another name.");
+                nameField.setInvalid(true);
                 return;
             }
-            addPreset(name, fromDatePicker.getValue(), toDatePicker.getValue());
+            if (!addPreset(name, fromDatePicker.getValue(), toDatePicker.getValue())) {
+                return;
+            }
             nameField.clear();
             fromDatePicker.clear();
             fromDatePicker.setInvalid(false);
@@ -330,13 +339,13 @@ public class SettingsView extends VerticalLayout {
         return form;
     }
 
-    private void addPreset(String name, java.time.LocalDate fromDate, java.time.LocalDate toDate) {
+    private boolean addPreset(String name, java.time.LocalDate fromDate, java.time.LocalDate toDate) {
         UserSettings settings = userSettingsService.getSettings();
         boolean nameExists = settings.getRollingAveragePresets().stream()
                 .anyMatch(p -> p.getName().equalsIgnoreCase(name));
         if (nameExists) {
             showError("A preset with this name already exists.");
-            return;
+            return false;
         }
         RollingAveragePreset preset = new RollingAveragePreset();
         preset.setName(name);
@@ -348,15 +357,40 @@ public class SettingsView extends VerticalLayout {
         if (saved) {
             showSuccess("Preset \"" + name + "\" added.");
         }
+        return saved;
     }
 
     private void deletePreset(String name) {
         UserSettings settings = userSettingsService.getSettings();
+        List<RollingAveragePreset> presets = settings.getRollingAveragePresets();
+        RollingAveragePreset removed = presets.stream().filter(p -> p.getName().equals(name)).findFirst().orElse(null);
+        if (removed == null) {
+            refreshPresetsList();
+            return;
+        }
+        int originalIndex = presets.indexOf(removed);
         settings.getRollingAveragePresets().removeIf(p -> p.getName().equals(name));
         boolean saved = trySaveSettings(settings, "Could not delete preset \"" + name + "\"");
         refreshPresetsList();
         if (saved) {
-            showSuccess("Preset \"" + name + "\" deleted.");
+            showEmptyState(presetFeedback, "Preset \"" + name + "\" deleted.");
+            Button undoButton = new Button("Undo", e -> restorePreset(removed, originalIndex));
+            undoButton.setAriaLabel("Undo deletion of preset " + name);
+            presetFeedback.add(undoButton);
+        }
+    }
+
+    private void restorePreset(RollingAveragePreset preset, int originalIndex) {
+        UserSettings settings = userSettingsService.getSettings();
+        List<RollingAveragePreset> presets = settings.getRollingAveragePresets();
+        if (presets.stream().anyMatch(p -> p.getName().equalsIgnoreCase(preset.getName()))) {
+            showError("A preset named \"" + preset.getName() + "\" already exists. Undo will not replace it.");
+            return;
+        }
+        presets.add(Math.min(originalIndex, presets.size()), preset);
+        if (trySaveSettings(settings, "Could not restore preset \"" + preset.getName() + "\"")) {
+            refreshPresetsList();
+            showEmptyState(presetFeedback, "Preset \"" + preset.getName() + "\" restored.");
         }
     }
 

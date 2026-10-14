@@ -194,13 +194,7 @@ public class RollingAveragesView extends VerticalLayout {
     }
 
     private void calculateAverages() {
-        if (fromDatePicker.getValue() == null || toDatePicker.getValue() == null) {
-            showError("Please select both from and to dates");
-            return;
-        }
-
-        if (fromDatePicker.getValue().isAfter(toDatePicker.getValue())) {
-            showError("From date must be before or equal to to date");
+        if (!validateDateRange(fromDatePicker, toDatePicker, false)) {
             return;
         }
 

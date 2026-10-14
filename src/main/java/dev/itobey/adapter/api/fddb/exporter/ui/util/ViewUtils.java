@@ -1,6 +1,8 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.util;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
@@ -17,6 +19,7 @@ import com.vaadin.flow.function.SerializableRunnable;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 
+import java.time.LocalDate;
 import java.util.Locale;
 
 public class ViewUtils {
@@ -237,7 +240,7 @@ public class ViewUtils {
     public static void showSuccess(String message) {
         Notification notification = Notification.show(message);
         notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-        notification.setDuration(1500);
+        notification.setDuration(4000);
         // Apply custom color styling
         notification.getElement().getThemeList().add("success");
     }
@@ -246,11 +249,76 @@ public class ViewUtils {
      * Show an error notification with custom red accent color
      */
     public static void showError(String message) {
-        Notification notification = Notification.show(message);
+        Notification notification = new Notification();
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-        notification.setDuration(1500);
-        // Apply custom color styling
-        notification.getElement().getThemeList().add("error");
+        notification.setDuration(0);
+        notification.setPosition(Notification.Position.BOTTOM_START);
+        Button dismiss = new Button("Dismiss", e -> notification.close());
+        dismiss.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        Div content = new Div(new Span(message), dismiss);
+        content.addClassName("feedback-notification");
+        notification.add(content);
+        notification.open();
+    }
+
+    public static Div createFeedbackRegion() {
+        Div region = new Div();
+        region.addClassName("query-feedback");
+        region.setWidthFull();
+        region.setVisible(false);
+        region.getElement().setAttribute("aria-live", "polite");
+        region.getElement().setAttribute("aria-atomic", "true");
+        return region;
+    }
+
+    public static void showEmptyState(Div region, String message) {
+        region.removeAll();
+        region.removeClassName("query-feedback--error");
+        region.getElement().setAttribute("role", "status");
+        region.getElement().setAttribute("aria-live", "polite");
+        region.add(new Paragraph(message));
+        region.setVisible(true);
+    }
+
+    public static void showInlineError(Div region, String message, SerializableRunnable retry) {
+        showEmptyState(region, message);
+        region.addClassName("query-feedback--error");
+        region.getElement().setAttribute("role", "alert");
+        region.getElement().setAttribute("aria-live", "assertive");
+        Button retryButton = new Button("Retry", e -> retry.run());
+        region.add(retryButton);
+    }
+
+    /**
+     * Validate the paired range without discarding a previous result or the user's input.
+     */
+    public static boolean validateDateRange(DatePicker from, DatePicker to, boolean optional) {
+        from.setInvalid(false);
+        to.setInvalid(false);
+        from.setErrorMessage(null);
+        to.setErrorMessage(null);
+        LocalDate fromDate = from.getValue();
+        LocalDate toDate = to.getValue();
+        if (optional && fromDate == null && toDate == null) {
+            return true;
+        }
+        if (fromDate == null || toDate == null) {
+            if (fromDate == null) {
+                from.setErrorMessage(optional ? "Set both dates, or clear both to load all entries." : "Select a from date.");
+                from.setInvalid(true);
+            }
+            if (toDate == null) {
+                to.setErrorMessage(optional ? "Set both dates, or clear both to load all entries." : "Select a to date.");
+                to.setInvalid(true);
+            }
+            return false;
+        }
+        if (fromDate.isAfter(toDate)) {
+            to.setErrorMessage("Select a to date on or after the from date.");
+            to.setInvalid(true);
+            return false;
+        }
+        return true;
     }
 
     /**

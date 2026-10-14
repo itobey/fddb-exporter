@@ -5,6 +5,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.*;
@@ -50,6 +51,8 @@ public class TrendView extends VerticalLayout {
     private DatePicker fromDatePicker;
     private DatePicker toDatePicker;
     private Div resultDiv;
+    private Details customRange;
+    private final Div feedback = createFeedbackRegion();
 
     public TrendView(StatsClient statsClient, FddbExporterProperties properties) {
         this.statsClient = statsClient;
@@ -130,7 +133,19 @@ public class TrendView extends VerticalLayout {
         loadButton.addClickListener(e -> loadTrend());
         loadButton.setWidthFull();
 
-        section.add(metricRow, dateRow, quickButtons, loadButton);
+        customRange = new Details("Custom date range", dateRow);
+        customRange.setWidthFull();
+        customRange.addClassName("trend-custom-range");
+        Span rangeSummary = new Span();
+        rangeSummary.addClassName("trend-range-summary");
+        Runnable updateSummary = () -> rangeSummary.setText(
+                fromDatePicker.getValue() != null && toDatePicker.getValue() != null
+                        ? fromDatePicker.getValue() + " → " + toDatePicker.getValue()
+                        : "Select both dates in Custom date range");
+        fromDatePicker.addValueChangeListener(e -> updateSummary.run());
+        toDatePicker.addValueChangeListener(e -> updateSummary.run());
+        updateSummary.run();
+        section.add(metricRow, quickButtons, rangeSummary, loadButton, customRange, feedback);
         return section;
     }
 
@@ -178,15 +193,11 @@ public class TrendView extends VerticalLayout {
     }
 
     private void loadTrend() {
-        if (fromDatePicker.getValue() == null || toDatePicker.getValue() == null) {
-            showError("Please select both from and to dates");
+        if (!validateDateRange(fromDatePicker, toDatePicker, false)) {
+            customRange.setOpened(true);
             return;
         }
-
-        if (fromDatePicker.getValue().isAfter(toDatePicker.getValue())) {
-            showError("From date must be before or equal to to date");
-            return;
-        }
+        feedback.setVisible(false);
 
         NutrientMetric metric = metricSelect.getValue() != null ? metricSelect.getValue() : NutrientMetric.CALORIES;
         TrendGranularity granularity = granularitySelect.getValue() != null
@@ -202,13 +213,12 @@ public class TrendView extends VerticalLayout {
             displayResult(points, metric, granularity);
             scrollIntoViewWhenSettled(resultDiv);
 
-            if (points == null || points.isEmpty()) {
-                showError("No entries found for the selected range");
-            } else {
+            if (points != null && !points.isEmpty()) {
                 showSuccess("Trend loaded successfully");
             }
         } catch (ApiException apiException) {
-            showError(apiException.getMessage());
+            resultDiv.setVisible(false);
+            showInlineError(feedback, apiException.getMessage(), this::loadTrend);
         }
     }
 
@@ -221,7 +231,8 @@ public class TrendView extends VerticalLayout {
         content.setPadding(false);
 
         if (points == null || points.isEmpty()) {
-            Paragraph noData = new Paragraph("No entries found for the selected range.");
+            Paragraph noData = new Paragraph("No entries found from " + fromDatePicker.getValue()
+                    + " to " + toDatePicker.getValue() + ". Choose another preset or widen the custom date range.");
             noData.addClassNames(LumoUtility.TextColor.SECONDARY);
             content.add(noData);
             resultDiv.add(content);

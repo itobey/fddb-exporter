@@ -41,7 +41,11 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
     private DatePicker entriesFromDatePicker;
     private DatePicker entriesToDatePicker;
     private Grid<FddbDataDTO> allEntriesGrid;
+    private Grid<FddbDataDTO> mobileEntriesGrid;
     private Span allEntriesCountLabel;
+    private final Div entriesFeedback = createFeedbackRegion();
+    private final Div dateFeedback = createFeedbackRegion();
+    private final Div missingFeedback = createFeedbackRegion();
 
     private DatePicker searchDatePicker;
     private Div dateStatsCards;
@@ -126,7 +130,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
         allEntriesCountLabel = createCountLabel();
 
         HorizontalLayout topRow = new HorizontalLayout(entriesFromDatePicker, entriesToDatePicker, loadButton, allEntriesCountLabel);
-        topRow.addClassName("query-filter-row");
+        topRow.addClassNames("query-filter-row", "entries-range-row");
         topRow.setWidthFull();
         topRow.setAlignItems(Alignment.END);
         topRow.getStyle().set("flex-wrap", "wrap");
@@ -135,6 +139,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
         hint.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
 
         allEntriesGrid = createGrid(FddbDataDTO.class);
+        allEntriesGrid.addClassName("entries-desktop-grid");
         allEntriesGrid.addColumn(FddbDataDTO::getDate).setHeader("Date").setSortable(true).setAutoWidth(true);
         allEntriesGrid.addColumn(dto -> dto.getProducts() != null ? dto.getProducts().size() : 0)
                 .setHeader("Products").setSortable(true).setAutoWidth(true);
@@ -154,8 +159,33 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
             }
         });
 
-        layout.add(topRow, hint, allEntriesGrid);
+        mobileEntriesGrid = createGrid(FddbDataDTO.class);
+        mobileEntriesGrid.addClassName("entries-mobile-grid");
+        mobileEntriesGrid.setHeight("480px");
+        mobileEntriesGrid.addComponentColumn(this::createDaySummary).setHeader("Logged days").setFlexGrow(1);
+        layout.add(topRow, hint, entriesFeedback, allEntriesGrid, mobileEntriesGrid);
         return layout;
+    }
+
+    private Div createDaySummary(FddbDataDTO day) {
+        Button viewDay = new Button(String.valueOf(day.getDate()), e -> {
+            if (day.getDate() != null) {
+                tabSheet.setSelectedIndex(1);
+                searchDatePicker.setValue(day.getDate());
+                searchByDate();
+            }
+        });
+        viewDay.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        viewDay.setAriaLabel("View products for " + day.getDate());
+        viewDay.setEnabled(day.getDate() != null);
+        Span calories = new Span(formatNumber(day.getTotalCalories()) + " kcal");
+        Span macros = new Span("Protein " + formatNumber(day.getTotalProtein()) + " g · Carbs "
+                + formatNumber(day.getTotalCarbs()) + " g · Fat " + formatNumber(day.getTotalFat()) + " g");
+        Span additional = new Span("Sugar " + formatNumber(day.getTotalSugar()) + " g · Fibre "
+                + formatNumber(day.getTotalFibre()) + " g · " + size(day.getProducts()) + " products");
+        Div summary = new Div(viewDay, calories, macros, additional);
+        summary.addClassName("entry-day-summary");
+        return summary;
     }
 
     private VerticalLayout createMissingDaysTab() {
@@ -189,7 +219,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
         missingDaysGrid.addColumn(date -> date).setHeader("Date").setSortable(true).setAutoWidth(true);
         missingDaysGrid.addColumn(date -> capitalize(date.getDayOfWeek().name())).setHeader("Day").setSortable(true).setAutoWidth(true);
 
-        layout.add(topRow, hint, missingDaysGrid);
+        layout.add(topRow, hint, missingFeedback, missingDaysGrid);
         return layout;
     }
 
@@ -238,7 +268,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
                 .set("z-index", "0")
                 .set("overflow", "visible");
 
-        layout.add(topRow, dateStatsCards, dateProductsGrid);
+        layout.add(topRow, dateFeedback, dateStatsCards, dateProductsGrid);
         return layout;
     }
 
@@ -362,37 +392,42 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
         LocalDate from = entriesFromDatePicker.getValue();
         LocalDate to = entriesToDatePicker.getValue();
 
-        if (from != null && to != null && from.isAfter(to)) {
-            showError("From date must be before or equal to to date");
+        if (!validateDateRange(entriesFromDatePicker, entriesToDatePicker, true)) {
             return;
         }
-        if ((from == null) != (to == null)) {
-            showError("Please set both dates to load a range, or clear both to load everything");
-            return;
-        }
+        entriesFeedback.setVisible(false);
 
         try {
             List<FddbDataDTO> entries = from != null
                     ? fddbDataClient.getByDateRange(from.format(DATE_FORMAT), to.format(DATE_FORMAT), true)
                     : fddbDataClient.getAllEntries();
             int count = populateGrid(allEntriesGrid, allEntriesCountLabel, entries, size(entries) + " entries");
+            mobileEntriesGrid.setItems(entries != null ? entries : List.of());
+            mobileEntriesGrid.setVisible(count > 0);
 
             if (count > 0) {
                 showSuccess("Loaded " + count + " entries");
             } else {
-                showError("No entries found");
+                showEmptyState(entriesFeedback, from != null
+                        ? "No entries from " + from + " to " + to + ". Widen the range or clear both dates to load all entries."
+                        : "No entries stored yet. Use Data Export to import your FDDB diary, then load entries again.");
             }
         } catch (ApiException e) {
-            showError(e.getMessage());
+            showInlineError(entriesFeedback, e.getMessage(), this::loadAllEntries);
             clearGrid(allEntriesGrid, allEntriesCountLabel);
+            mobileEntriesGrid.setVisible(false);
+            mobileEntriesGrid.setItems();
         }
     }
 
     private void searchByDate() {
+        searchDatePicker.setInvalid(false);
         if (searchDatePicker.getValue() == null) {
-            showError("Please select a date");
+            searchDatePicker.setErrorMessage("Select a date to search your diary.");
+            searchDatePicker.setInvalid(true);
             return;
         }
+        dateFeedback.setVisible(false);
 
         try {
             String date = searchDatePicker.getValue().format(DATE_FORMAT);
@@ -414,10 +449,11 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
                 showSuccess("Found " + count + " products for " + date);
             } else {
                 dateStatsCards.setVisible(false);
-                showError("No data found for " + date);
+                showEmptyState(dateFeedback, "No products logged for " + date
+                        + ". Choose another date, or use Data Export to import this day from FDDB.");
             }
         } catch (ApiException e) {
-            showError(e.getMessage());
+            showInlineError(dateFeedback, e.getMessage(), this::searchByDate);
             dateStatsCards.setVisible(false);
             clearGrid(dateProductsGrid, dateProductsCountLabel);
         }
@@ -427,14 +463,10 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
         LocalDate from = missingFromDatePicker.getValue();
         LocalDate to = missingToDatePicker.getValue();
 
-        if (from == null || to == null) {
-            showError("Please select both from and to dates");
+        if (!validateDateRange(missingFromDatePicker, missingToDatePicker, false)) {
             return;
         }
-        if (from.isAfter(to)) {
-            showError("From date must be before or equal to to date");
-            return;
-        }
+        missingFeedback.setVisible(false);
 
         try {
             List<LocalDate> missingDays = statsClient.getMissingDays(from.format(DATE_FORMAT), to.format(DATE_FORMAT));
@@ -443,10 +475,11 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
             if (count > 0) {
                 showSuccess("Found " + count + " missing days");
             } else {
-                showSuccess("No gaps - every day in the range is logged");
+                showEmptyState(missingFeedback, "No gaps from " + from + " to " + to
+                        + " — every day in this range is logged. Choose a wider range to check more days.");
             }
         } catch (ApiException e) {
-            showError(e.getMessage());
+            showInlineError(missingFeedback, e.getMessage(), this::loadMissingDays);
             clearGrid(missingDaysGrid, missingDaysCountLabel);
         }
     }

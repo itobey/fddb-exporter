@@ -1,12 +1,13 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.util;
 
+import com.vaadin.flow.component.datepicker.DatePicker;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.Locale;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ViewUtilsTest {
 
@@ -15,6 +16,40 @@ class ViewUtilsTest {
     @AfterEach
     void restoreLocale() {
         Locale.setDefault(originalLocale);
+    }
+
+    @Test
+    void optionalRange_shouldRejectAHalfRangeWithoutFallingBackToAllHistory() {
+        DatePicker from = new DatePicker();
+        DatePicker to = new DatePicker();
+        from.setValue(LocalDate.of(2026, 10, 1));
+
+        assertFalse(ViewUtils.validateDateRange(from, to, true));
+        assertTrue(to.isInvalid());
+        assertEquals(LocalDate.of(2026, 10, 1), from.getValue());
+
+        to.setValue(LocalDate.of(2026, 10, 14));
+        assertTrue(ViewUtils.validateDateRange(from, to, true));
+        assertFalse(to.isInvalid());
+
+        from.clear();
+        to.clear();
+        assertTrue(ViewUtils.validateDateRange(from, to, true));
+        assertFalse(ViewUtils.validateDateRange(from, to, false));
+    }
+
+    @Test
+    void reversedRange_shouldRecoverAfterTheUserCorrectsTheEndDate() {
+        DatePicker from = new DatePicker();
+        DatePicker to = new DatePicker();
+        from.setValue(LocalDate.of(2026, 10, 14));
+        to.setValue(LocalDate.of(2026, 10, 1));
+
+        assertFalse(ViewUtils.validateDateRange(from, to, false));
+        assertTrue(to.isInvalid());
+        to.setValue(from.getValue());
+        assertTrue(ViewUtils.validateDateRange(from, to, false));
+        assertFalse(to.isInvalid());
     }
 
     @Test

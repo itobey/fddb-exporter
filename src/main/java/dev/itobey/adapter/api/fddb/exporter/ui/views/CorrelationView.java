@@ -62,6 +62,7 @@ public class CorrelationView extends VerticalLayout {
     private TextArea occurrenceDatesInput;
     private DatePicker startDatePicker;
     private VerticalLayout resultContainer;
+    private final Div analysisFeedback = createFeedbackRegion();
 
     public CorrelationView(CorrelationClient correlationClient,
                            dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient statsClient,
@@ -130,6 +131,7 @@ public class CorrelationView extends VerticalLayout {
         datesHelp.getStyle().set("margin", "0.25rem 0 0.5rem 0");
 
         occurrenceDatesInput = new TextArea();
+        occurrenceDatesInput.setAriaLabel("Occurrence dates");
         occurrenceDatesInput.setPlaceholder("e.g., 2024-01-15, 2024-02-20, 2024-03-10");
         occurrenceDatesInput.setWidthFull();
         occurrenceDatesInput.setHeight("100px");
@@ -158,7 +160,7 @@ public class CorrelationView extends VerticalLayout {
         analyzeButton.addClickListener(e -> runCorrelation());
         analyzeButton.getStyle().set("margin-top", "1rem");
 
-        form.add(inclusionSection, exclusionSection, datesSection, startDatePicker, analyzeButton);
+        form.add(inclusionSection, exclusionSection, datesSection, startDatePicker, analyzeButton, analysisFeedback);
         return form;
     }
 
@@ -180,6 +182,7 @@ public class CorrelationView extends VerticalLayout {
         help.getStyle().set("margin", "0.25rem 0 0.5rem 0");
 
         TextField keywordInput = isInclusion ? (inclusionKeywordInput = new TextField()) : (exclusionKeywordInput = new TextField());
+        keywordInput.setAriaLabel(isInclusion ? "Inclusion keyword" : "Exclusion keyword");
         keywordInput.setPlaceholder("Type keyword and press Enter...");
         keywordInput.setWidthFull();
         keywordInput.setClearButtonVisible(true);
@@ -188,6 +191,7 @@ public class CorrelationView extends VerticalLayout {
                 .set("min-width", "0");
 
         Button addBtn = new Button("Add");
+        addBtn.setAriaLabel(isInclusion ? "Add inclusion keyword" : "Add exclusion keyword");
         addBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         addBtn.getStyle()
                 .set("flex", "0 0 auto")
@@ -235,6 +239,7 @@ public class CorrelationView extends VerticalLayout {
             inclusionKeywordsContainer.add(createPill(keyword, () -> removeInclusionKeyword(keyword), true));
             inclusionKeywordsContainer.setVisible(true);
             inclusionKeywordInput.clear();
+            inclusionKeywordInput.setInvalid(false);
         }
     }
 
@@ -305,13 +310,18 @@ public class CorrelationView extends VerticalLayout {
     }
 
     private void runCorrelation() {
+        analysisFeedback.setVisible(false);
+        inclusionKeywordInput.setInvalid(false);
+        occurrenceDatesInput.setInvalid(false);
         if (inclusionKeywords.isEmpty()) {
-            showError("Please add at least one inclusion keyword");
+            inclusionKeywordInput.setErrorMessage("Add at least one keyword with Enter or Add.");
+            inclusionKeywordInput.setInvalid(true);
             return;
         }
 
         if (occurrenceDatesInput.getValue() == null || occurrenceDatesInput.getValue().trim().isEmpty()) {
-            showError("Please enter occurrence dates");
+            occurrenceDatesInput.setErrorMessage("Enter at least one occurrence date in YYYY-MM-DD format.");
+            occurrenceDatesInput.setInvalid(true);
             return;
         }
 
@@ -323,8 +333,18 @@ public class CorrelationView extends VerticalLayout {
                     .collect(Collectors.toList());
 
             if (dates.isEmpty()) {
-                showError("No valid dates found");
+                occurrenceDatesInput.setErrorMessage("Enter at least one occurrence date in YYYY-MM-DD format.");
+                occurrenceDatesInput.setInvalid(true);
                 return;
+            }
+            for (String date : dates) {
+                try {
+                    LocalDate.parse(date);
+                } catch (java.time.format.DateTimeParseException exception) {
+                    occurrenceDatesInput.setErrorMessage("Use YYYY-MM-DD for every date. Check: " + date);
+                    occurrenceDatesInput.setInvalid(true);
+                    return;
+                }
             }
 
             CorrelationInputDto input = new CorrelationInputDto();
@@ -339,7 +359,8 @@ public class CorrelationView extends VerticalLayout {
             displayResult(result);
             showSuccess("Correlation analysis completed");
         } catch (ApiException e) {
-            showError("Error running correlation: " + e.getMessage());
+            resultContainer.setVisible(false);
+            showInlineError(analysisFeedback, "Error running correlation: " + e.getMessage(), this::runCorrelation);
         }
     }
 

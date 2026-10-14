@@ -63,6 +63,7 @@ public class ProductsView extends VerticalLayout {
     private Div summarySection;
     private Grid<ProductWithDateDTO> occurrencesGrid;
     private Span occurrencesCountLabel;
+    private final Div explorerFeedback = createFeedbackRegion();
 
     // Explorer weekday filter: the full occurrence set for the current term is held in memory and
     // filtered client-side when weekday distribution bars are toggled, so no refetch is needed.
@@ -79,6 +80,7 @@ public class ProductsView extends VerticalLayout {
     private IntegerField topProductsLimitField;
     private Grid<TopProductDTO> topProductsGrid;
     private Span topProductsCountLabel;
+    private final Div topProductsFeedback = createFeedbackRegion();
 
     public ProductsView(FddbDataClient fddbDataClient, FddbExporterProperties properties) {
         this.fddbDataClient = fddbDataClient;
@@ -218,25 +220,30 @@ public class ProductsView extends VerticalLayout {
             }
         });
 
-        layout.add(topRow, hint, summarySection, occurrencesGrid);
+        layout.add(topRow, hint, explorerFeedback, summarySection, occurrencesGrid);
         return layout;
     }
 
     private void explore(String rawTerm) {
         String term = rawTerm != null ? rawTerm.trim() : "";
+        productNameCombo.setInvalid(false);
+        explorerToDatePicker.setInvalid(false);
         if (term.length() < MIN_SEARCH_LENGTH) {
-            showError("Please enter at least " + MIN_SEARCH_LENGTH + " characters to explore");
+            productNameCombo.setErrorMessage("Enter at least " + MIN_SEARCH_LENGTH + " characters to explore.");
+            productNameCombo.setInvalid(true);
             return;
         }
 
         LocalDate from = explorerFromDatePicker.getValue();
         LocalDate to = explorerToDatePicker.getValue();
         if (from != null && to != null && from.isAfter(to)) {
-            showError("From date must be before or equal to to date");
+            explorerToDatePicker.setErrorMessage("Select a to date on or after the from date.");
+            explorerToDatePicker.setInvalid(true);
             return;
         }
         String fromStr = from != null ? from.format(DATE_FORMAT) : null;
         String toStr = to != null ? to.format(DATE_FORMAT) : null;
+        explorerFeedback.setVisible(false);
 
         try {
             ProductSummaryDTO summary = fddbDataClient.getProductSummary(term, fromStr, toStr);
@@ -255,10 +262,11 @@ public class ProductsView extends VerticalLayout {
                 showSuccess("Found " + count + " occurrences for \"" + term + "\"");
             } else {
                 summarySection.setVisible(false);
-                showError("No products found matching \"" + term + "\"");
+                showEmptyState(explorerFeedback, "No products found matching \"" + term
+                        + "\" in the selected date range. Try a shorter product name or clear the date filters.");
             }
         } catch (ApiException e) {
-            showError(e.getMessage());
+            showInlineError(explorerFeedback, e.getMessage(), () -> explore(term));
             summarySection.setVisible(false);
             allOccurrences = List.of();
             selectedWeekdays.clear();
@@ -572,25 +580,30 @@ public class ProductsView extends VerticalLayout {
             }
         });
 
-        layout.add(topRow, topProductsGrid);
+        layout.add(topRow, topProductsFeedback, topProductsGrid);
         return layout;
     }
 
     private void loadTopProducts() {
         LocalDate from = topProductsFromDatePicker.getValue();
         LocalDate to = topProductsToDatePicker.getValue();
+        topProductsToDatePicker.setInvalid(false);
+        topProductsLimitField.setInvalid(false);
 
         if (from != null && to != null && from.isAfter(to)) {
-            showError("From date must be before or equal to to date");
+            topProductsToDatePicker.setErrorMessage("Select a to date on or after the from date.");
+            topProductsToDatePicker.setInvalid(true);
             return;
         }
 
         Integer limit = topProductsLimitField.getValue();
         if (limit == null || limit < 1 || limit > MAX_TOP_PRODUCTS_LIMIT) {
-            showError("Limit must be between 1 and " + MAX_TOP_PRODUCTS_LIMIT);
+            topProductsLimitField.setErrorMessage("Enter a limit between 1 and " + MAX_TOP_PRODUCTS_LIMIT + ".");
+            topProductsLimitField.setInvalid(true);
             return;
         }
 
+        topProductsFeedback.setVisible(false);
         try {
             List<TopProductDTO> products = fddbDataClient.getTopProducts(
                     topProductsRanking.getValue(),
@@ -602,10 +615,10 @@ public class ProductsView extends VerticalLayout {
             if (count > 0) {
                 showSuccess("Loaded " + count + " products");
             } else {
-                showError("No products found");
+                showEmptyState(topProductsFeedback, "No products logged in the selected range. Widen the range or clear the date filters.");
             }
         } catch (ApiException e) {
-            showError(e.getMessage());
+            showInlineError(topProductsFeedback, e.getMessage(), this::loadTopProducts);
             clearGrid(topProductsGrid, topProductsCountLabel);
         }
     }

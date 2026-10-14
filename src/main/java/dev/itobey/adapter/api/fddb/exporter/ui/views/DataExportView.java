@@ -228,13 +228,8 @@ public class DataExportView extends VerticalLayout {
     }
 
     private void exportDateRange() {
-        if (fromDate.getValue() == null || toDate.getValue() == null) {
-            showError("Select both a from and a to date");
-            return;
-        }
-
-        if (fromDate.getValue().isAfter(toDate.getValue())) {
-            showError("The from date must be on or before the to date");
+        if (!validateDateRange(fromDate, toDate, false)) {
+            clearPending(dateRangeResult);
             return;
         }
 
@@ -251,8 +246,11 @@ public class DataExportView extends VerticalLayout {
     }
 
     private void exportDaysBack() {
+        daysBackField.setInvalid(false);
         if (daysBackField.getValue() == null || daysBackField.getValue() < 1) {
-            showError("Enter how many days to export");
+            daysBackField.setErrorMessage("Enter at least 1 day to export.");
+            daysBackField.setInvalid(true);
+            clearPending(daysBackResult);
             return;
         }
 

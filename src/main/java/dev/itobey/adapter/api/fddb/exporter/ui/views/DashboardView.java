@@ -2,10 +2,8 @@ package dev.itobey.adapter.api.fddb.exporter.ui.views;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.details.Details;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.function.SerializableRunnable;
@@ -45,8 +43,8 @@ public class DashboardView extends VerticalLayout {
         applyResponsivePadding(this);
 
         add(new H2("Dashboard"));
-        loadHealthChecks();
         loadStats();
+        loadHealthChecks();
     }
 
     private void loadHealthChecks() {
@@ -59,8 +57,6 @@ public class DashboardView extends VerticalLayout {
     }
 
     private void displayHealthStatus(Map<String, HealthService.ComponentHealth> components) {
-        add(new H3("System Health"));
-
         // Same auto-fit grid as the stats sections below: the cards sit in one dense row on a wide
         // screen and re-flow to fewer columns as the viewport narrows, all three staying present.
         // Below the phone breakpoint the grid drops to a single column and the cards turn into
@@ -83,7 +79,16 @@ public class DashboardView extends VerticalLayout {
             healthCardsContainer.add(createHealthCard("InfluxDB", influxHealth, "📊"));
         }
 
-        add(healthCardsContainer);
+        boolean hasFailure = components.values().stream()
+                .anyMatch(health -> !"UP".equalsIgnoreCase(health.getStatus())
+                        && !"DISABLED".equalsIgnoreCase(health.getStatus()));
+        Details healthDetails = new Details(hasFailure
+                ? "System Health — a service needs attention"
+                : "System Health — enabled services available", healthCardsContainer);
+        healthDetails.addClassName("dashboard-health-details");
+        healthDetails.setWidthFull();
+        healthDetails.setOpened(hasFailure);
+        addComponentAtIndex(1, healthDetails);
     }
 
     private Component createHealthCard(String name, HealthService.ComponentHealth health, String emoji) {
@@ -167,9 +172,8 @@ public class DashboardView extends VerticalLayout {
     }
 
     private void displayStats(StatsDTO stats) {
-        add(new H3("Global Stats"));
-
         Div overviewCards = createCardsGrid("140px");
+        overviewCards.addClassName("dashboard-overview");
         overviewCards.add(
                 createStatCard("Total Entries", String.valueOf(stats.getAmountEntries()), "days in database"),
                 createStatCard("Entry Coverage", String.format(Locale.ROOT, "%.1f%%", stats.getEntryPercentage()), "of days tracked"),
@@ -178,11 +182,14 @@ public class DashboardView extends VerticalLayout {
                 createStatCard("First Entry", stats.getFirstEntryDate() != null ? stats.getFirstEntryDate().toString() : "N/A", "start date"),
                 createStatCard("Missing Day", formatMostRecentMissingDay(stats), "most recent")
         );
-        add(overviewCards);
-
         if (stats.getAverageTotals() != null) {
             add(new H3("Average Daily Nutrition"));
+            Paragraph coverage = new Paragraph(String.format(Locale.ROOT,
+                    "Across %d logged days · %.1f%% of days tracked", stats.getAmountEntries(), stats.getEntryPercentage()));
+            coverage.addClassName("dashboard-coverage");
+            add(coverage);
             Div averageCards = createCardsGrid("120px");
+            averageCards.addClassName("dashboard-nutrition");
             StatsDTO.Averages avg = stats.getAverageTotals();
             averageCards.add(
                     createNutrientCard("Calories", formatNumber(avg.getAvgTotalCalories()), "kcal", "🔥", null),
@@ -194,6 +201,8 @@ public class DashboardView extends VerticalLayout {
             );
             add(averageCards);
         }
+
+        add(new H3("Global Stats"), overviewCards);
 
         add(new H3("Highest Daily Values"));
         Div highestCards = createCardsGrid("160px");

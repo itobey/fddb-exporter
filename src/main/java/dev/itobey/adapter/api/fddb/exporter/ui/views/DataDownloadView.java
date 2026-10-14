@@ -175,14 +175,7 @@ public class DataDownloadView extends VerticalLayout {
             fromDate = fromDatePicker.getValue();
             toDate = toDatePicker.getValue();
 
-            // Validate dates
-            if (fromDate == null || toDate == null) {
-                showError("Please select both from and to dates.");
-                return;
-            }
-
-            if (fromDate.isAfter(toDate)) {
-                showError("From date cannot be after to date.");
+            if (!validateDateRange(fromDatePicker, toDatePicker, false)) {
                 return;
             }
         }
