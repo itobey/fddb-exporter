@@ -1356,7 +1356,7 @@ vaadin-tab-sheet::part(tabs) {
 
     vaadin-horizontal-layout.keyword-input-row {
         flex-wrap: nowrap !important;
-        align-items: center !important;
+        align-items: baseline !important;
     }
 
     vaadin-horizontal-layout.keyword-input-row vaadin-button {
@@ -1785,58 +1785,248 @@ vaadin-progress-bar::part(indeterminate) {
     }
 }
 
-/* --- Keyword pills (Correlation Analysis) --------------------------------
-   Interactive filter tokens: a keyword plus a control to drop it. Same silhouette as
-   .export-chip; they stay a step larger because unlike a status chip they contain a button. */
+/* --- Compact correlation form and comparison results -------------------- */
+.correlation-surface {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    background: var(--card-surface);
+    border: 1px solid var(--card-border);
+    border-radius: var(--lumo-border-radius-l);
+}
+
+.correlation-section,
+.correlation-results {
+    padding: var(--lumo-space-l);
+}
+
+.correlation-section + .correlation-section,
+.correlation-form-footer {
+    border-top: 1px solid var(--card-border);
+}
+
+.correlation-surface :is(h3, h4, p) {
+    margin: 0;
+}
+
+.correlation-keywords,
+.correlation-dates-row,
+.correlation-result-details {
+    display: grid;
+    gap: var(--lumo-space-l);
+    margin-top: var(--lumo-space-m);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.correlation-keywords > *,
+.correlation-dates-row > *,
+.correlation-result-details > * {
+    min-width: 0;
+}
+
+.correlation-dates-row {
+    grid-template-columns: minmax(0, 1fr) 200px;
+    align-items: start;
+}
+
+.correlation-occurrence-dates {
+    height: 184px;
+}
+
+.correlation-occurrence-dates::part(input-field) {
+    min-height: 112px;
+}
+
+.correlation-keyword-tokens {
+    flex-wrap: wrap;
+    gap: var(--lumo-space-s);
+    margin-top: var(--lumo-space-s);
+}
+
+.correlation-keyword-section vaadin-text-field::part(label) {
+    white-space: normal;
+    overflow: visible;
+}
+
+.correlation-form-footer,
+.correlation-result-header,
+.correlation-result-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-l);
+    flex-wrap: wrap;
+}
+
+.correlation-form-footer {
+    justify-content: space-between;
+    padding: var(--lumo-space-m) var(--lumo-space-l);
+}
+
+.correlation-form-footer p,
+.correlation-result-summary {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+
+.correlation-form-footer p {
+    flex: 1 1 220px;
+}
+
+.correlation-run {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.correlation-result-header {
+    justify-content: space-between;
+    gap: var(--lumo-space-s);
+}
+
+.correlation-copy {
+    width: 44px;
+    flex: 0 0 44px;
+    margin: 0;
+}
+
+.correlation-result-summary {
+    margin: var(--lumo-space-m) 0 var(--lumo-space-l);
+}
+
+.correlation-result-count,
+.correlation-percentage {
+    color: var(--lumo-header-text-color);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.correlation-result-count {
+    margin-right: var(--lumo-space-xs);
+}
+
+.correlation-bars {
+    display: grid;
+    gap: var(--lumo-space-m);
+    margin-top: var(--lumo-space-m);
+}
+
+.correlation-bar-row {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr) 64px;
+    align-items: center;
+    gap: var(--lumo-space-m);
+    font-size: var(--lumo-font-size-s);
+}
+
+.correlation-bar-label {
+    display: flex;
+    flex-direction: column;
+}
+
+.correlation-matched-days {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.correlation-bar-track {
+    height: var(--lumo-space-s);
+    background: var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-s);
+    overflow: hidden;
+}
+
+.correlation-bar-fill {
+    height: 100%;
+    background: var(--accent-text);
+}
+
+.correlation-percentage {
+    text-align: right;
+}
+
+.correlation-result-details {
+    border-top: 1px solid var(--card-border);
+    margin-top: var(--lumo-space-l);
+    padding-top: var(--lumo-space-l);
+}
+
+.correlation-result-details ul {
+    margin: var(--lumo-space-s) 0 0;
+    padding-left: var(--lumo-space-l);
+    overflow-wrap: anywhere;
+}
+
+.correlation-result-details li + li {
+    margin-top: var(--lumo-space-xs);
+}
+
+.correlation-form > .query-feedback {
+    margin: var(--lumo-space-m) var(--lumo-space-l);
+    max-width: calc(100% - 2 * var(--lumo-space-l));
+}
+
+@media (max-width: 760px) {
+    .correlation-keywords,
+    .correlation-dates-row,
+    .correlation-result-details {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .correlation-section,
+    .correlation-results {
+        padding: var(--lumo-space-m);
+    }
+
+    .correlation-form-footer {
+        padding: var(--lumo-space-m);
+        gap: var(--lumo-space-s);
+    }
+
+    .correlation-form-footer p,
+    .correlation-run {
+        flex-basis: 100%;
+        width: 100%;
+    }
+
+    .correlation-bar-row {
+        grid-template-columns: 100px minmax(0, 1fr) 56px;
+        gap: var(--lumo-space-s);
+    }
+}
+
+/* --- Keyword tokens (Correlation Analysis) -------------------------------
+   Include/exclude meaning belongs to the field label, not a success/error color. */
 .keyword-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
-    padding: 0.25rem 0.625rem;
-    border-radius: var(--lumo-border-radius-pill, 999px);
+    gap: var(--lumo-space-xs);
+    max-width: 100%;
+    padding: 0 0 0 var(--lumo-space-s);
+    border: 1px solid var(--control-border);
+    border-radius: var(--lumo-border-radius-s);
+    background: var(--lumo-contrast-5pct);
     font-size: 0.875rem;
     line-height: 1.2;
-    white-space: nowrap;
-    /* Both fills below are chosen to carry white: --green-accent-pill is the darkened step that
-       exists precisely for a white label, and --red-accent clears 5.98:1 unaided. */
-    color: var(--accent-contrast);
-}
-
-.keyword-pill--include {
-    background-color: var(--green-accent-pill);
-}
-
-.keyword-pill--exclude {
-    background-color: var(--red-accent);
+    color: var(--lumo-body-text-color);
 }
 
 .keyword-pill__label {
     line-height: 1.2;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
-/* The glyph stays 18px - it sits inside a pill and cannot grow - so the touch target is extended
-   past the button's own box rather than by resizing it. Sizing lives here rather than inline so
-   the mobile `vaadin-button { width: 100% }` rule loses to it on specificity instead of on the
-   inline-style escape hatch. */
+/* A real 44px removal target avoids overlapping neighbouring tokens on touch screens. */
 .keyword-pill__remove {
-    position: relative;
-    min-width: 0;
-    width: 18px;
-    height: 18px;
+    flex: 0 0 44px;
+    min-width: 44px;
+    width: 44px;
+    height: 44px;
     padding: 0;
-    margin: 0 0 0 -0.125rem;
+    margin: 0;
     color: inherit;
     cursor: pointer;
-    --lumo-button-size: 18px;
-}
-
-@media (pointer: coarse) {
-    .keyword-pill__remove::after {
-        content: "";
-        position: absolute;
-        /* 18px glyph + 13px on each side = a 44px target. */
-        inset: -13px;
-    }
+    --lumo-button-size: 44px;
 }
 
 /* ==========================================================================
