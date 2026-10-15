@@ -5,9 +5,14 @@
 ### Added
 
 - **Undo preset deletion** in Settings to restore a deleted rolling-average preset.
+- **Edit rolling-average presets** directly in Settings, including their names and date ranges.
 
 ### Changed
 
+- **Refreshed Settings layout**, with a compact preset list showing date ranges, day counts, and edit/delete actions.
+- **Clearer correlation analysis**, with grouped inputs, horizontal bars for comparing results, and automatic
+  scrolling to completed results.
+- **Improved "Sync from FDDB" layout**, with more consistent spacing and responsive controls.
 - **Clearer navigation:** pages are grouped by Diary, Insights, and Data; Data Export is now "Sync from FDDB"
   and Data Download is "Download file", with descriptions explaining each action.
 - **Trends are easier to explore:** tap or use the keyboard to inspect periods, scroll through longer ranges,
