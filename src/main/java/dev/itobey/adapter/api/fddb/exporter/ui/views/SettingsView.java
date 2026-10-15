@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.views;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
@@ -21,7 +22,10 @@ import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.MigrationClient;
 
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 
@@ -35,6 +39,16 @@ public class SettingsView extends VerticalLayout {
     private ProgressBar progressBar;
     private Div presetsListDiv;
     private final Div presetFeedback = createFeedbackRegion();
+    private static final DateTimeFormatter PRESET_DATE = DateTimeFormatter.ofPattern("d MMM uuuu", Locale.UK);
+    private final Span presetCount = new Span();
+    private final TextField presetName = new TextField("Preset Name");
+    private final DatePicker presetFrom = new DatePicker("From Date");
+    private final DatePicker presetTo = new DatePicker("To Date");
+    private final H3 presetEditorTitle = new H3("Add New Preset");
+    private final Button savePresetButton = new Button("Add Preset");
+    private final Button newPresetButton = new Button("Add preset", new Icon(VaadinIcon.PLUS));
+    private VerticalLayout presetEditor;
+    private String editingPresetName;
 
     public SettingsView(MigrationClient migrationClient,
                         @org.springframework.beans.factory.annotation.Autowired(required = false) UserSettingsService userSettingsService) {
@@ -204,70 +218,74 @@ public class SettingsView extends VerticalLayout {
 
     private VerticalLayout createPresetsSection() {
         VerticalLayout section = createSection(null);
-        section.addClassNames(LumoUtility.Padding.LARGE);
+        section.addClassName("preset-ledger-section");
+        section.setSpacing(false);
         section.setAlignItems(Alignment.START);
         section.setWidthFull();
 
         Div sectionHeader = new Div();
-        sectionHeader.addClassNames(LumoUtility.Display.FLEX, LumoUtility.AlignItems.CENTER, LumoUtility.Gap.MEDIUM);
-        sectionHeader.getStyle().set("flex-wrap", "wrap").set("margin-bottom", "1.5rem");
-
-        Icon icon = new Icon(VaadinIcon.CALENDAR_CLOCK);
-        icon.setSize("24px");
-        icon.addClassNames(LumoUtility.TextColor.PRIMARY);
-
-        Span sectionTitle = new Span("Rolling Average Presets");
-        sectionTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.SEMIBOLD);
-        sectionHeader.add(icon, sectionTitle);
-
-        Paragraph description = new Paragraph(
-                "Define custom date range presets that appear as quick-select buttons on the Rolling Averages view."
-        );
-        description.addClassNames(LumoUtility.TextColor.SECONDARY);
-        description.getStyle().set("margin-top", "0");
+        sectionHeader.addClassName("preset-ledger-heading");
+        H3 title = new H3();
+        title.add(new Icon(VaadinIcon.CALENDAR_CLOCK), new Span("Rolling Average Presets"), presetCount);
+        presetCount.addClassName("preset-ledger-count");
+        Paragraph description = new Paragraph("Saved date ranges for quick selection in Rolling Averages.");
+        Div headingText = new Div(title, description);
+        newPresetButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        newPresetButton.setAriaLabel("Add preset");
+        newPresetButton.getElement().setAttribute("aria-controls", "preset-editor");
+        newPresetButton.getElement().setAttribute("aria-expanded", "false");
+        newPresetButton.addClickListener(e -> openPresetEditor(null));
+        sectionHeader.add(headingText, newPresetButton);
 
         presetsListDiv = new Div();
         presetsListDiv.setWidthFull();
         refreshPresetsList();
-
-        VerticalLayout addForm = createAddPresetForm();
-
-        section.add(sectionHeader, description, presetFeedback, presetsListDiv, new H3("Add New Preset"), addForm);
+        presetEditor = createAddPresetForm();
+        presetEditor.setVisible(false);
+        Div footer = new Div(new Icon(VaadinIcon.LINK),
+                new Span("Available as quick-select buttons in Rolling Averages."));
+        footer.addClassName("preset-ledger-footer");
+        section.add(sectionHeader, presetFeedback, presetsListDiv, presetEditor, footer);
         return section;
     }
 
     private void refreshPresetsList() {
         presetsListDiv.removeAll();
         List<RollingAveragePreset> presets = userSettingsService.getSettings().getRollingAveragePresets();
+        presetCount.setText("(" + presets.size() + ")");
 
         if (presets.isEmpty()) {
-            Paragraph empty = new Paragraph("No custom presets defined yet.");
+            Paragraph empty = new Paragraph("No presets yet. Add a date range to reuse it in Rolling Averages.");
             empty.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
+            empty.addClassName("preset-ledger-empty");
             presetsListDiv.add(empty);
             return;
         }
 
+        Div table = new Div();
+        table.addClassName("preset-ledger");
+        table.getElement().setAttribute("role", "table");
+        table.getElement().setAttribute("aria-label", "Rolling average presets");
+        Div header = new Div();
+        header.addClassNames("preset-ledger-row", "preset-ledger-labels");
+        header.getElement().setAttribute("role", "row");
+        header.add(ledgerCell(new Span("Preset"), "preset-ledger-name", true),
+                ledgerCell(new Span("Date range"), "preset-ledger-range", true),
+                ledgerCell(new Span("Days"), "preset-ledger-days", true),
+                ledgerCell(new Span("Actions"), "preset-ledger-actions-label", true));
+        table.add(header);
         for (RollingAveragePreset preset : presets) {
             Div row = new Div();
-            row.addClassNames(LumoUtility.Padding.SMALL, LumoUtility.BorderRadius.SMALL, LumoUtility.Background.CONTRAST_5);
-            row.getStyle()
-                    .set("display", "grid")
-                    .set("grid-template-columns", "1fr auto")
-                    .set("align-items", "center")
-                    .set("column-gap", "var(--lumo-space-m)")
-                    .set("margin-bottom", "0.5rem");
-
-            Div infoDiv = new Div();
-
-            Span nameSpan = new Span(preset.getName());
-            nameSpan.addClassNames(LumoUtility.FontWeight.SEMIBOLD);
-            nameSpan.getStyle().set("display", "block").set("word-break", "break-word");
-
-            Span rangeSpan = new Span(preset.getFromDate() + " → " + preset.getToDate());
-            rangeSpan.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
-            rangeSpan.getStyle().set("display", "block").set("word-break", "break-word");
-
-            infoDiv.add(nameSpan, rangeSpan);
+            row.addClassName("preset-ledger-row");
+            row.getElement().setAttribute("role", "row");
+            Span rangeSpan = new Span(PRESET_DATE.format(preset.getFromDate()) + " → " + PRESET_DATE.format(preset.getToDate()));
+            Span days = new Span(Long.toString(ChronoUnit.DAYS.between(preset.getFromDate(), preset.getToDate()) + 1));
+            days.getElement().setAttribute("title", "Calendar days, including both start and end dates");
+            Button editButton = new Button(new Icon(VaadinIcon.EDIT));
+            editButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            editButton.setTooltipText("Edit preset");
+            editButton.setAriaLabel("Edit preset " + preset.getName());
+            editButton.addClickListener(e -> openPresetEditor(preset));
 
             Button deleteButton = new Button(new Icon(VaadinIcon.TRASH));
             deleteButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
@@ -276,67 +294,129 @@ public class SettingsView extends VerticalLayout {
             deleteButton.addClassName("preset-delete-button");
             deleteButton.addClickListener(e -> deletePreset(preset.getName()));
 
-            row.add(infoDiv, deleteButton);
-            presetsListDiv.add(row);
+            Div actions = new Div(editButton, deleteButton);
+            row.add(ledgerCell(new Span(preset.getName()), "preset-ledger-name", false),
+                    ledgerCell(rangeSpan, "preset-ledger-range", false),
+                    ledgerCell(days, "preset-ledger-days", false),
+                    ledgerCell(actions, "preset-ledger-actions", false));
+            table.add(row);
         }
+        presetsListDiv.add(table);
+    }
+
+    private Div ledgerCell(Component content, String className, boolean header) {
+        Div cell = new Div(content);
+        cell.addClassName(className);
+        cell.getElement().setAttribute("role", header ? "columnheader" : "cell");
+        return cell;
+    }
+
+    private void openPresetEditor(RollingAveragePreset preset) {
+        editingPresetName = preset == null ? null : preset.getName();
+        presetEditorTitle.setText(preset == null ? "Add New Preset" : "Edit preset");
+        savePresetButton.setText(preset == null ? "Add Preset" : "Save changes");
+        presetName.setValue(preset == null ? "" : preset.getName());
+        presetFrom.setValue(preset == null ? null : preset.getFromDate());
+        presetTo.setValue(preset == null ? null : preset.getToDate());
+        presetName.setInvalid(false);
+        presetFrom.setInvalid(false);
+        presetTo.setInvalid(false);
+        presetEditor.setVisible(true);
+        newPresetButton.getElement().setAttribute("aria-expanded", "true");
+        presetName.focus();
+    }
+
+    private void closePresetEditor() {
+        presetEditor.setVisible(false);
+        editingPresetName = null;
+        newPresetButton.getElement().setAttribute("aria-expanded", "false");
+        newPresetButton.focus();
     }
 
     private VerticalLayout createAddPresetForm() {
         VerticalLayout form = new VerticalLayout();
+        form.setId("preset-editor");
+        form.addClassName("preset-ledger-editor");
         form.setPadding(false);
         form.setSpacing(true);
-
-        TextField nameField = new TextField("Preset Name");
-        nameField.setPlaceholder("e.g. Q1 2025");
-        nameField.setWidthFull();
-
-        DatePicker fromDatePicker = new DatePicker("From Date");
-        fromDatePicker.setI18n(createDatePickerI18n());
-        fromDatePicker.setRequired(true);
-
-        DatePicker toDatePicker = new DatePicker("To Date");
-        toDatePicker.setI18n(createDatePickerI18n());
-        toDatePicker.setRequired(true);
-
-        FormLayout dateLayout = new FormLayout(fromDatePicker, toDatePicker);
-        dateLayout.setResponsiveSteps(
+        form.setWidthFull();
+        presetName.setPlaceholder("e.g. Q1 2026");
+        presetName.setRequiredIndicatorVisible(true);
+        presetFrom.setI18n(createDatePickerI18n());
+        presetFrom.setRequired(true);
+        presetTo.setI18n(createDatePickerI18n());
+        presetTo.setRequired(true);
+        FormLayout fields = new FormLayout(presetName, presetFrom, presetTo);
+        fields.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("500px", 2)
+                new FormLayout.ResponsiveStep("480px", 2),
+                new FormLayout.ResponsiveStep("760px", 3)
         );
-        dateLayout.setWidthFull();
-
-        Button addButton = new Button("Add Preset", new Icon(VaadinIcon.PLUS));
-        addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        addButton.addClickListener(e -> {
-            String name = nameField.getValue().trim();
-            nameField.setInvalid(false);
+        fields.setWidthFull();
+        savePresetButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        savePresetButton.addClickListener(e -> {
+            String name = presetName.getValue().trim();
+            presetName.setInvalid(false);
             if (name.isEmpty()) {
-                nameField.setErrorMessage("Enter a name for this preset.");
-                nameField.setInvalid(true);
+                presetName.setErrorMessage("Enter a name for this preset.");
+                presetName.setInvalid(true);
                 return;
             }
-            if (!validateDateRange(fromDatePicker, toDatePicker, false)) {
+            if (!validateDateRange(presetFrom, presetTo, false)) {
                 return;
             }
             boolean nameExists = userSettingsService.getSettings().getRollingAveragePresets().stream()
-                    .anyMatch(p -> p.getName().equalsIgnoreCase(name));
+                    .anyMatch(p -> !p.getName().equals(editingPresetName) && p.getName().equalsIgnoreCase(name));
             if (nameExists) {
-                nameField.setErrorMessage("A preset with this name already exists. Choose another name.");
-                nameField.setInvalid(true);
+                presetName.setErrorMessage("A preset with this name already exists. Choose another name.");
+                presetName.setInvalid(true);
                 return;
             }
-            if (!addPreset(name, fromDatePicker.getValue(), toDatePicker.getValue())) {
+            boolean saved = editingPresetName == null
+                    ? addPreset(name, presetFrom.getValue(), presetTo.getValue())
+                    : updatePreset(editingPresetName, name, presetFrom.getValue(), presetTo.getValue());
+            if (!saved) {
                 return;
             }
-            nameField.clear();
-            fromDatePicker.clear();
-            fromDatePicker.setInvalid(false);
-            toDatePicker.clear();
-            toDatePicker.setInvalid(false);
+            closePresetEditor();
         });
-
-        form.add(nameField, dateLayout, addButton);
+        Button cancel = new Button("Cancel", e -> closePresetEditor());
+        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        Div actions = new Div(savePresetButton, cancel);
+        actions.addClassName("preset-ledger-form-actions");
+        form.add(presetEditorTitle, fields, actions);
         return form;
+    }
+
+    private boolean updatePreset(String originalName, String name, java.time.LocalDate from, java.time.LocalDate to) {
+        UserSettings settings = userSettingsService.getSettings();
+        List<RollingAveragePreset> presets = settings.getRollingAveragePresets();
+        int index = -1;
+        for (int i = 0; i < presets.size(); i++) {
+            if (presets.get(i).getName().equals(originalName)) {
+                index = i;
+            } else if (presets.get(i).getName().equalsIgnoreCase(name)) {
+                presetName.setErrorMessage("A preset with this name already exists. Choose another name.");
+                presetName.setInvalid(true);
+                return false;
+            }
+        }
+        if (index < 0) {
+            showError("This preset was removed. Cancel and add it as a new preset.");
+            refreshPresetsList();
+            return false;
+        }
+        RollingAveragePreset updated = new RollingAveragePreset();
+        updated.setName(name);
+        updated.setFromDate(from);
+        updated.setToDate(to);
+        presets.set(index, updated);
+        boolean saved = trySaveSettings(settings, "Could not update preset \"" + originalName + "\"");
+        refreshPresetsList();
+        if (saved) {
+            showSuccess("Preset \"" + name + "\" updated.");
+        }
+        return saved;
     }
 
     private boolean addPreset(String name, java.time.LocalDate fromDate, java.time.LocalDate toDate) {
@@ -373,6 +453,9 @@ public class SettingsView extends VerticalLayout {
         boolean saved = trySaveSettings(settings, "Could not delete preset \"" + name + "\"");
         refreshPresetsList();
         if (saved) {
+            if (name.equals(editingPresetName)) {
+                closePresetEditor();
+            }
             showEmptyState(presetFeedback, "Preset \"" + name + "\" deleted.");
             Button undoButton = new Button("Undo", e -> restorePreset(removed, originalIndex));
             undoButton.setAriaLabel("Undo deletion of preset " + name);
