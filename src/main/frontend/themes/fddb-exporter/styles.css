@@ -1481,39 +1481,62 @@ vaadin-progress-bar::part(indeterminate) {
    Data Export view
    ========================================================================== */
 
-.export-sections-layout {
+.export-content {
+    width: 100%;
+    max-width: 980px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--lumo-space-l);
+}
+
+.export-introduction > h2 {
+    margin: 0 0 var(--lumo-space-s);
+}
+
+.export-introduction > p {
+    margin: 0;
+    max-width: 75ch;
+}
+
+.export-sections-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: stretch;
 }
 
 .export-card {
-    flex: 1 1 320px;
-    min-width: 260px;
+    min-width: 0;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding: 20px;
+    padding: var(--lumo-space-l);
     background: var(--card-surface);
     border: 1px solid var(--card-border);
     border-radius: var(--lumo-border-radius-l);
-    box-shadow: var(--lumo-box-shadow-xs);
 }
 
-.export-card__head {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
+.export-card--quick {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--lumo-space-m) var(--lumo-space-l);
+    padding-block: 20px;
 }
 
-.export-card__icon {
-    flex: 0 0 auto;
-    width: 20px;
-    height: 20px;
-    margin-top: 2px;
-    color: var(--button-color-hover);
+.export-card--quick > .export-result {
+    grid-column: 1 / -1;
+}
+
+.export-card > vaadin-form-layout {
+    width: 100%;
+    min-width: 0;
+}
+
+.export-card vaadin-checkbox {
+    margin-top: var(--lumo-space-s);
 }
 
 .export-card__heading-text {
@@ -1534,8 +1557,20 @@ vaadin-progress-bar::part(indeterminate) {
 }
 
 .export-card__action {
-    width: 100%;
+    width: auto;
+    align-self: flex-end;
     margin-top: auto;
+}
+
+.export-card--quick > .export-card__action {
+    align-self: center;
+    margin: 0;
+}
+
+@media (max-width: 700px) {
+    .export-sections-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 /* --- Result ledger ------------------------------------------------------- */
@@ -1715,7 +1750,23 @@ vaadin-progress-bar::part(indeterminate) {
 
 @media (max-width: 576px) {
     .export-card {
-        padding: 14px;
+        padding: 20px;
+    }
+
+    .export-introduction > h2 {
+        font-size: 1.5rem;
+    }
+
+    .export-card--quick {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .export-card__action {
+        width: 100%;
+    }
+
+    .export-card--quick > .export-card__action {
+        margin: 0;
     }
 
     /* Opt out of the blanket full-width button rule - this is an inline text toggle. */
