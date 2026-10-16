@@ -36,7 +36,7 @@ desktop and mobile versions provide the same features and functionality - the di
 adaptations for optimal display on different screen sizes.
 
 ::: info
-The screenshots below were captured from version 2.5.1-SNAPSHOT on October 15, 2026.
+The screenshots below were captured from version 2.6.0 on October 16, 2026.
 :::
 
 ### Desktop Views
@@ -44,7 +44,7 @@ The screenshots below were captured from version 2.5.1-SNAPSHOT on October 15, 2
 <table>
   <tr>
     <th align="center">Dashboard</th>
-    <th align="center">Product Search</th>
+    <th align="center">Product Explorer</th>
   </tr>
   <tr>
     <td align="center">
@@ -54,7 +54,7 @@ The screenshots below were captured from version 2.5.1-SNAPSHOT on October 15, 2
     </td>
     <td align="center">
       <a :href="'/fddb-exporter/images/desktop-product-search.jpg'" target="_blank">
-        <img :src="'/fddb-exporter/images/desktop-product-search.jpg'" alt="Product Search" width="400"/>
+        <img :src="'/fddb-exporter/images/desktop-product-search.jpg'" alt="Product Explorer" width="400"/>
       </a>
     </td>
   </tr>
@@ -80,13 +80,13 @@ The screenshots below were captured from version 2.5.1-SNAPSHOT on October 15, 2
 
 <table>
   <tr>
-    <th align="center">Data Export</th>
+    <th align="center">Sync from FDDB</th>
     <th align="center">Download</th>
   </tr>
   <tr>
     <td align="center">
       <a :href="'/fddb-exporter/images/mobile-export.jpg'" target="_blank">
-        <img :src="'/fddb-exporter/images/mobile-export.jpg'" alt="Mobile Export" width="200"/>
+        <img :src="'/fddb-exporter/images/mobile-export.jpg'" alt="Mobile Sync from FDDB" width="200"/>
       </a>
     </td>
     <td align="center">

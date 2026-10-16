@@ -7,7 +7,6 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -15,7 +14,6 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.UserSettings;
 import dev.itobey.adapter.api.fddb.exporter.dto.StatsDTO;
@@ -61,7 +59,7 @@ public class CorrelationView extends VerticalLayout {
 
     private TextArea occurrenceDatesInput;
     private DatePicker startDatePicker;
-    private VerticalLayout resultContainer;
+    private Div resultContainer;
     private final Div analysisFeedback = createFeedbackRegion();
 
     public CorrelationView(CorrelationClient correlationClient,
@@ -101,44 +99,25 @@ public class CorrelationView extends VerticalLayout {
     }
 
 
-    private VerticalLayout createInputForm() {
-        VerticalLayout form = new VerticalLayout();
-        form.addClassNames(LumoUtility.Padding.MEDIUM, LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
-        form.setSpacing(true);
+    private Div createInputForm() {
+        Div form = new Div();
+        form.addClassNames("correlation-form", "correlation-surface");
 
-        form.add(new H3("Input Parameters"));
+        Div keywordColumns = new Div(
+                createKeywordSection("Include products matching", true),
+                createKeywordSection("Exclude products matching (optional)", false));
+        keywordColumns.addClassName("correlation-keywords");
+        Div keywordsSection = new Div(new H3("Product keywords"), keywordColumns);
+        keywordsSection.addClassName("correlation-section");
 
-        VerticalLayout inclusionSection = createKeywordSection("✓ Inclusion Keywords",
-                "Products matching these keywords will be included", true);
-
-        VerticalLayout exclusionSection = createKeywordSection("✗ Exclusion Keywords",
-                "Products matching these keywords will be excluded", false);
-
-        VerticalLayout datesSection = new VerticalLayout();
-        datesSection.setPadding(false);
-        datesSection.setSpacing(true);
-        datesSection.getStyle()
-                .set("padding", "0.75rem")
-                .set("border-radius", "8px")
-                .set("background", "var(--accent-surface)")
-                .set("border", "1px solid var(--accent-surface-border)");
-
-        H4 datesTitle = new H4("📅 Occurrence Dates");
-        datesTitle.getStyle().set("margin", "0");
-
-        Paragraph datesHelp = new Paragraph("Enter dates when specific events occurred (comma-separated, YYYY-MM-DD format)");
-        datesHelp.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        datesHelp.getStyle().set("margin", "0.25rem 0 0.5rem 0");
-
-        occurrenceDatesInput = new TextArea();
+        occurrenceDatesInput = new TextArea("Occurrence dates");
         occurrenceDatesInput.setAriaLabel("Occurrence dates");
         occurrenceDatesInput.setPlaceholder("e.g., 2024-01-15, 2024-02-20, 2024-03-10");
+        occurrenceDatesInput.setHelperText("YYYY-MM-DD, separated by commas or new lines.");
         occurrenceDatesInput.setWidthFull();
-        occurrenceDatesInput.setHeight("100px");
+        occurrenceDatesInput.addClassName("correlation-occurrence-dates");
 
-        datesSection.add(datesTitle, datesHelp, occurrenceDatesInput);
-
-        startDatePicker = new DatePicker("Start Date");
+        startDatePicker = new DatePicker("Start date");
         // Try to get earliest entry date from stats, fallback to 3 months ago
         try {
             StatsDTO stats = statsClient.getStats();
@@ -154,34 +133,28 @@ public class CorrelationView extends VerticalLayout {
         startDatePicker.setWidthFull();
         startDatePicker.setI18n(createDatePickerI18n());
 
-        Button analyzeButton = new Button("Run Correlation Analysis");
-        analyzeButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
-        analyzeButton.setWidthFull();
-        analyzeButton.addClickListener(e -> runCorrelation());
-        analyzeButton.getStyle().set("margin-top", "1rem");
+        Div datesRow = new Div(occurrenceDatesInput, startDatePicker);
+        datesRow.addClassName("correlation-dates-row");
+        Div datesSection = new Div(new H3("Dates & analysis period"), datesRow);
+        datesSection.addClassName("correlation-section");
 
-        form.add(inclusionSection, exclusionSection, datesSection, startDatePicker, analyzeButton, analysisFeedback);
+        Button analyzeButton = new Button("Run Correlation Analysis");
+        analyzeButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        analyzeButton.addClassName("correlation-run");
+        analyzeButton.addClickListener(e -> runCorrelation());
+
+        Paragraph footerHelp = new Paragraph("All parameters stay visible for quick edits and repeated analyses.");
+        Div footer = new Div(footerHelp, analyzeButton);
+        footer.addClassName("correlation-form-footer");
+        form.add(keywordsSection, datesSection, footer, analysisFeedback);
         return form;
     }
 
-    private VerticalLayout createKeywordSection(String title, String helpText, boolean isInclusion) {
-        VerticalLayout section = new VerticalLayout();
-        section.setPadding(false);
-        section.setSpacing(true);
-        section.getStyle()
-                .set("padding", "0.75rem")
-                .set("border-radius", "8px")
-                .set("background", "var(--accent-surface)")
-                .set("border", "1px solid var(--accent-surface-border)");
+    private Div createKeywordSection(String title, boolean isInclusion) {
+        Div section = new Div();
+        section.addClassName("correlation-keyword-section");
 
-        H4 sectionTitle = new H4(title);
-        sectionTitle.getStyle().set("margin", "0");
-
-        Paragraph help = new Paragraph(helpText);
-        help.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        help.getStyle().set("margin", "0.25rem 0 0.5rem 0");
-
-        TextField keywordInput = isInclusion ? (inclusionKeywordInput = new TextField()) : (exclusionKeywordInput = new TextField());
+        TextField keywordInput = isInclusion ? (inclusionKeywordInput = new TextField(title)) : (exclusionKeywordInput = new TextField(title));
         keywordInput.setAriaLabel(isInclusion ? "Inclusion keyword" : "Exclusion keyword");
         keywordInput.setPlaceholder("Type keyword and press Enter...");
         keywordInput.setWidthFull();
@@ -192,7 +165,6 @@ public class CorrelationView extends VerticalLayout {
 
         Button addBtn = new Button("Add");
         addBtn.setAriaLabel(isInclusion ? "Add inclusion keyword" : "Add exclusion keyword");
-        addBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         addBtn.getStyle()
                 .set("flex", "0 0 auto")
                 .set("white-space", "nowrap");
@@ -216,19 +188,19 @@ public class CorrelationView extends VerticalLayout {
         inputRow.setPadding(false);
         inputRow.setSpacing(true);
         inputRow.setWidthFull();
-        inputRow.setAlignItems(Alignment.END);
+        inputRow.setAlignItems(Alignment.BASELINE);
         inputRow.getStyle()
                 .set("display", "flex")
                 .set("flex-wrap", "nowrap")
                 .set("gap", "0.5rem")
-                .set("align-items", "flex-end");
+                .set("align-items", "baseline");
 
         FlexLayout keywordsContainer = isInclusion ? (inclusionKeywordsContainer = new FlexLayout()) : (exclusionKeywordsContainer = new FlexLayout());
         keywordsContainer.setWidthFull();
-        keywordsContainer.getStyle().set("flex-wrap", "wrap").set("gap", "0.5rem").set("margin-top", "0.5rem");
+        keywordsContainer.addClassName("correlation-keyword-tokens");
         keywordsContainer.setVisible(false);
 
-        section.add(sectionTitle, help, inputRow, keywordsContainer);
+        section.add(inputRow, keywordsContainer);
         return section;
     }
 
@@ -271,7 +243,7 @@ public class CorrelationView extends VerticalLayout {
 
     /**
      * A keyword token with a control to drop it. Everything visual lives in the theme under
-     * {@code .keyword-pill}; only the include/exclude variant is decided here.
+     * {@code .keyword-pill}; the surrounding field label conveys include/exclude meaning.
      */
     private Div createPill(String text, Runnable onRemove, boolean isInclusion) {
         Div pill = new Div();
@@ -297,14 +269,11 @@ public class CorrelationView extends VerticalLayout {
         items.forEach(item -> container.add(createPill(item, () -> remover.accept(item), isInclusion)));
     }
 
-    private VerticalLayout createResultSection() {
-        resultContainer = new VerticalLayout();
-        resultContainer.addClassNames(LumoUtility.Padding.MEDIUM, LumoUtility.BorderRadius.MEDIUM, LumoUtility.Background.CONTRAST_5);
-        resultContainer.setSpacing(true);
-        resultContainer.setPadding(false);
+    private Div createResultSection() {
+        resultContainer = new Div();
+        resultContainer.addClassNames("correlation-results", "correlation-surface");
         resultContainer.setWidthFull();
         resultContainer.setVisible(false);
-        resultContainer.setDefaultHorizontalComponentAlignment(Alignment.START);
 
         return resultContainer;
     }
@@ -357,6 +326,7 @@ public class CorrelationView extends VerticalLayout {
 
             CorrelationOutputDto result = correlationClient.createCorrelation(input);
             displayResult(result);
+            scrollIntoViewWhenSettled(resultContainer);
             showSuccess("Correlation analysis completed");
         } catch (ApiException e) {
             resultContainer.setVisible(false);
@@ -371,118 +341,98 @@ public class CorrelationView extends VerticalLayout {
 
         resultContainer.add(createResultHeader());
 
-        Div summaryCards = dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createCardsGrid("140px");
-        summaryCards.add(
-                createSummaryCard("Matched Products", String.valueOf(result.getAmountMatchedProducts())),
-                createSummaryCard("Matched Dates", String.valueOf(result.getAmountMatchedDates()))
-        );
-        resultContainer.add(summaryCards);
+        Div summary = new Div(
+                createResultCount(result.getAmountMatchedProducts(), "matched products"),
+                createResultCount(result.getAmountMatchedDates(), "matched dates"));
+        summary.addClassName("correlation-result-summary");
+        resultContainer.add(summary);
 
         if (result.getCorrelations() != null) {
             resultContainer.add(new H4("Correlation by Time Window"));
 
-            Div correlationsGrid = dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createCardsGrid("140px");
+            Div correlationsGrid = new Div();
+            correlationsGrid.addClassName("correlation-bars");
 
             Correlations corr = result.getCorrelations();
             if (corr.getSameDay() != null) {
-                correlationsGrid.add(createCorrelationCard("Same Day", corr.getSameDay()));
+                correlationsGrid.add(createCorrelationRow("Same Day", corr.getSameDay()));
             }
             if (corr.getOneDayBefore() != null) {
-                correlationsGrid.add(createCorrelationCard("1 Day Before", corr.getOneDayBefore()));
+                correlationsGrid.add(createCorrelationRow("1 Day Before", corr.getOneDayBefore()));
             }
             if (corr.getTwoDaysBefore() != null) {
-                correlationsGrid.add(createCorrelationCard("2 Days Before", corr.getTwoDaysBefore()));
+                correlationsGrid.add(createCorrelationRow("2 Days Before", corr.getTwoDaysBefore()));
             }
             if (corr.getAcross2Days() != null) {
-                correlationsGrid.add(createCorrelationCard("Across 2 Days", corr.getAcross2Days()));
+                correlationsGrid.add(createCorrelationRow("Across 2 Days", corr.getAcross2Days()));
             }
             if (corr.getAcross3Days() != null) {
-                correlationsGrid.add(createCorrelationCard("Across 3 Days", corr.getAcross3Days()));
+                correlationsGrid.add(createCorrelationRow("Across 3 Days", corr.getAcross3Days()));
             }
 
             resultContainer.add(correlationsGrid);
         }
 
+        Div details = new Div();
+        details.addClassName("correlation-result-details");
         if (result.getMatchedProducts() != null && !result.getMatchedProducts().isEmpty()) {
-            resultContainer.add(new H4("Matched Products"));
             UnorderedList productList = new UnorderedList();
             result.getMatchedProducts().stream().limit(20).forEach(p -> productList.add(new ListItem(p)));
             if (result.getMatchedProducts().size() > 20) {
                 productList.add(new ListItem("... and " + (result.getMatchedProducts().size() - 20) + " more"));
             }
-            resultContainer.add(productList);
+            details.add(new Div(new H4("Matched Products"), productList));
         }
 
         if (result.getMatchedDates() != null && !result.getMatchedDates().isEmpty()) {
-            resultContainer.add(new H4("Matched Dates"));
             UnorderedList dateList = new UnorderedList();
             result.getMatchedDates().stream().limit(20).forEach(d -> dateList.add(new ListItem(d.toString())));
             if (result.getMatchedDates().size() > 20) {
                 dateList.add(new ListItem("... and " + (result.getMatchedDates().size() - 20) + " more"));
             }
-            resultContainer.add(dateList);
+            details.add(new Div(new H4("Matched Dates"), dateList));
+        }
+        if (details.getComponentCount() > 0) {
+            resultContainer.add(details);
         }
     }
 
-    private Div createSummaryCard(String title, String value) {
-        return (Div) dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createStatCard(title, value, "");
+    private Span createResultCount(int count, String label) {
+        Span value = new Span(String.valueOf(count));
+        value.addClassName("correlation-result-count");
+        return new Span(value, new Span(" " + label));
     }
 
-    private Div createCorrelationCard(String timeWindow, CorrelationDetail detail) {
-        Div card = dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.createCard();
-        card.addClassNames(LumoUtility.Padding.MEDIUM);
-        card.getStyle().set("min-width", "100px");
-
+    private Div createCorrelationRow(String timeWindow, CorrelationDetail detail) {
         Span windowSpan = new Span(timeWindow);
-        windowSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
+        Span daysSpan = new Span(detail.getMatchedDays() + " matched days");
+        daysSpan.addClassName("correlation-matched-days");
+        Div label = new Div(windowSpan, daysSpan);
+        label.addClassName("correlation-bar-label");
+
+        Div fill = new Div();
+        fill.addClassName("correlation-bar-fill");
+        // Clamp only the visual width. The displayed figure remains the API's percentage.
+        double width = Double.isFinite(detail.getPercentage())
+                ? Math.max(0, Math.min(100, detail.getPercentage())) : 0;
+        fill.getStyle().set("width", width + "%");
+        Div track = new Div(fill);
+        track.addClassName("correlation-bar-track");
+        track.getElement().setAttribute("aria-hidden", "true");
 
         Span percentageSpan = new Span(String.format(Locale.ROOT, "%.1f%%", detail.getPercentage()));
-        percentageSpan.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
-
-        if (detail.getPercentage() >= 70) {
-            percentageSpan.getStyle().set("color", "var(--green-accent-text)");
-        } else if (detail.getPercentage() >= 40) {
-            percentageSpan.addClassNames(LumoUtility.TextColor.WARNING);
-        }
-
-        Span daysSpan = new Span(detail.getMatchedDays() + " matched days");
-        daysSpan.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
-
-        VerticalLayout layout = new VerticalLayout(windowSpan, percentageSpan, daysSpan);
-        layout.setPadding(false);
-        layout.setSpacing(false);
-        layout.setAlignItems(FlexComponent.Alignment.CENTER);
-        card.add(layout);
-        return card;
+        percentageSpan.addClassName("correlation-percentage");
+        Div row = new Div(label, track, percentageSpan);
+        row.addClassName("correlation-bar-row");
+        return row;
     }
 
     private Div createResultHeader() {
         Div header = new Div();
-        header.getStyle()
-                .set("display", "flex")
-                .set("flex-direction", "row")
-                .set("flex-wrap", "nowrap")
-                .set("align-items", "center")
-                .set("justify-content", "flex-start")
-                .set("gap", "0.5rem")
-                .set("width", "100%");
+        header.addClassName("correlation-result-header");
 
         H3 title = new H3("Correlation Results");
-        title.getStyle()
-                .set("margin", "0")
-                .set("white-space", "nowrap");
-
-        Button copyButton = createCopyButton();
-
-        Div buttonWrapper = new Div();
-        buttonWrapper.getStyle()
-                .set("display", "inline-flex")
-                .set("align-items", "center")
-                .set("justify-content", "flex-start")
-                .set("width", "auto");
-        buttonWrapper.add(copyButton);
-
-        header.add(title, buttonWrapper);
+        header.add(title, createCopyButton());
 
         return header;
     }
@@ -493,6 +443,7 @@ public class CorrelationView extends VerticalLayout {
         // which supplements a name but cannot be one.
         Button copyButton = new Button(new Icon(VaadinIcon.COPY));
         copyButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        copyButton.addClassName("correlation-copy");
         copyButton.setAriaLabel("Copy results as JSON");
         copyButton.setTooltipText("Copy results as JSON");
         copyButton.addClickListener(e -> copyResultsToClipboard());

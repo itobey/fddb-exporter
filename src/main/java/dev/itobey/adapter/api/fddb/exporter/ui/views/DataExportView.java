@@ -7,8 +7,6 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.*;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.PageTitle;
@@ -63,20 +61,22 @@ public class DataExportView extends VerticalLayout {
         setPadding(true);
         applyResponsivePadding(this);
 
-        add(new H2("Sync from FDDB"));
-        add(new Paragraph("Import diary entries from your FDDB account into this app's configured storage. Existing days are updated."));
+        Div introduction = new Div(new H2("Sync from FDDB"),
+                new Paragraph("Import diary entries from your FDDB account into this app's configured storage. Existing days are updated."));
+        introduction.addClassName("export-introduction");
 
         Div sectionsLayout = new Div();
         sectionsLayout.setWidthFull();
         sectionsLayout.addClassName("export-sections-layout");
 
         sectionsLayout.add(createYesterdaySection(), createDaysBackSection(), createDateRangeSection());
-        add(sectionsLayout);
+        Div content = new Div(introduction, sectionsLayout);
+        content.addClassName("export-content");
+        add(content);
     }
 
     private Div createDateRangeSection() {
-        Div section = createExportCard(VaadinIcon.CALENDAR,
-                "Sync by Date Range",
+        Div section = createExportCard("Sync by Date Range",
                 "Import diary entries for a specific date range.");
 
         FormLayout form = new FormLayout();
@@ -94,7 +94,7 @@ public class DataExportView extends VerticalLayout {
         form.add(fromDate, toDate);
         form.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("500px", 2)
+                new FormLayout.ResponsiveStep("360px", 2)
         );
 
         dateRangeResult = createResultContainer();
@@ -106,8 +106,7 @@ public class DataExportView extends VerticalLayout {
     }
 
     private Div createDaysBackSection() {
-        Div section = createExportCard(VaadinIcon.CALENDAR_CLOCK,
-                "Sync Recent Days",
+        Div section = createExportCard("Sync Recent Days",
                 "Import diary entries for a number of recent days.");
 
         FormLayout form = new FormLayout();
@@ -122,10 +121,7 @@ public class DataExportView extends VerticalLayout {
         includeTodayCheckbox.setValue(false);
 
         form.add(daysBackField, includeTodayCheckbox);
-        form.setResponsiveSteps(
-                new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("500px", 2)
-        );
+        form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1));
 
         daysBackResult = createResultContainer();
 
@@ -136,9 +132,9 @@ public class DataExportView extends VerticalLayout {
     }
 
     private Div createYesterdaySection() {
-        Div section = createExportCard(VaadinIcon.CLOCK,
-                "Sync Yesterday",
+        Div section = createExportCard("Sync Yesterday",
                 "Import yesterday's diary entries from FDDB.");
+        section.addClassName("export-card--quick");
 
         yesterdayResult = createResultContainer();
 
@@ -148,12 +144,9 @@ public class DataExportView extends VerticalLayout {
         return section;
     }
 
-    private Div createExportCard(VaadinIcon icon, String title, String description) {
+    private Div createExportCard(String title, String description) {
         Div card = new Div();
         card.addClassName("export-card");
-
-        Icon cardIcon = new Icon(icon);
-        cardIcon.addClassName("export-card__icon");
 
         H3 heading = new H3(title);
         heading.addClassName("export-card__title");
@@ -164,10 +157,7 @@ public class DataExportView extends VerticalLayout {
         Div headingText = new Div(heading, desc);
         headingText.addClassName("export-card__heading-text");
 
-        Div head = new Div(cardIcon, headingText);
-        head.addClassName("export-card__head");
-
-        card.add(head);
+        card.add(headingText);
         return card;
     }
 
