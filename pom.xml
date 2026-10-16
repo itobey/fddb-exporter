@@ -289,6 +289,10 @@
                         <goals>
                             <goal>build-info</goal>
                         </goals>
+                        <configuration>
+                            <!-- Report when Maven ran, even when outputTimestamp is fixed for reproducible archives. -->
+                            <time>${maven.build.timestamp}</time>
+                        </configuration>
                     </execution>
                 </executions>
                 <configuration>
