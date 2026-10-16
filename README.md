@@ -85,25 +85,6 @@ product names, tool calls or MCP queries are ever sent. Feel free to audit the c
 yourself [here](./src/main/java/dev/itobey/adapter/api/fddb/exporter/service/telemetry/TelemetryService.java).
 If you still have any concerns, feel free to contact me or open an issue.
 
-# Roadmap
-
-I plan on implementing the following features in the future:
-
-- [x] Helm Chart for deployment
-- [x] product search API: to get only relevant data instead of the entire day
-- [x] product search API: filter search by weekday to only return matches on specific days
-- [x] correlation API: find products correlating with given dates
-- [x] new stats endpoint: display some stats of your data
-- [x] ARM container release
-- [x] ~~Alerting feature to notify when the Scheduler run failed~~
-- [x] accompanying Flutter app as a frontend
-- [x] InfluxDB as additional persistence layer
-- [x] embedded Vaadin Frontend UI
-- [x] automatic version check with notifications for new releases
-- [x] MCP server to query your data with an AI assistant
-
-If you have another feature in mind please open up an issue or contact me.
-
 # Resource Usage
 
 The service typically uses around 950 MB of RAM with minimal CPU usage when idle.
