@@ -47,12 +47,12 @@
   },
   "vaadin": {
     "dependencies": {
-      "@vaadin/aura": "25.3.2",
+      "@vaadin/aura": "25.3.3",
       "@vaadin/common-frontend": "0.0.24",
       "@vaadin/react-components": "25.2.4",
       "@vaadin/vaadin-development-mode-detector": "2.0.7",
-      "@vaadin/vaadin-lumo-styles": "25.3.2",
-      "@vaadin/vaadin-themable-mixin": "25.3.2",
+      "@vaadin/vaadin-lumo-styles": "25.3.3",
+      "@vaadin/vaadin-themable-mixin": "25.3.3",
       "@vaadin/vaadin-usage-statistics": "2.1.3",
       "date-fns": "4.4.0",
       "lit": "3.3.3",
@@ -66,11 +66,11 @@
       "@babel/preset-react": "7.29.7",
       "@babel/types": "7.29.8",
       "@preact/signals-react": "3.12.0",
-      "@preact/signals-react-transform": "0.8.2",
+      "@preact/signals-react-transform": "0.8.3",
       "@rolldown/plugin-babel": "0.2.4",
       "@rollup/plugin-replace": "6.0.3",
       "@rollup/pluginutils": "5.4.0",
-      "@types/node": "26.6.3",
+      "@types/node": "26.6.4",
       "@types/react": "19.3.0",
       "@types/react-dom": "19.3.0",
       "@typescript/native": "npm:typescript@7.0.2",
@@ -81,7 +81,7 @@
       "strip-css-comments": "5.0.0",
       "transform-ast": "2.4.4",
       "typescript": "npm:@typescript/typescript6@6.0.2",
-      "vite": "8.3.1",
+      "vite": "8.3.2",
       "vite-plugin-checker": "0.14.5",
       "workbox-build": "7.4.1",
       "workbox-core": "7.4.1",
@@ -89,7 +89,7 @@
       "workbox-routing": "7.4.1",
       "workbox-strategies": "7.4.1"
     },
-    "hash": "fec02ac435bdba6970137a1490f7151df477394e3eda8e37dabc695a5f389e29"
+    "hash": "de25bf52bf506b65bf3b5d0eeb13e0c515e63035b070780c44b4bdfff80c0e3f"
   },
   "overrides": {
     "@vaadin/a11y-base": "25.3.3",
