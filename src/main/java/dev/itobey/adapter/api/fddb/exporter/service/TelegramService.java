@@ -27,7 +27,8 @@ public class TelegramService {
      */
     public void sendMessage(String message) {
         FddbExporterProperties.Notification.Telegram telegram = properties.getNotification().getTelegram();
-        SendMessage request = new SendMessage(telegram.getChatId(), message).parseMode(ParseMode.Markdown);
+        SendMessage request = new SendMessage(telegram.getChatId(), "*fddb-exporter*\n\n" + message)
+                .parseMode(ParseMode.Markdown);
         SendResponse response = telegramBot.execute(request);
 
         if (response.isOk()) {
