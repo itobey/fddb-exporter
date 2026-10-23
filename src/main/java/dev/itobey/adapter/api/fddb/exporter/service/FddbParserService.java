@@ -3,6 +3,7 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.Product;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
+import dev.itobey.adapter.api.fddb.exporter.exception.EmptyDiaryException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -19,8 +20,8 @@ import java.util.regex.Pattern;
 @Slf4j
 public class FddbParserService {
 
-    private static final String XPATH_AUTH_STATUS = "//div[@class='quicklinks']/a[contains(@class, 'v2hdlnk') and (text()='Anmelden' or text()='Login')]";
-    private static final String XPATH_PRODUCT_TABLE = "//table[@class='myday-table-std']/tbody/tr";
+    private static final String AUTH_LINKS = ".quicklinks a.v2hdlnk, .topbar-links a";
+    private static final String PRODUCT_ROWS = "table.myday-table-std > tbody > tr";
 
     /**
      * Sugar and fibre are not part of the product table, they only appear in the nutrient summary
@@ -31,6 +32,9 @@ public class FddbParserService {
      */
     private static final Pattern SUGAR_LABEL = Pattern.compile("thereof\\s+sugar", Pattern.CASE_INSENSITIVE);
     private static final Pattern FIBRE_LABEL = Pattern.compile("dietary\\s+fib(re|er)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern EMPTY_ENERGY_SUMMARY = Pattern.compile(
+            "^0(?:\\.0+)?\\s+kJ\\s+\\(0(?:\\.0+)?\\s+kcal\\)\\s+from\\s+.+$",
+            Pattern.CASE_INSENSITIVE);
 
     private static final int COLUMN_CALORIES = 2;
     private static final int COLUMN_FAT = 3;
@@ -43,7 +47,8 @@ public class FddbParserService {
      * @param input the raw HTML of an fddb.info diary response
      * @return the parsed day, without a date
      * @throws AuthenticationException if the page is the logged-out one
-     * @throws ParseException          if diary data is missing or malformed
+     * @throws EmptyDiaryException     if the page shows the recognized empty diary summary
+     * @throws ParseException          if diary structure is missing or malformed
      */
     public FddbData parseDiary(String input) {
         Document doc = Jsoup.parse(input, "UTF-8");
@@ -79,7 +84,7 @@ public class FddbParserService {
      * @return true if the page shows the login link instead of the diary
      */
     public boolean isLoggedOut(String html) {
-        return !Jsoup.parse(html, "UTF-8").selectXpath(XPATH_AUTH_STATUS).isEmpty();
+        return hasLoginLink(Jsoup.parse(html, "UTF-8"));
     }
 
     /**
@@ -87,29 +92,38 @@ public class FddbParserService {
      * @throws AuthenticationException if the page shows the login link instead of the diary
      */
     public void checkAuthentication(Document doc) {
-        Elements authStatus = doc.selectXpath(XPATH_AUTH_STATUS);
-        if (!authStatus.isEmpty()) {
+        if (hasLoginLink(doc)) {
             String errorMsg = "Login to FDDB not successful, please check credentials";
             log.error(errorMsg);
             throw new AuthenticationException(errorMsg);
         }
     }
 
+    private boolean hasLoginLink(Document doc) {
+        return doc.select(AUTH_LINKS).stream()
+                .anyMatch(link -> link.text().equalsIgnoreCase("Login")
+                        || link.text().equalsIgnoreCase("Anmelden"));
+    }
+
     private List<Product> parseProducts(Document doc) {
         List<Product> products = new ArrayList<>();
-        Elements rows = doc.selectXpath(XPATH_PRODUCT_TABLE);
+        Elements rows = doc.select(PRODUCT_ROWS);
 
         for (int i = 0; i < rows.size() - 1; i++) {
             Element row = rows.get(i);
             Elements columns = row.select("td");
 
-            if (columns.size() <= 1 || isCategoryRow(columns)) {
+            if (columns.size() <= 1 || row.hasClass("myday-mealtotal") || isCategoryRow(columns)) {
                 continue;
             }
 
             products.add(createProduct(columns));
         }
 
+        if (products.isEmpty()) {
+            throw new ParseException("cannot find product entries in the fddb.info diary table, "
+                    + "its layout has likely changed");
+        }
         return products;
     }
 
@@ -150,7 +164,7 @@ public class FddbParserService {
     }
 
     private void setDayTotals(FddbData fddbData, Document doc) {
-        Elements lastRow = doc.selectXpath(XPATH_PRODUCT_TABLE + "[last()]/td");
+        Elements lastRow = doc.select(PRODUCT_ROWS).last().select("td");
         fddbData.setTotalCalories(extractNumber(lastRow, COLUMN_CALORIES, "total calories"));
         fddbData.setTotalFat(extractNumber(lastRow, COLUMN_FAT, "total fat"));
         fddbData.setTotalCarbs(extractNumber(lastRow, COLUMN_CARBS, "total carbs"));
@@ -181,12 +195,28 @@ public class FddbParserService {
     }
 
     private double extractNumber(Elements columns, int index, String name) {
-        if (columns.size() <= index) {
-            throw new ParseException("cannot read " + name + ": expected at least " + (index + 1)
+        if (columns.isEmpty()) {
+            throw new ParseException("cannot read " + name + ": the row has no columns");
+        }
+        Element table = columns.first().closest("table");
+        int expectedColumns = table.select("tr").first().select("th").stream()
+                .mapToInt(header -> header.hasAttr("colspan") ? Integer.parseInt(header.attr("colspan")) : 1)
+                .sum();
+        if (expectedColumns != 0 && expectedColumns != columns.size()) {
+            throw new ParseException("cannot read " + name + ": expected " + expectedColumns
                     + " columns but the row has " + columns.size()
                     + ", the fddb.info page layout has likely changed");
         }
-        return extractNumber(cellValue(columns.get(index)), name);
+        // The redesign combines kJ and kcal into one energy cell; the old layout has two.
+        if (columns.size() == 5) {
+            index--;
+        } else if (columns.size() != 6) {
+            throw new ParseException("cannot read " + name + ": expected 5 or 6 columns but the row has "
+                    + columns.size() + ", the fddb.info page layout has likely changed");
+        }
+        Element column = columns.get(index);
+        Element kcal = column.selectFirst(".md-kcal");
+        return extractNumber(kcal != null ? kcal.text() : cellValue(column), name);
     }
 
     /**
@@ -210,12 +240,20 @@ public class FddbParserService {
 
     /**
      * @param doc the parsed response page
-     * @throws ParseException if the page holds no diary rows, which usually means nothing was logged
+     * @throws EmptyDiaryException if the page matches FDDB's empty diary layout
+     * @throws ParseException if the diary table is missing or malformed without a recognized empty state
      */
     private void checkDataAvailable(Document doc) {
-        Elements lastRow = doc.selectXpath(XPATH_PRODUCT_TABLE + "[last()]/td");
-        if (lastRow.isEmpty()) {
-            throw new ParseException("cannot parse input. it's likely there is no data available for the given day");
+        // Empty pages retain the zero-energy overview, but omit both diary and nutrient tables.
+        // Missing rows alone are not enough evidence: a layout change must remain a format error.
+        Element summary = doc.selectFirst(".fddb-myday .md-summary .fddb-myday-subline");
+        if (doc.select("table.myday-table-std, table.fddb-myday-nutrients").isEmpty()
+                && summary != null && EMPTY_ENERGY_SUMMARY.matcher(summary.text()).matches()) {
+            throw new EmptyDiaryException();
+        }
+        Element lastRow = doc.select(PRODUCT_ROWS).last();
+        if (lastRow == null || lastRow.select("td").isEmpty()) {
+            throw new ParseException("cannot find diary rows in the fddb.info page, its layout has likely changed");
         }
     }
 }

@@ -80,7 +80,7 @@ public class Scheduler implements SchedulingConfigurer {
         }
         String errorMessage = "data for " + String.join(", ", result.getUnsuccessfulDays())
                 + " cannot be parsed, skipping this day";
-        log.warn(errorMessage);
+        // FddbDataService already logs failures with their cause; empty diaries need no warning.
         if (properties.getNotification().isEnabled()) {
             telegramService.sendMessage(errorMessage);
         }
