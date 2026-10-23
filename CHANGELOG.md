@@ -1,11 +1,11 @@
 # Changelog
 
-## 2.6.1 - unreleased
+## 2.6.1
 
 ### Fixed
 
 - **FDDB exports work with the redesigned diary page**, correctly reading the combined kJ/kcal column and
-  excluding meal subtotals from product entries.
+  excluding meal subtotals from product entries. Fixes [#306](https://github.com/itobey/fddb-exporter/issues/306).
 - **Parsing failures now log the affected date and exception details.** Recognized empty diaries no longer
   produce warnings, while missing or malformed page structures remain visible for troubleshooting.
 
