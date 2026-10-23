@@ -5,6 +5,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
+import dev.itobey.adapter.api.fddb.exporter.exception.EmptyDiaryException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ExportInProgressException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
@@ -218,7 +219,11 @@ public class FddbDataService {
                         try {
                             exportForDate(date);
                             successfulDays.add(date.toString());
+                        } catch (EmptyDiaryException emptyDiaryException) {
+                            unsuccessfulDays.add(date.toString());
                         } catch (ParseException parseException) {
+                            log.warn("could not parse FDDB data for {} - recording it as unsuccessful",
+                                    date, parseException);
                             unsuccessfulDays.add(date.toString());
                         } catch (AuthenticationException authenticationException) {
                             // not logged in - every following day would fail the same way, so halt

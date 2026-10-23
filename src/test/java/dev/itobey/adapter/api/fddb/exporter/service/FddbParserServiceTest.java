@@ -3,215 +3,202 @@ package dev.itobey.adapter.api.fddb.exporter.service;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.Product;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
+import dev.itobey.adapter.api.fddb.exporter.exception.EmptyDiaryException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import lombok.SneakyThrows;
-import org.assertj.core.api.Assertions;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-/**
- * Based on https://fddb.info/db/i18n/myday20/?%20\%20lang=de&p=1724105323&q=1724191723
- */
 class FddbParserServiceTest {
 
-    private FddbParserService fddbParserService;
+    private FddbParserService parser;
+    private Document diary;
 
     @BeforeEach
+    @SneakyThrows
     void setUp() {
-        fddbParserService = new FddbParserService();
+        parser = new FddbParserService();
+        diary = Jsoup.parse(new ClassPathResource("valid-response.html")
+                .getContentAsString(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void parseDiary_whenNewDesignHasEnglishValues_shouldParseProductsAndTotals() {
+        FddbData data = parser.parseDiary(diary.outerHtml());
+
+        assertThat(data.getTotalCalories()).isEqualTo(1391);
+        assertThat(data.getTotalFat()).isEqualTo(97.5);
+        assertThat(data.getTotalCarbs()).isEqualTo(185.25);
+        assertThat(data.getTotalProtein()).isEqualTo(282.75);
+        assertThat(data.getTotalSugar()).isEqualTo(12.5);
+        assertThat(data.getTotalFibre()).isEqualTo(23.75);
+        // The four meal subtotal rows must not become products.
+        assertThat(data.getProducts()).hasSize(13);
+        for (int i = 1; i <= 13; i++) {
+            Product product = data.getProducts().get(i - 1);
+            assertThat(product.getName()).isEqualTo("Test product " + i);
+            assertThat(product.getAmount()).isEqualTo(i * 10 + " g");
+            assertThat(product.getLink()).isEqualTo(
+                    "https://fddb.info/db/en/food/test_product_" + i + "/index.html");
+            assertThat(product.getCalories()).isEqualTo(100 + i);
+            assertThat(product.getFat()).isEqualTo(i + 0.5);
+            assertThat(product.getCarbs()).isEqualTo(2 * i + 0.25);
+            assertThat(product.getProtein()).isEqualTo(3 * i + 0.75);
+        }
+        assertThat(parser.isLoggedOut(diary.outerHtml())).isFalse();
+    }
+
+    @Test
+    void parseDiary_whenCarbsIncludeBreadUnits_shouldReadGramsOnly() {
+        diary.select(".myday-table-std tr:has(a)").first().child(3)
+                .append("<span>(1.5 BE)</span>");
+        assertThat(parser.parseDiary(diary.outerHtml()).getProducts().getFirst().getCarbs()).isEqualTo(2.25);
+    }
+
+    @Test
+    void parseDiary_whenTableHasAdditionalClasses_shouldStillFindIt() {
+        diary.select(".myday-table-std").addClass("responsive");
+        assertThat(parser.parseDiary(diary.outerHtml()).getProducts()).hasSize(13);
+    }
+
+    @Test
+    void parseDiary_whenEnergyHasSeparateLegacyColumns_shouldStillParse() {
+        diary.select(".myday-table-std th").get(1).attr("colspan", "2");
+        diary.select(".myday-table-std tr:has(td)").forEach(row -> {
+            var energy = row.child(1);
+            String calories = energy.selectFirst(".md-kcal").text();
+            energy.before("<td>0 kJ</td>");
+            energy.text(calories);
+        });
+        FddbData data = parser.parseDiary(diary.outerHtml());
+        assertThat(data.getTotalCalories()).isEqualTo(1391);
+        assertThat(data.getTotalProtein()).isEqualTo(282.75);
+        assertThat(data.getProducts()).hasSize(13);
+        assertThat(data.getProducts().getFirst().getCalories()).isEqualTo(101);
+
+        // A missing legacy cell must fail rather than be mistaken for the new five-column layout.
+        diary.select(".myday-table-std tr:has(a)").first().child(5).remove();
+        assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> parser.parseDiary(diary.outerHtml()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"thereof Sugar", "Dietary fiber"})
+    void parseDiary_whenSummaryNutrientIsMissing_shouldThrowParseException(String label) {
+        diary.select(".fddb-myday-nutrients tr").stream()
+                .filter(row -> row.selectFirst("td").text().equals(label)).forEach(row -> row.remove());
+        assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> parser.parseDiary(diary.outerHtml()))
+                .withMessageContaining("nutrient summary");
+    }
+
+    @Test
+    void parseDiary_whenProductIsNamedLikeSummary_shouldNotReadItAsSummary() {
+        diary.select(".myday-table-std a").first().text("10 g thereof Sugar");
+        assertThat(parser.parseDiary(diary.outerHtml()).getTotalSugar()).isEqualTo(12.5);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Anmelden", "Login"})
+    void parseDiary_whenNewHeaderShowsLogin_shouldRejectAuthentication(String label) {
+        diary.body().prepend("<div class='topbar-links'><a href='/login/'>" + label + "</a></div>");
+        assertThat(parser.isLoggedOut(diary.outerHtml())).isTrue();
+        assertThatExceptionOfType(AuthenticationException.class)
+                .isThrownBy(() -> parser.parseDiary(diary.outerHtml()));
+    }
+
+    @Test
+    void parseDiary_whenNoDiaryTableIsAvailable_shouldThrowParseException() {
+        diary.select(".myday-table-std").remove();
+        assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> parser.parseDiary(diary.outerHtml()))
+                .isNotInstanceOf(EmptyDiaryException.class);
     }
 
     @Test
     @SneakyThrows
-    void parseDiary_whenLoggedInAndDataAvailable_shouldParseAccordingly() {
-        // Given
-        Resource resource = new ClassPathResource("valid-response.html");
-        Path path = resource.getFile().toPath();
-        String content = Files.readString(path, StandardCharsets.UTF_8);
-
-        // When
-        FddbData fddbData = fddbParserService.parseDiary(content);
-
-        // Then
-        assertNotNull(fddbData);
-        assertEquals(2565, fddbData.getTotalCalories());
-        assertEquals(110.4, fddbData.getTotalFat());
-        assertEquals(246.2, fddbData.getTotalCarbs());
-        assertEquals(126.4, fddbData.getTotalProtein());
-        assertEquals(51, fddbData.getTotalSugar());
-        assertEquals(18.3, fddbData.getTotalFibre());
-
-        List<Product> products = fddbData.getProducts();
-        assertEquals(19, products.size());
-
-        // Check a few specific products
-        Product pizza = products.getFirst();
-        assertEquals("Pizza", pizza.getName());
-        assertEquals("150 g", pizza.getAmount());
-        assertEquals(300, pizza.getCalories());
-        assertEquals(10.5, pizza.getFat());
-        assertEquals(30, pizza.getCarbs());
-        assertEquals(13.5, pizza.getProtein());
-        assertEquals("https://fddb.info/db/en/food/selbstgemacht_pizza/index.html", pizza.getLink());
-
-        Product amaranth = products.get(1);
-        assertEquals("Bio Amaranth gepufft", amaranth.getName());
-        assertEquals("10 g", amaranth.getAmount());
-        assertEquals(37, amaranth.getCalories());
-        assertEquals(0.5, amaranth.getFat());
-        assertEquals(6.5, amaranth.getCarbs());
-        assertEquals(1.2, amaranth.getProtein());
-        assertEquals("https://fddb.info/db/en/food/antersdorfer_muehle_bio_amaranth_gepufft/index.html", amaranth.getLink());
-
-        Product senf = products.get(18);
-        assertEquals("Senf", senf.getName());
-        assertEquals("30 g", senf.getAmount());
-        assertEquals(26, senf.getCalories());
-        assertEquals(1.2, senf.getFat());
-        assertEquals(1.8, senf.getCarbs());
-        assertEquals(1.8, senf.getProtein());
-        assertEquals("https://fddb.info/db/en/food/durchschnittswert_senf/index.html", senf.getLink());
-    }
-
-    /**
-     * A page as fddb.info delivers it since August 2026, captured on 2026-08-12. The note about
-     * recipes saved in their app - and the block above the diary holding it - is gone, which
-     * shifted the position of everything below it and broke the export for every single day.
-     */
-    @Test
-    @SneakyThrows
-    void parseDiary_whenPageHasNoNoticeBlock_shouldParseAccordingly() {
-        // Given
-        Resource resource = new ClassPathResource("valid-response-without-notice-block.html");
-        Path path = resource.getFile().toPath();
-        String content = Files.readString(path, StandardCharsets.UTF_8);
-
-        // When
-        FddbData fddbData = fddbParserService.parseDiary(content);
-
-        // Then
-        assertEquals(2691, fddbData.getTotalCalories());
-        assertEquals(112.5, fddbData.getTotalFat());
-        assertEquals(288.8, fddbData.getTotalCarbs());
-        assertEquals(116, fddbData.getTotalProtein());
-        assertEquals(37.2, fddbData.getTotalSugar());
-        assertEquals(30.8, fddbData.getTotalFibre());
-
-        List<Product> products = fddbData.getProducts();
-        assertEquals(13, products.size());
-
-        Product tourinos = products.getFirst();
-        assertEquals("Tourinos, Meersalz & Pfeffer", tourinos.getName());
-        assertEquals("125 g", tourinos.getAmount());
-        assertEquals(605, tourinos.getCalories());
-        assertEquals(27.5, tourinos.getFat());
-        assertEquals(75, tourinos.getCarbs());
-        assertEquals(12.3, tourinos.getProtein());
-        assertEquals("https://fddb.info/db/en/food/griesson_debeukelaer_tourinos_meersalz_und_pfeffer/index.html",
-                tourinos.getLink());
-
-        Product milk = products.get(12);
-        assertEquals("Vollmilch, 3,5% Fett", milk.getName());
-        assertEquals("20 ml", milk.getAmount());
-        assertEquals(13, milk.getCalories());
-        assertEquals(0.7, milk.getFat());
-        assertEquals(1, milk.getCarbs());
-        assertEquals(0.7, milk.getProtein());
+    void parseDiary_whenCapturedEmptyDiary_shouldReportEmptyDiary() {
+        String html = new ClassPathResource("no-data-available.html").getContentAsString(StandardCharsets.UTF_8);
+        assertThatExceptionOfType(EmptyDiaryException.class).isThrownBy(() -> parser.parseDiary(html));
     }
 
     @Test
     @SneakyThrows
-    void parseDiary_whenNutrientSummaryIsMissing_shouldThrowParseException() {
-        // Given
-        Resource resource = new ClassPathResource("valid-response.html");
-        Path path = resource.getFile().toPath();
-        String content = Files.readString(path, StandardCharsets.UTF_8)
-                .replace("thereof Sugar", "something else entirely");
-
-        // When; Then
-        Assertions.assertThatExceptionOfType(ParseException.class)
-                .isThrownBy(() -> fddbParserService.parseDiary(content))
-                .withMessageContaining("sugar");
+    void parseDiary_whenSummaryShowsConsumptionButTableIsMissing_shouldReportFormatError() {
+        Document empty = Jsoup.parse(new ClassPathResource("no-data-available.html")
+                .getContentAsString(StandardCharsets.UTF_8));
+        empty.select(".fddb-myday-subline").html("<b>418 kJ</b> (100 kcal) from <b>8400 kJ</b>");
+        assertThatExceptionOfType(ParseException.class).isThrownBy(() -> parser.parseDiary(empty.outerHtml()))
+                .isNotInstanceOf(EmptyDiaryException.class);
     }
 
     @Test
     @SneakyThrows
-    void parseDiary_whenNotLoggedIn_shouldThrowException() {
-        // Given
-        Resource resource = new ClassPathResource("__files/unauthenticated.html");
-        Path path = resource.getFile().toPath();
-        String content = Files.readString(path, StandardCharsets.UTF_8);
-
-        // When; Then
-        Assertions.assertThatExceptionOfType(AuthenticationException.class)
-                .isThrownBy(() -> fddbParserService.parseDiary(content));
+    void parseDiary_whenEmptySummaryIsMissing_shouldReportFormatError() {
+        Document empty = Jsoup.parse(new ClassPathResource("no-data-available.html")
+                .getContentAsString(StandardCharsets.UTF_8));
+        empty.select(".md-summary").remove();
+        assertThatExceptionOfType(ParseException.class).isThrownBy(() -> parser.parseDiary(empty.outerHtml()))
+                .isNotInstanceOf(EmptyDiaryException.class);
     }
 
     @Test
+    void parseDiary_whenZeroSummaryStillHasProducts_shouldParseTheTable() {
+        diary.select(".fddb-myday").prepend("<div class='md-summary'>"
+                + "<div class='fddb-myday-subline'><b>0 kJ</b> (0 kcal) from <b>8400 kJ</b></div></div>");
+        assertThat(parser.parseDiary(diary.outerHtml()).getProducts()).hasSize(13);
+    }
+
+    @Test
+    void parseDiary_whenOnlyHeadersAndMealTotalsRemain_shouldThrowParseException() {
+        diary.select(".myday-table-std tr:has(a), .myday-table-std tr:has(.myday-table-std-td-footer)").remove();
+        assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> parser.parseDiary(diary.outerHtml()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "-"})
+    void parseDiary_whenNutrientCellIsNotNumeric_shouldThrowParseException(String value) {
+        diary.select(".myday-table-std tr:has(a)").first().child(2).text(value);
+        assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> parser.parseDiary(diary.outerHtml()))
+                .withMessageContaining("fat");
+    }
+
+    @Test
+    void parseDiary_whenProductRowIsTruncated_shouldThrowParseException() {
+        diary.select(".myday-table-std tr:has(a)").first().child(4).remove();
+        assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> parser.parseDiary(diary.outerHtml()));
+    }
+
+    @Test
+    void parseDiary_whenTotalsRowIsTruncated_shouldThrowParseException() {
+        diary.select(".myday-table-std tr").last().child(4).remove();
+        assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> parser.parseDiary(diary.outerHtml()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"valid-response.html", "no-data-available.html"})
     @SneakyThrows
-    void parseDiary_whenLoggedInAndNoDataAvailable_shouldThrowException() {
-        // Given
-        Resource resource = new ClassPathResource("no-data-available.html");
-        Path path = resource.getFile().toPath();
-        String content = Files.readString(path, StandardCharsets.UTF_8);
-
-        // When; Then
-        Assertions.assertThatExceptionOfType(ParseException.class)
-                .isThrownBy(() -> fddbParserService.parseDiary(content));
-    }
-
-    @Test
-    void parseDiary_whenANutrientCellIsEmpty_shouldThrowParseException() {
-        // Given: a dash, a missing cell or an ad row leaves nothing to parse. This has to be a
-        // ParseException - a NumberFormatException would escape the per-day guard in exportForTimerange
-        // and abort the whole export run.
-        String content = diaryWith("""
-                <tr><td><a href="/x">150 g Pizza</a></td><td></td><td>300 kcal</td><td>10.5 g</td><td>30 g</td><td>13.5 g</td></tr>
-                <tr><td>Total</td><td></td><td>-</td><td>10.5 g</td><td>30 g</td><td>13.5 g</td></tr>
-                """);
-
-        // When; Then
-        Assertions.assertThatExceptionOfType(ParseException.class)
-                .isThrownBy(() -> fddbParserService.parseDiary(content));
-    }
-
-    @Test
-    void parseDiary_whenARowIsTruncated_shouldThrowParseException() {
-        // Given: a row shorter than the layout this parser expects - previously an IndexOutOfBoundsException
-        String content = diaryWith("""
-                <tr><td><a href="/x">150 g Pizza</a></td><td></td><td>300 kcal</td></tr>
-                <tr><td>Total</td><td></td><td>300 kcal</td><td>10.5 g</td><td>30 g</td><td>13.5 g</td></tr>
-                """);
-
-        // When; Then
-        Assertions.assertThatExceptionOfType(ParseException.class)
-                .isThrownBy(() -> fddbParserService.parseDiary(content));
-    }
-
-    @Test
-    void parseDiary_whenTheTotalsRowIsTruncated_shouldThrowParseException() {
-        // Given
-        String content = diaryWith("""
-                <tr><td><a href="/x">150 g Pizza</a></td><td></td><td>300 kcal</td><td>10.5 g</td><td>30 g</td><td>13.5 g</td></tr>
-                <tr><td>Total</td><td></td><td>300 kcal</td></tr>
-                """);
-
-        // When; Then
-        Assertions.assertThatExceptionOfType(ParseException.class)
-                .isThrownBy(() -> fddbParserService.parseDiary(content));
-    }
-
-    private String diaryWith(String rows) {
-        return "<html><body><table class=\"myday-table-std\"><tbody>" + rows + "</tbody></table></body></html>";
+    void fixture_shouldContainOnlyPassiveDiaryMarkupAndSyntheticLinks(String fixtureName) {
+        Document fixture = Jsoup.parse(new ClassPathResource(fixtureName).getContentAsString(StandardCharsets.UTF_8));
+        assertThat(fixture.select("script, style, link, iframe, img, svg, form, input, object, embed")).isEmpty();
+        fixture.getAllElements().forEach(element -> element.attributes().forEach(attribute ->
+                assertThat(attribute.getKey()).isIn("lang", "charset", "class", "href")));
+        assertThat(fixture.select("a")).hasSize(fixtureName.equals("valid-response.html") ? 13 : 0).allSatisfy(link ->
+                assertThat(link.attr("href")).matches(
+                        "https://fddb\\.info/db/en/food/test_product_[0-9]+/index\\.html"));
     }
 }

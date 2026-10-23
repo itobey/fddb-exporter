@@ -70,18 +70,18 @@
       "@rolldown/plugin-babel": "0.2.4",
       "@rollup/plugin-replace": "6.0.3",
       "@rollup/pluginutils": "5.4.0",
-      "@types/node": "26.6.4",
+      "@types/node": "26.6.5",
       "@types/react": "19.3.0",
       "@types/react-dom": "19.3.0",
       "@typescript/native": "npm:typescript@7.0.2",
-      "@vitejs/plugin-react": "6.1.1",
-      "magic-string": "1.4.2",
+      "@vitejs/plugin-react": "6.1.2",
+      "magic-string": "1.4.3",
       "rollup-plugin-brotli": "3.1.0",
       "rollup-plugin-visualizer": "7.1.1",
       "strip-css-comments": "5.0.0",
       "transform-ast": "2.4.4",
       "typescript": "npm:@typescript/typescript6@6.0.2",
-      "vite": "8.3.2",
+      "vite": "8.3.4",
       "vite-plugin-checker": "0.14.5",
       "workbox-build": "7.4.1",
       "workbox-core": "7.4.1",
@@ -89,7 +89,7 @@
       "workbox-routing": "7.4.1",
       "workbox-strategies": "7.4.1"
     },
-    "hash": "de25bf52bf506b65bf3b5d0eeb13e0c515e63035b070780c44b4bdfff80c0e3f"
+    "hash": "d84b180179f7524f7e6b71bde0d4b974b483f93b56f9df64e43460545e431aac"
   },
   "overrides": {
     "@vaadin/a11y-base": "25.3.3",

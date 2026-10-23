@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.6.1 - unreleased
+
+### Fixed
+
+- **FDDB exports work with the redesigned diary page**, correctly reading the combined kJ/kcal column and
+  excluding meal subtotals from product entries.
+- **Parsing failures now log the affected date and exception details.** Recognized empty diaries no longer
+  produce warnings, while missing or malformed page structures remain visible for troubleshooting.
+
 ## 2.6.0
 
 ### Added

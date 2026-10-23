@@ -1,10 +1,15 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.domain.projection.ProductWithDate;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.exception.AuthenticationException;
+import dev.itobey.adapter.api.fddb.exporter.exception.EmptyDiaryException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ExportInProgressException;
 import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
@@ -15,10 +20,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
@@ -161,6 +168,42 @@ class FddbDataServiceTest {
         verify(timeframeCalculator, times(2)).calculateTimeframeFor(any(LocalDate.class));
         verify(exportService, times(2)).exportData(timeframeDTO);
         verify(persistenceService, times(1)).saveOrUpdate(mockFddbData);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void exportForTimerange_shouldLogFormatErrorsButKeepEmptyDaysQuiet(boolean empty) {
+        TimeframeDTO timeframe = new TimeframeDTO(1628985600, 1629072000);
+        when(timeframeCalculator.calculateTimeframeFor(any(LocalDate.class))).thenReturn(timeframe);
+        ParseException failure = empty ? new EmptyDiaryException()
+                : new ParseException("missing protein column", new IllegalStateException("unexpected layout"));
+        when(exportService.exportData(timeframe)).thenReturn(mockFddbData).thenThrow(failure).thenReturn(mockFddbData);
+
+        Logger logger = (Logger) LoggerFactory.getLogger(FddbDataService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            ExportResultDTO result = fddbDataService.exportForTimerange(new DateRangeDTO("2021-08-15", "2021-08-17"));
+            assertEquals(List.of("2021-08-15", "2021-08-17"), result.getSuccessfulDays());
+            assertEquals(List.of("2021-08-16"), result.getUnsuccessfulDays());
+            verify(persistenceService, times(2)).saveOrUpdate(mockFddbData);
+            List<ILoggingEvent> warnings = appender.list.stream()
+                    .filter(event -> event.getLevel().isGreaterOrEqual(Level.WARN)).toList();
+            if (empty) {
+                assertTrue(warnings.isEmpty());
+            } else {
+                assertEquals(1, warnings.size());
+                ILoggingEvent warning = warnings.getFirst();
+                assertTrue(warning.getFormattedMessage().contains("2021-08-16"));
+                assertNotNull(warning.getThrowableProxy());
+                assertEquals("missing protein column", warning.getThrowableProxy().getMessage());
+                assertEquals("unexpected layout", warning.getThrowableProxy().getCause().getMessage());
+            }
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
     }
 
     @Test
