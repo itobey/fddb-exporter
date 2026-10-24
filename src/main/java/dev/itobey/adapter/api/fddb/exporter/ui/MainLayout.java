@@ -3,6 +3,8 @@ package dev.itobey.adapter.api.fddb.exporter.ui;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.SvgIcon;
@@ -14,6 +16,8 @@ import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.service.VersionCheckService;
+import dev.itobey.adapter.api.fddb.exporter.ui.components.ChangelogDialog;
+import dev.itobey.adapter.api.fddb.exporter.ui.service.ChangelogClient;
 import dev.itobey.adapter.api.fddb.exporter.ui.views.*;
 import org.springframework.boot.info.BuildProperties;
 
@@ -36,11 +40,15 @@ public class MainLayout extends AppLayout {
 
     private final String appVersion;
     private final VersionCheckService versionCheckService;
+    private final ChangelogClient changelogClient;
+    private ChangelogDialog changelogDialog;
 
-    public MainLayout(Optional<BuildProperties> buildProperties, VersionCheckService versionCheckService) {
+    public MainLayout(Optional<BuildProperties> buildProperties, VersionCheckService versionCheckService,
+                      ChangelogClient changelogClient) {
         this.appVersion = buildProperties.map(BuildProperties::getVersion)
                 .orElse("dev");
         this.versionCheckService = versionCheckService;
+        this.changelogClient = changelogClient;
 
         createHeader();
         createDrawer();
@@ -150,12 +158,21 @@ public class MainLayout extends AppLayout {
         aboutStrip.setSpacing(false);
         aboutStrip.addClassName("drawer-about");
 
-        Span appVersionSpan = new Span("Version " + this.appVersion);
-        appVersionSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        aboutStrip.add(appVersionSpan);
+        Button appVersionButton = new Button("Version " + this.appVersion, event -> openChangelog());
+        appVersionButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        appVersionButton.addClassName("drawer-version");
+        appVersionButton.setAriaLabel("Open changelog, installed version " + this.appVersion);
+        aboutStrip.add(appVersionButton);
 
         createUpdateNotice().ifPresent(aboutStrip::add);
         aboutStrip.add(createAboutLinks());
+
+        NativeButton changelog = new NativeButton();
+        changelog.getElement().setAttribute("type", "button");
+        changelog.add(VaadinIcon.RECORDS.create(), new Span("Changelog"));
+        changelog.addClickListener(event -> openChangelog());
+        changelog.addClassNames("drawer-about-link", "drawer-changelog");
+        aboutStrip.add(changelog);
 
         return aboutStrip;
     }
@@ -210,5 +227,12 @@ public class MainLayout extends AppLayout {
         link.addClassName("drawer-about-link");
         link.add(icon, new Span(label));
         return link;
+    }
+
+    private void openChangelog() {
+        if (changelogDialog == null) {
+            changelogDialog = new ChangelogDialog(changelogClient, appVersion);
+        }
+        changelogDialog.open();
     }
 }
