@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.6.2
+
+### Fixed
+
+- **Recipes and AI-generated foods retain their names and amounts** when FDDB displays them without a product link.
+- **Amounts without a numeric quantity**, such as `Teelöffel`, no longer consume the first word of the product name.
+  Entries without an amount retain their full name.
+
 ## 2.6.1
 
 ### Fixed
