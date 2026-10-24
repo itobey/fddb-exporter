@@ -95,6 +95,47 @@ class FddbParserServiceTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {" g", "0 g", "32 g"})
+    void parseDiary_whenAlcoholColumnIsPresent_shouldReadActualMacros(String alcohol) {
+        diary.select(".myday-table-std tr:has(th)").first().appendElement("th").text("Alcohol");
+        diary.select(".myday-table-std tr:has(td)").forEach(row ->
+                row.appendElement("td").appendElement("span").text(alcohol));
+
+        FddbData data = parser.parseDiary(diary.outerHtml());
+
+        assertThat(data.getProducts()).hasSize(13);
+        Product product = data.getProducts().getFirst();
+        assertThat(product.getCalories()).isEqualTo(101);
+        assertThat(product.getFat()).isEqualTo(1.5);
+        assertThat(product.getCarbs()).isEqualTo(2.25);
+        assertThat(product.getProtein()).isEqualTo(3.75);
+        assertThat(data.getTotalFat()).isEqualTo(97.5);
+        assertThat(data.getTotalCarbs()).isEqualTo(185.25);
+        assertThat(data.getTotalProtein()).isEqualTo(282.75);
+        assertThat(data.getTotalCalories()).isEqualTo(1391);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {2, 3, 4})
+    void parseDiary_whenProductMacroContainsOnlyUnit_shouldThrowParseException(int column) {
+        diary.select(".myday-table-std tr:has(a)").first().child(column).html("<span> g</span>");
+
+        assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> parser.parseDiary(diary.outerHtml()))
+                .withMessageContaining("'g'");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {2, 3, 4})
+    void parseDiary_whenDailyMacroContainsOnlyUnit_shouldThrowParseException(int column) {
+        diary.select(".myday-table-std tr").last().child(column).html("<span> g</span>");
+
+        assertThatExceptionOfType(ParseException.class)
+                .isThrownBy(() -> parser.parseDiary(diary.outerHtml()))
+                .withMessageContaining("total").withMessageContaining("'g'");
+    }
+
+    @ParameterizedTest
     @CsvSource(delimiter = '|', value = {
             "true | Teelöffel Hummus, Dip aus Kichererbsen | Teelöffel | Hummus, Dip aus Kichererbsen",
             "false | Teelöffel Hummus, Dip aus Kichererbsen | Teelöffel | Hummus, Dip aus Kichererbsen",

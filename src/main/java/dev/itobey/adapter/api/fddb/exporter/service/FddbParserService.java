@@ -207,7 +207,8 @@ public class FddbParserService {
             throw new ParseException("cannot read " + name + ": the row has no columns");
         }
         Element table = columns.first().closest("table");
-        int expectedColumns = table.select("tr").first().select("th").stream()
+        Elements headers = table.select("tr").first().select("th");
+        int expectedColumns = headers.stream()
                 .mapToInt(header -> header.hasAttr("colspan") ? Integer.parseInt(header.attr("colspan")) : 1)
                 .sum();
         if (expectedColumns != 0 && expectedColumns != columns.size()) {
@@ -215,14 +216,29 @@ public class FddbParserService {
                     + " columns but the row has " + columns.size()
                     + ", the fddb.info page layout has likely changed");
         }
-        // The redesign combines kJ and kcal into one energy cell; the old layout has two.
-        if (columns.size() == 5) {
-            index--;
-        } else if (columns.size() != 6) {
-            throw new ParseException("cannot read " + name + ": expected 5 or 6 columns but the row has "
-                    + columns.size() + ", the fddb.info page layout has likely changed");
+        String label = switch (index) {
+            case COLUMN_CALORIES -> "Calorific value";
+            case COLUMN_FAT -> "Fat";
+            case COLUMN_CARBS -> "Carbohydrates";
+            case COLUMN_PROTEIN -> "Protein";
+            default -> throw new ParseException("unknown nutrient column: " + name);
+        };
+        // Six cells can mean either legacy separate kJ/kcal cells or the redesigned table
+        // with an extra Alcohol column. Resolve by headers, never by the row's cell count.
+        int offset = 0;
+        Element column = null;
+        for (Element header : headers) {
+            int span = header.hasAttr("colspan") ? Integer.parseInt(header.attr("colspan")) : 1;
+            if (header.text().replace('\u00a0', ' ').trim().equalsIgnoreCase(label)) {
+                column = columns.get(offset + (index == COLUMN_CALORIES ? span - 1 : 0));
+                break;
+            }
+            offset += span;
         }
-        Element column = columns.get(index);
+        if (column == null) {
+            throw new ParseException("cannot find the " + label + " column for " + name
+                    + ", the fddb.info page layout has likely changed");
+        }
         Element kcal = column.selectFirst(".md-kcal");
         return extractNumber(kcal != null ? kcal.text() : cellValue(column), name);
     }
