@@ -8,9 +8,11 @@ import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
 import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.io.ClassPathResource;
 
@@ -59,10 +61,67 @@ class FddbParserServiceTest {
     }
 
     @Test
+    void parseDiary_whenRecipesAndAiFoodsHaveNoLinks_shouldParseNamesAmountsAndNutrients() {
+        var rows = diary.select(".myday-table-std tr:has(a)");
+        String[] labels = {"1 Portion Test burger 🍔 (mit Käse)", "230 g Test vegetable soup", "1 Portion Test roll"};
+        for (int i = 0; i < labels.length; i++) {
+            rows.get(i).child(0).html("<span class='mydayshowtime' style='display:none;'>14:05&nbsp;</span>"
+                    + labels[i]);
+        }
+
+        FddbData data = parser.parseDiary(diary.outerHtml());
+
+        assertThat(data.getProducts()).hasSize(13);
+        assertThat(data.getProducts().subList(0, 3)).extracting(Product::getName)
+                .containsExactly("Test burger 🍔 (mit Käse)", "Test vegetable soup", "Test roll");
+        assertThat(data.getProducts().subList(0, 3)).extracting(Product::getAmount)
+                .containsExactly("1 Portion", "230 g", "1 Portion");
+        for (int i = 0; i < 3; i++) {
+            Product product = data.getProducts().get(i);
+            assertThat(product.getLink()).isNull();
+            assertThat(product.getCalories()).isEqualTo(101 + i);
+            assertThat(product.getFat()).isEqualTo(1.5 + i);
+            assertThat(product.getCarbs()).isEqualTo(2.25 + 2 * i);
+            assertThat(product.getProtein()).isEqualTo(3.75 + 3 * i);
+        }
+        assertThat(data.getTotalCalories()).isEqualTo(1391);
+    }
+
+    @Test
     void parseDiary_whenCarbsIncludeBreadUnits_shouldReadGramsOnly() {
         diary.select(".myday-table-std tr:has(a)").first().child(3)
                 .append("<span>(1.5 BE)</span>");
         assertThat(parser.parseDiary(diary.outerHtml()).getProducts().getFirst().getCarbs()).isEqualTo(2.25);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "true | Teelöffel Hummus, Dip aus Kichererbsen | Teelöffel | Hummus, Dip aus Kichererbsen",
+            "false | Teelöffel Hummus, Dip aus Kichererbsen | Teelöffel | Hummus, Dip aus Kichererbsen",
+            "true | Esslöffel Test spread | Esslöffel | Test spread",
+            "false | 0.5 Stück Test roll | 0.5 Stück | Test roll",
+            "true | 0,5 Portion Test soup | 0,5 Portion | Test soup",
+            "true | 1/2 Becher Test yoghurt | 1/2 Becher | Test yoghurt",
+            "false | Test food without amount | | Test food without amount",
+            "true | Test food without amount | | Test food without amount",
+            "false | Testfood | | Testfood"
+    })
+    void parseDiary_whenAmountHasDifferentFormats_shouldPreserveNameAndAmount(
+            boolean linked, String label, String expectedAmount, String expectedName) {
+        Element productCell = diary.select(".myday-table-std tr:has(a)").first().child(0);
+        String link = productCell.selectFirst("a").attr("href");
+        productCell.empty().appendElement("span").addClass("mydayshowtime").text("14:05\u00a0");
+        if (linked) {
+            productCell.appendElement("a").attr("href", link).text(label);
+        } else {
+            productCell.appendText(label);
+        }
+
+        Product product = parser.parseDiary(diary.outerHtml()).getProducts().getFirst();
+
+        assertThat(product.getName()).isEqualTo(expectedName);
+        assertThat(product.getAmount()).isEqualTo(expectedAmount);
+        assertThat(product.getLink()).isEqualTo(linked ? link : null);
     }
 
     @Test

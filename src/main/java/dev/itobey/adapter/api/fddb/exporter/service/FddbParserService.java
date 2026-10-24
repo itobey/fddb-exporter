@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
@@ -22,6 +23,9 @@ public class FddbParserService {
 
     private static final String AUTH_LINKS = ".quicklinks a.v2hdlnk, .topbar-links a";
     private static final String PRODUCT_ROWS = "table.myday-table-std > tbody > tr";
+    private static final Pattern PRODUCT_AMOUNT = Pattern.compile(
+            "^(\\d+(?:[.,]\\d+|/\\d+)?\\s+\\S+|Teelöffel|Esslöffel)\\s+(.+)$",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     /**
      * Sugar and fibre are not part of the product table, they only appear in the nutrient summary
@@ -140,8 +144,13 @@ public class FddbParserService {
         Element productLink = columns.get(0).selectFirst("a");
 
         if (productLink != null) {
-            setProductNameAndAmount(product, productLink);
+            setProductNameAndAmount(product, productLink.text());
             product.setLink(productLink.attr("href"));
+        } else {
+            // Recipes and AI foods have no link; the time is a separate child span.
+            Element productCell = columns.get(0).clone();
+            productCell.select(".mydayshowtime").remove();
+            setProductNameAndAmount(product, productCell.text());
         }
 
         product.setCalories(extractNumber(columns, COLUMN_CALORIES, "calories"));
@@ -152,12 +161,11 @@ public class FddbParserService {
         return product;
     }
 
-    private void setProductNameAndAmount(Product product, Element productLink) {
-        String fullName = productLink.text();
-        String[] parts = fullName.split(" ", 3);
-        if (parts.length == 3) {
-            product.setAmount(parts[0] + " " + parts[1]);
-            product.setName(parts[2]);
+    private void setProductNameAndAmount(Product product, String fullName) {
+        Matcher amount = PRODUCT_AMOUNT.matcher(fullName);
+        if (amount.matches()) {
+            product.setAmount(amount.group(1));
+            product.setName(amount.group(2));
         } else {
             product.setName(fullName);
         }
