@@ -17,6 +17,11 @@
   their headers, preventing alcohol values from being read as protein and other nutrients from shifting.
   Previously, affected days could fail to export or be stored with incorrect nutrient values; reimport them after updating.
 
+### Improved
+
+- **Date range and recent days sync show completed days as they finish.** Chips and counts update during the run,
+  with the latest days visible in the preview. Completed results remain available if the sync is interrupted.
+
 ## 2.6.2
 
 ### ⚠️ Reimport notice

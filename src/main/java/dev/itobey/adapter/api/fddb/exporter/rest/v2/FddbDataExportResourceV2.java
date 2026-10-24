@@ -1,6 +1,8 @@
 package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportProgressDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbDataService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,12 +12,20 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * V2 REST API for exporting FDDB data.
@@ -57,6 +67,59 @@ public class FddbDataExportResourceV2 {
                 dateRangeDTO.getFromDate(), dateRangeDTO.getToDate());
         ExportResultDTO result = fddbDataService.exportForTimerange(dateRangeDTO);
         return ResponseEntity.ok(result);
+    }
+
+    /** Flush each persisted day's result before starting the next day. */
+    @Operation(summary = "Export a date range with per-day progress",
+            description = "Streams newline-delimited JSON: one event per completed day, followed by a terminal event. "
+                    + "A failure after streaming starts is reported in the terminal event error field.")
+    @PostMapping(value = "/export/progress", produces = "application/x-ndjson")
+    public void exportWithProgress(@Valid @RequestBody DateRangeDTO range, HttpServletResponse response) throws IOException {
+        streamProgress(response, onDay -> fddbDataService.exportForTimerange(range, onDay));
+    }
+
+    @Operation(summary = "Export recent days with per-day progress",
+            description = "Uses the configured scrape timezone and day limits. Streams the same events as date range progress.")
+    @GetMapping(value = "/export/progress", produces = "application/x-ndjson")
+    public void exportRecentWithProgress(@RequestParam int days,
+                                         @RequestParam(defaultValue = "false") boolean includeToday,
+                                         HttpServletResponse response) throws IOException {
+        streamProgress(response, onDay -> fddbDataService.exportForDaysBack(days, includeToday, onDay));
+    }
+
+    private void streamProgress(HttpServletResponse response,
+                                Consumer<BiConsumer<LocalDate, Boolean>> export) throws IOException {
+        response.setContentType("application/x-ndjson");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setHeader("Cache-Control", "no-store");
+        response.setHeader("X-Accel-Buffering", "no");
+        ObjectMapper mapper = new ObjectMapper();
+        Consumer<ExportProgressDTO> send = progress -> {
+            try {
+                response.getOutputStream().write((mapper.writeValueAsString(progress) + "\n")
+                        .getBytes(StandardCharsets.UTF_8));
+                response.flushBuffer();
+            } catch (IOException failure) {
+                throw new UncheckedIOException(failure);
+            }
+        };
+        try {
+            export.accept((date, successful) ->
+                    send.accept(new ExportProgressDTO(date.toString(), successful, false, null)));
+        } catch (UncheckedIOException disconnected) {
+            throw disconnected.getCause();
+        } catch (RuntimeException failure) {
+            if (!response.isCommitted()) {
+                // Validation, authentication and conflicts retain normal HTTP error responses.
+                response.reset();
+                throw failure;
+            }
+            log.error("Sync stopped after partial progress", failure);
+            send.accept(new ExportProgressDTO(null, false, true,
+                    "Sync stopped before all days finished. Check the server logs before retrying."));
+            return;
+        }
+        send.accept(new ExportProgressDTO(null, false, true, null));
     }
 
     /**

@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.views;
 
+import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -12,6 +13,7 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportProgressDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ExportResultDTO;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
@@ -21,8 +23,14 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 
@@ -52,6 +60,18 @@ public class DataExportView extends VerticalLayout {
     private Div daysBackResult;
 
     private Div yesterdayResult;
+    private final List<Button> exportButtons = new ArrayList<>();
+    private final Queue<ExportProgressDTO> progressEvents = new ConcurrentLinkedQueue<>();
+    private final List<String> syncedDays = new ArrayList<>();
+    private final List<String> failedDays = new ArrayList<>();
+    private CompletableFuture<Void> syncTask;
+    private String syncError;
+    private Div activeResult;
+
+    @FunctionalInterface
+    private interface SyncOperation {
+        void run(Consumer<ExportProgressDTO> onProgress) throws ApiException;
+    }
 
     public DataExportView(FddbDataClient fddbDataClient) {
         this.fddbDataClient = fddbDataClient;
@@ -161,25 +181,20 @@ public class DataExportView extends VerticalLayout {
         return card;
     }
 
-    /**
-     * The export runs on the request thread: the scrape takes roughly a second per day, and the
-     * view is blocked for the whole of it. Without server push there is no way to report progress
-     * while that happens, so the honest thing is to make the wait legible rather than to imply a
-     * granularity that does not exist. Two things fire client-side, before the round trip even
-     * starts: the button disables itself, and the card's ledger switches to a pending line.
-     *
-     * @param result the ledger belonging to this card, put into its pending state on click
-     */
+    /** Sync releases the request thread and keeps actions disabled until completion. */
     private Button createExportButton(String label, Runnable action, Div result) {
         Button button = new Button(label);
         button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         button.addClassName("export-card__action");
         button.setDisableOnClick(true);
+        exportButtons.add(button);
         button.addClickListener(e -> {
             try {
                 action.run();
             } finally {
-                button.setEnabled(true);
+                if (syncTask == null) {
+                    button.setEnabled(true);
+                }
                 // displayResult clears this on every path that reaches it, but a validation error
                 // returns before it ever runs and would strand the pending line on screen.
                 clearPending(result);
@@ -200,8 +215,7 @@ public class DataExportView extends VerticalLayout {
         Div result = new Div();
         result.addClassName("export-result");
         // The ledger is the export's actual output and it appears without moving focus, so it has
-        // to announce itself. "polite" rather than "assertive": the run has already finished, and
-        // the accompanying notification is the urgent channel.
+        // to announce progress without interrupting the user's current task.
         result.getElement().setAttribute("aria-live", "polite");
         // Deliberately not setVisible(false): an invisible element is inactive on the server, so
         // the JS that clears the pending state would be queued instead of running. The ledger
@@ -223,15 +237,85 @@ public class DataExportView extends VerticalLayout {
             return;
         }
 
-        try {
-            DateRangeDTO dateRange = DateRangeDTO.builder()
-                    .fromDate(fromDate.getValue().format(DATE_FORMAT))
-                    .toDate(toDate.getValue().format(DATE_FORMAT))
-                    .build();
+        if (syncTask != null) {
+            return;
+        }
+        DateRangeDTO range = new DateRangeDTO(fromDate.getValue().format(DATE_FORMAT),
+                toDate.getValue().format(DATE_FORMAT));
+        startSync(dateRangeResult, onProgress -> fddbDataClient.exportWithProgress(range, onProgress));
+    }
 
-            displayResult(dateRangeResult, fddbDataClient.exportForDateRange(dateRange));
-        } catch (ApiException e) {
-            showError(e.getMessage());
+    private void startSync(Div result, SyncOperation operation) {
+        if (syncTask != null) {
+            return;
+        }
+        activeResult = result;
+        syncedDays.clear();
+        failedDays.clear();
+        progressEvents.clear();
+        syncError = null;
+        exportButtons.forEach(button -> button.setEnabled(false));
+        activeResult.removeAll();
+        activeResult.add(createStatusLine("neutral", "Syncing...", null));
+        activeResult.getElement().setAttribute("aria-busy", "true");
+        // Virtual threads keep blocking HTTP I/O off the UI and the common worker pool.
+        syncTask = new CompletableFuture<>();
+        CompletableFuture<Void> task = syncTask;
+        Thread.startVirtualThread(() -> {
+            try {
+                operation.run(progressEvents::add);
+                task.complete(null);
+            } catch (Exception failure) {
+                task.completeExceptionally(failure);
+            }
+        });
+        scheduleSyncCheck();
+    }
+
+    private void scheduleSyncCheck() {
+        getElement().executeJs("setTimeout(() => { if (this.isConnected) this.$server.checkSyncProgress(); }, 300)");
+    }
+
+    /** Poll only while this view has a running sync; all component changes stay on the UI thread. */
+    @ClientCallable
+    public void checkSyncProgress() {
+        if (syncTask == null) {
+            return;
+        }
+        // Observe completion before draining: the worker enqueues its last event before completing.
+        boolean finished = syncTask.isDone();
+        boolean changed = false;
+        ExportProgressDTO progress;
+        while ((progress = progressEvents.poll()) != null) {
+            if (progress.error() != null) {
+                syncError = progress.error();
+            }
+            if (progress.date() != null) {
+                (progress.successful() ? syncedDays : failedDays).add(progress.date());
+                changed = true;
+            }
+        }
+        if (finished) {
+            try {
+                syncTask.join();
+            } catch (CompletionException failure) {
+                syncError = failure.getCause() instanceof ApiException
+                        ? failure.getCause().getMessage() : "Could not sync days. Please try again.";
+            }
+            syncTask = null;
+            exportButtons.forEach(button -> button.setEnabled(true));
+            activeResult.getElement().setAttribute("aria-busy", "false");
+        }
+        if (changed || finished) {
+            displayResult(activeResult, new ExportResultDTO(List.copyOf(syncedDays), List.copyOf(failedDays)),
+                    finished && syncError == null, !finished);
+        }
+        if (finished && syncError != null) {
+            activeResult.add(createStatusLine("failed", syncError, null));
+            showError(syncError);
+        }
+        if (!finished) {
+            scheduleSyncCheck();
         }
     }
 
@@ -244,31 +328,25 @@ public class DataExportView extends VerticalLayout {
             return;
         }
 
-        try {
-            displayResult(daysBackResult, fddbDataClient.exportForDaysBack(
-                    daysBackField.getValue(),
-                    includeTodayCheckbox.getValue()
-            ));
-        } catch (ApiException e) {
-            showError(e.getMessage());
-        }
+        int days = daysBackField.getValue();
+        boolean includeToday = includeTodayCheckbox.getValue();
+        startSync(daysBackResult, onProgress -> fddbDataClient.exportRecentWithProgress(days, includeToday, onProgress));
     }
 
     private void exportYesterday() {
-        try {
-            displayResult(yesterdayResult, fddbDataClient.exportForDaysBack(1, false));
-        } catch (ApiException e) {
-            showError("Could not sync yesterday: " + e.getMessage());
-        }
+        startSync(yesterdayResult, onProgress -> fddbDataClient.exportRecentWithProgress(1, false, onProgress));
     }
 
     /**
      * Renders one export run as a ledger inside the card that triggered it: a status line stating
      * what happened and when, then the dates themselves as chips. Replaces any previous run.
      */
-    private void displayResult(Div resultDiv, ExportResultDTO result) {
+    private void displayResult(Div resultDiv, ExportResultDTO result, boolean notify, boolean running) {
         resultDiv.removeAll();
         clearPending(resultDiv);
+        if (running) {
+            resultDiv.add(createStatusLine("neutral", "Syncing...", null));
+        }
 
         List<String> successful = result.getSuccessfulDays();
         List<String> unsuccessful = result.getUnsuccessfulDays();
@@ -276,7 +354,7 @@ public class DataExportView extends VerticalLayout {
         boolean hasSuccess = successful != null && !successful.isEmpty();
         boolean hasFailures = unsuccessful != null && !unsuccessful.isEmpty();
 
-        String finishedAt = LocalTime.now().format(TIME_FORMAT);
+        String finishedAt = running ? null : LocalTime.now().format(TIME_FORMAT);
 
         if (!hasSuccess && !hasFailures) {
             resultDiv.add(createStatusLine("neutral", "No days returned", finishedAt));
@@ -286,15 +364,18 @@ public class DataExportView extends VerticalLayout {
 
         if (hasSuccess) {
             resultDiv.add(createStatusLine("ok", dayCount(successful.size()) + " synced", finishedAt));
-            resultDiv.add(createChipList(successful, "export-chip--ok"));
+            resultDiv.add(createChipList(successful, "export-chip--ok", running));
         }
 
         if (hasFailures) {
             resultDiv.add(createStatusLine("failed", dayCount(unsuccessful.size()) + " failed",
                     hasSuccess ? null : finishedAt));
-            resultDiv.add(createChipList(unsuccessful, "export-chip--failed"));
+            resultDiv.add(createChipList(unsuccessful, "export-chip--failed", running));
         }
 
+        if (!notify) {
+            return;
+        }
         if (hasFailures) {
             showError(dayCount(unsuccessful.size()) + " could not be synced");
         } else {
@@ -324,13 +405,14 @@ public class DataExportView extends VerticalLayout {
         return line;
     }
 
-    private Component createChipList(List<String> days, String chipModifier) {
+    private Component createChipList(List<String> days, String chipModifier, boolean running) {
         Div chips = new Div();
         chips.addClassName("export-result__chips");
 
         for (int i = 0; i < days.size(); i++) {
             Span chip = createChip(days.get(i), chipModifier);
-            if (i >= CHIP_PREVIEW_COUNT) {
+            // During a run keep the latest completed days visible, including every new chip.
+            if (running ? i < days.size() - CHIP_PREVIEW_COUNT : i >= CHIP_PREVIEW_COUNT) {
                 chip.addClassName("export-chip--overflow");
                 chip.setVisible(false);
             }

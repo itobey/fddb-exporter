@@ -1,10 +1,12 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -12,9 +14,14 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Client service for FDDB data export and query API endpoints.
@@ -53,6 +60,47 @@ public class FddbDataClient {
         } catch (RestClientException e) {
             log.error("Failed to export for date range", e);
             throw ApiException.from("Failed to export for date range", e);
+        }
+    }
+
+    /** Consume events inside the response extractor so completed days are not buffered. */
+    public void exportWithProgress(DateRangeDTO range, Consumer<ExportProgressDTO> onProgress) throws ApiException {
+        consumeProgress(getBaseUrl() + FDDBDATA_URL + "/export/progress", HttpMethod.POST, range, onProgress);
+    }
+
+    public void exportRecentWithProgress(int days, boolean includeToday, Consumer<ExportProgressDTO> onProgress)
+            throws ApiException {
+        String url = getBaseUrl() + FDDBDATA_URL + "/export/progress?days=" + days + "&includeToday=" + includeToday;
+        consumeProgress(url, HttpMethod.GET, null, onProgress);
+    }
+
+    private void consumeProgress(String url, HttpMethod method, DateRangeDTO range,
+                                 Consumer<ExportProgressDTO> onProgress) throws ApiException {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            restTemplate.execute(url, method,
+                    request -> {
+                        request.getHeaders().setAccept(List.of(MediaType.parseMediaType("application/x-ndjson")));
+                        if (range != null) {
+                            request.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                            mapper.writeValue(request.getBody(), range);
+                        }
+                    }, response -> {
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                                response.getBody(), StandardCharsets.UTF_8))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                ExportProgressDTO progress = mapper.readValue(line, ExportProgressDTO.class);
+                                onProgress.accept(progress);
+                                if (progress.complete()) {
+                                    return null;
+                                }
+                            }
+                        }
+                        throw new IOException("Sync progress stream ended before completion");
+                    });
+        } catch (RestClientException failure) {
+            throw ApiException.from("Could not sync days", failure);
         }
     }
 

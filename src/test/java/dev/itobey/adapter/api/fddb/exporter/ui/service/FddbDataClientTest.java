@@ -1,5 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.service;
 
+import dev.itobey.adapter.api.fddb.exporter.dto.DateRangeDTO;
+import dev.itobey.adapter.api.fddb.exporter.dto.ExportProgressDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductSummaryDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductWithDateDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +13,7 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.DayOfWeek;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +43,41 @@ class FddbDataClientTest {
         restTemplate = new RestTemplate();
         server = MockRestServiceServer.createServer(restTemplate);
         client = new FddbDataClient(restTemplate, new ApiBaseUrl(9090, "/fddb", false));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {true, false})
+    void recentProgressUsesRecentEndpointAndIncludeToday(boolean includeToday) throws ApiException {
+        server.expect(requestTo(BASE + "/export/progress?days=7&includeToday=" + includeToday))
+                .andExpect(method(HttpMethod.GET)).andRespond(withSuccess(
+                        "{\"date\":\"2026-10-01\",\"successful\":true,\"complete\":false,\"error\":null}\n"
+                        + "{\"date\":null,\"successful\":false,\"complete\":true,\"error\":null}\n",
+                        MediaType.parseMediaType("application/x-ndjson")));
+        var events = new ArrayList<ExportProgressDTO>();
+        client.exportRecentWithProgress(7, includeToday, events::add);
+        assertThat(events).hasSize(2);
+        assertThat(events.getFirst().date()).isEqualTo("2026-10-01");
+        assertThat(events.getLast().complete()).isTrue();
+        server.verify();
+    }
+
+    @Test
+    void progressStreamDeliversDayEventsAndRequiresCompletion() throws ApiException {
+        String day = "{\"date\":\"2026-10-01\",\"successful\":true,\"complete\":false,\"error\":null}\n";
+        String end = "{\"date\":null,\"successful\":false,\"complete\":true,\"error\":null}\n";
+        server.expect(requestTo(BASE + "/export/progress")).andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess(day + end, MediaType.parseMediaType("application/x-ndjson")));
+        server.expect(requestTo(BASE + "/export/progress"))
+                .andRespond(withSuccess(day, MediaType.parseMediaType("application/x-ndjson")));
+        var range = new DateRangeDTO("2026-10-01", "2026-10-02");
+        var events = new ArrayList<ExportProgressDTO>();
+        client.exportWithProgress(range, events::add);
+        assertThat(events).hasSize(2);
+        assertThat(events.getFirst().date()).isEqualTo("2026-10-01");
+        assertThat(events.getLast().complete()).isTrue();
+        assertThatThrownBy(() -> client.exportWithProgress(range, progress -> { }))
+                .isInstanceOf(ApiException.class).hasMessageContaining("ended before completion");
+        server.verify();
     }
 
     @Test

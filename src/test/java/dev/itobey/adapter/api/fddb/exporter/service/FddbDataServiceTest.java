@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -58,6 +59,25 @@ class FddbDataServiceTest {
     private FddbDataDTO mockFddbDataDTO;
     private ProductWithDate mockProductWithDate;
     private ProductWithDateDTO mockProductWithDateDTO;
+
+    @Test
+    void progressIsReportedAfterPersistenceAndBeforeTheNextDayStarts() {
+        TimeframeDTO timeframe = mock(TimeframeDTO.class);
+        when(timeframeCalculator.calculateTimeframeFor(any())).thenReturn(timeframe);
+        when(exportService.exportData(timeframe)).thenReturn(mockFddbData)
+                .thenThrow(new EmptyDiaryException());
+        java.util.List<String> events = new ArrayList<>();
+        doAnswer(call -> { events.add("persisted"); return null; })
+                .when(persistenceService).saveOrUpdate(mockFddbData);
+        fddbDataService.exportForTimerange(new DateRangeDTO("2026-10-01", "2026-10-02"),
+                (date, successful) -> {
+                    if (date.getDayOfMonth() == 1) {
+                        verify(exportService, times(1)).exportData(timeframe);
+                    }
+                    events.add(date + ":" + successful);
+                });
+        assertEquals(List.of("persisted", "2026-10-01:true", "2026-10-02:false"), events);
+    }
 
     @BeforeEach
     void setUp() {
@@ -286,6 +306,28 @@ class FddbDataServiceTest {
             verify(timeframeCalculator).calculateTimeframeFor(startDate.plusDays(i));
         }
         verify(persistenceService, times(2)).saveOrUpdate(mockFddbData);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void recentProgressUsesConfiguredTimezoneAndReportsEveryDay(boolean includeToday) {
+        ZoneId zone = ZoneId.of("Pacific/Kiritimati");
+        doReturn(zone).when(properties).resolveZone();
+        when(properties.getFddb().getMaxDaysBack()).thenReturn(365);
+        when(properties.getFddb().getMinDaysBack()).thenReturn(1);
+        TimeframeDTO timeframe = mock(TimeframeDTO.class);
+        when(timeframeCalculator.calculateTimeframeFor(any())).thenReturn(timeframe);
+        when(exportService.exportData(timeframe)).thenReturn(mockFddbData);
+        LocalDate end = LocalDate.now(zone).minusDays(includeToday ? 0 : 1);
+        List<String> progress = new ArrayList<>();
+        fddbDataService.exportForDaysBack(2, includeToday, (date, successful) -> {
+            assertTrue(successful);
+            if (progress.isEmpty()) {
+                verify(exportService, times(1)).exportData(timeframe);
+            }
+            progress.add(date.toString());
+        });
+        assertEquals(List.of(end.minusDays(1).toString(), end.toString()), progress);
     }
 
     @Test

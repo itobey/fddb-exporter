@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -202,6 +203,11 @@ public class FddbDataService {
     }
 
     public ExportResultDTO exportForTimerange(DateRangeDTO dateRangeDTO) {
+        return exportForTimerange(dateRangeDTO, (date, successful) -> { });
+    }
+
+    /** Reports each day after persistence, holding the export lock across the entire range. */
+    public ExportResultDTO exportForTimerange(DateRangeDTO dateRangeDTO, BiConsumer<LocalDate, Boolean> onDay) {
         LocalDate from = LocalDate.parse(dateRangeDTO.getFromDate());
         LocalDate to = LocalDate.parse(dateRangeDTO.getToDate());
 
@@ -235,6 +241,8 @@ public class FddbDataService {
                                     date, runtimeException);
                             unsuccessfulDays.add(date.toString());
                         }
+                        // Outside the per-day catch: a disconnected consumer must stop the run.
+                        onDay.accept(date, successfulDays.contains(date.toString()));
                     });
 
             ExportResultDTO result = new ExportResultDTO();
@@ -245,9 +253,13 @@ public class FddbDataService {
     }
 
     public ExportResultDTO exportForDaysBack(int days, boolean includeToday) {
-        // Keep export dates aligned with the scrape timezone.
+        return exportForDaysBack(days, includeToday, (date, successful) -> { });
+    }
+
+    public ExportResultDTO exportForDaysBack(int days, boolean includeToday, BiConsumer<LocalDate, Boolean> onDay) {
+        // Resolve today once on the server, in the configured scrape timezone.
         LocalDate today = LocalDate.now(properties.resolveZone());
-        return exportForDaysBack(days, includeToday ? today : today.minusDays(1));
+        return exportForDaysBack(days, includeToday ? today : today.minusDays(1), onDay);
     }
 
     /**
@@ -264,6 +276,10 @@ public class FddbDataService {
      * @throws DateTimeException if {@code days} is outside the configured min/max window
      */
     public ExportResultDTO exportForDaysBack(int days, LocalDate toDate) {
+        return exportForDaysBack(days, toDate, (date, successful) -> { });
+    }
+
+    private ExportResultDTO exportForDaysBack(int days, LocalDate toDate, BiConsumer<LocalDate, Boolean> onDay) {
         // safety net to prevent accidents
         int maxDaysBack = properties.getFddb().getMaxDaysBack();
         int minDaysBack = properties.getFddb().getMinDaysBack();
@@ -278,7 +294,7 @@ public class FddbDataService {
                 .toDate(toDate.toString())
                 .build();
 
-        return exportForTimerange(timeframe);
+        return exportForTimerange(timeframe, onDay);
     }
 
     public StatsDTO getStats() {
