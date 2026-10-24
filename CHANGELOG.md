@@ -2,6 +2,11 @@
 
 ## 2.6.2
 
+### Added
+
+- **Changelog in the navigation footer**, below GitHub and Docs, with a reading modal that loads release notes
+  from GitHub, includes all older versions and a "Jump to version" selector.
+
 ### Fixed
 
 - **Recipes and AI-generated foods retain their names and amounts** when FDDB displays them without a product link.

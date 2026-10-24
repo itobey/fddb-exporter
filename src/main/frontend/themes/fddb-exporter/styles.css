@@ -146,6 +146,9 @@ html {
     --card-surface: rgba(255, 255, 255, 0.06);
     --card-border: rgba(255, 255, 255, 0.1);
     --card-hover-surface: rgba(255, 255, 255, 0.08);
+    --reading-surface: #434655;
+    --reading-measure: 72ch;
+    --reading-dialog-width: 52rem;
 
     /* Control boundaries are deliberately stronger than --card-border. A card's hairline is
        decoration and may sit at 1.3:1, but an input's border is the only thing that identifies
@@ -468,6 +471,166 @@ vaadin-app-layout::part(drawer) {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.drawer-changelog {
+    justify-content: flex-start;
+    align-self: flex-start;
+    width: auto;
+    margin: var(--lumo-space-s) 0 0;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    background: transparent;
+}
+
+.drawer-version {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    font-variant-numeric: tabular-nums;
+    width: auto;
+}
+
+.drawer-version:hover {
+    color: var(--highlight-text);
+}
+
+/* Header, version jump and source stay put; only the release history scrolls. */
+.changelog-dialog {
+    --vaadin-dialog-background: var(--reading-surface);
+    --vaadin-dialog-border-color: var(--card-border);
+    --vaadin-dialog-border-radius: var(--lumo-border-radius-l);
+    --vaadin-dialog-max-width: calc(100vw - 2rem);
+    --vaadin-dialog-padding: var(--lumo-space-l);
+    --vaadin-dialog-text-color: var(--lumo-body-text-color);
+    --vaadin-dialog-title-color: var(--lumo-header-text-color);
+}
+
+.changelog-dialog::part(overlay) {
+    background: var(--reading-surface);
+    width: min(var(--reading-dialog-width), calc(100vw - 2rem));
+    height: min(85dvh, 56rem);
+}
+
+.changelog-dialog::part(content) {
+    display: flex;
+    overflow: hidden;
+    min-height: 0;
+    padding-block: 0;
+}
+
+.changelog-dialog::part(header),
+.changelog-dialog::part(footer) {
+    flex-shrink: 0;
+}
+
+.changelog-close {
+    width: auto;
+    min-height: 44px;
+    margin: 0;
+    color: var(--lumo-body-text-color);
+}
+
+.changelog-body {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+
+.changelog-toolbar,
+.changelog-feedback {
+    flex-shrink: 0;
+}
+
+.changelog-installed,
+.changelog-status {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+
+.changelog-installed { font-variant-numeric: tabular-nums; }
+.changelog-status { margin-block: var(--lumo-space-s) var(--lumo-space-m); }
+.changelog-feedback vaadin-button { width: auto; min-height: 44px; }
+
+.changelog-notes {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-color: var(--control-border) var(--reading-surface);
+    scrollbar-width: thin;
+    padding: var(--lumo-space-xs) var(--lumo-space-m) var(--lumo-space-l) var(--lumo-space-xs);
+}
+
+.changelog-release {
+    max-width: var(--reading-measure);
+    margin-inline: auto;
+    padding-block: var(--lumo-space-l);
+    border-top: 1px solid var(--card-border);
+    overflow-wrap: anywhere;
+}
+
+.changelog-release:first-child { padding-top: var(--lumo-space-m); }
+.changelog-release h2 { margin: 0 0 var(--lumo-space-s); font-variant-numeric: tabular-nums; }
+.changelog-release h3 { margin: var(--lumo-space-l) 0 var(--lumo-space-s); font-size: var(--lumo-font-size-m); }
+.changelog-release li + li { margin-top: var(--lumo-space-s); }
+.changelog-release ul, .changelog-release ol { padding-inline-start: var(--lumo-space-l); }
+.changelog-release pre { overflow: auto; max-width: 100%; background: var(--code-surface); }
+.changelog-release img { max-width: 100%; }
+.changelog-release table { display: block; overflow: auto; }
+.changelog-release, .changelog-release * { user-select: text; -webkit-user-select: text; }
+
+.changelog-installed-marker {
+    display: inline-block;
+    color: var(--highlight-text);
+    font-size: var(--lumo-font-size-s);
+    margin-bottom: var(--lumo-space-s);
+}
+
+.changelog-dialog a {
+    color: var(--highlight-text);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    overflow-wrap: anywhere;
+}
+
+.changelog-dialog a:hover { color: var(--lumo-body-text-color); }
+.changelog-dialog a:focus-visible,
+.changelog-notes:focus-visible,
+.changelog-release h2:focus-visible,
+.changelog-toolbar vaadin-select:focus-within::part(input-field) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+    .drawer-version,
+    .changelog-dialog a { min-height: 44px; display: inline-flex; align-items: center; }
+    .changelog-toolbar vaadin-select { --vaadin-input-field-height: 44px; }
+}
+
+@media (max-width: 600px) {
+    .changelog-dialog {
+        --vaadin-dialog-max-width: 100vw;
+        --vaadin-dialog-border-radius: 0;
+        --vaadin-dialog-padding: var(--lumo-space-m);
+    }
+    .changelog-dialog::part(overlay) {
+        width: 100vw;
+        height: 100dvh;
+        max-width: 100vw;
+        max-height: 100dvh;
+        flex-shrink: 0;
+        border: 0;
+        border-radius: 0;
+        margin: 0;
+    }
+    .changelog-dialog::part(header) { padding-top: max(var(--lumo-space-m), env(safe-area-inset-top)); }
+    .changelog-dialog::part(footer) { padding-bottom: max(var(--lumo-space-m), env(safe-area-inset-bottom)); }
+}
+
 .drawer-about-update {
     display: flex;
     align-items: center;
@@ -506,6 +669,7 @@ vaadin-app-layout::part(drawer) {
 
 .drawer-about-link:hover {
     color: var(--lumo-body-text-color);
+    text-decoration: underline;
 }
 
 .drawer-about-link vaadin-icon {
@@ -530,6 +694,15 @@ vaadin-app-layout::part(drawer) {
    as tight on a phone as it is under a mouse. The 6px of horizontal reach reads against the
    14px column gap, so two adjacent targets stop 2px short of touching. */
 @media (pointer: coarse) {
+    .drawer-changelog {
+        min-height: 44px;
+        margin-top: var(--lumo-space-m);
+    }
+
+    .drawer-changelog::after {
+        display: none;
+    }
+
     .drawer-about-update,
     .drawer-about-link {
         position: relative;
