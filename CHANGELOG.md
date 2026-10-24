@@ -2,6 +2,15 @@
 
 ## 2.6.2
 
+### ⚠️ Reimport notice
+
+- **Reimport diary days containing custom recipes after updating to 2.6.2.** FDDB's July 2026 recipe overhaul
+  introduced grouped recipe entries, which earlier exporter versions could parse incorrectly. As a precaution,
+  reimport affected days **from 1 July 2026 onward** that were previously imported with an older version.
+  This starting date covers the documented rollout month; it is not a confirmed launch day for all platforms.
+  Include older diary days too if you added recipes to them retrospectively after the change.
+  See [FDDB's announcement of the July 2026 recipe overhaul](https://help.fddb.info/hc/de/articles/360019889199-Wie-kann-ich-Rezepte-teilen).
+
 ### Added
 
 - **Changelog in the navigation footer**, below GitHub and Docs, with a reading modal that loads release notes
