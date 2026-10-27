@@ -4,7 +4,7 @@
   "type": "module",
   "dependencies": {
     "@vaadin/aura": "25.3.3",
-    "@vaadin/common-frontend": "0.0.24",
+    "@vaadin/common-frontend": "0.0.25",
     "@vaadin/react-components": "25.3.4",
     "@vaadin/vaadin-development-mode-detector": "2.0.7",
     "@vaadin/vaadin-lumo-styles": "25.3.3",
