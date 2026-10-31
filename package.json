@@ -17,10 +17,10 @@
     "react-router": "8.5.1"
   },
   "devDependencies": {
-    "@babel/core": "8.0.9",
+    "@babel/core": "8.0.10",
     "@babel/plugin-transform-react-jsx-development": "8.0.1",
     "@babel/preset-react": "8.0.1",
-    "@babel/types": "8.0.8",
+    "@babel/types": "8.0.10",
     "@preact/signals-react": "3.12.0",
     "@preact/signals-react-transform": "0.8.3",
     "@rolldown/plugin-babel": "0.2.4",
