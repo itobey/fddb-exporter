@@ -199,22 +199,34 @@ public class RollingAveragesView extends VerticalLayout {
         }
 
         try {
-            String fromDate = fromDatePicker.getValue().format(DATE_FORMAT);
-            String toDate = toDatePicker.getValue().format(DATE_FORMAT);
+            LocalDate from = fromDatePicker.getValue();
+            LocalDate to = toDatePicker.getValue();
+            LocalDate today = LocalDate.now(properties.resolveZone());
+            if (from.isAfter(today)) {
+                displayResult(null, null, List.of(), from, to, today);
+                scrollIntoViewWhenSettled(resultDiv);
+                return;
+            }
+            String fromDate = from.format(DATE_FORMAT);
+            String toDate = (to.isAfter(today) ? today : to).format(DATE_FORMAT);
 
-            RollingAveragesDTO result = statsClient.getRollingAverages(fromDate, toDate);
-            MacroSplitDTO macroSplit = statsClient.getMacroSplit(fromDate, toDate);
             List<WeekdayStatsDTO> weekdayBreakdown = statsClient.getWeekdayBreakdown(fromDate, toDate);
-            displayResult(result, macroSplit, weekdayBreakdown);
+            boolean hasData = weekdayBreakdown.stream().anyMatch(day -> day.getDayCount() > 0);
+            RollingAveragesDTO result = hasData ? statsClient.getRollingAverages(fromDate, toDate) : null;
+            MacroSplitDTO macroSplit = hasData ? statsClient.getMacroSplit(fromDate, toDate) : null;
+            displayResult(result, macroSplit, weekdayBreakdown, from, to, today);
             scrollIntoViewWhenSettled(resultDiv);
-            showSuccess("Averages calculated successfully");
+            if (hasData) {
+                showSuccess("Averages calculated successfully");
+            }
         } catch (ApiException apiException) {
             showError(apiException.getMessage());
         }
     }
 
     private void displayResult(RollingAveragesDTO result, MacroSplitDTO macroSplit,
-                               List<WeekdayStatsDTO> weekdayBreakdown) {
+                               List<WeekdayStatsDTO> weekdayBreakdown,
+                               LocalDate from, LocalDate to, LocalDate today) {
         resultDiv.removeAll();
         resultDiv.setVisible(true);
 
@@ -222,18 +234,36 @@ public class RollingAveragesView extends VerticalLayout {
         content.setSpacing(true);
         content.setPadding(false);
 
-        if (result.getAverages() != null) {
-            H3 heading = new H3(result.getFromDate() + " ⮕ " + result.getToDate());
-            content.add(heading);
+        Div summary = new Div();
+        summary.addClassName("averages-result-summary");
+        summary.add(new H3(from + " ⮕ " + to));
+        content.add(summary);
+        long loggedDays = weekdayBreakdown.stream().mapToLong(WeekdayStatsDTO::getDayCount).sum();
+        long elapsedDays = from.isAfter(today) ? 0
+                : ChronoUnit.DAYS.between(from, to.isAfter(today) ? today : to) + 1;
+        if (from.isAfter(today)) {
+            summary.add(new Paragraph("This range is in the future. No logged data yet."));
+        } else {
+            if (result != null && result.getAverages() != null) {
+                Paragraph basis = new Paragraph("Averages based on " + loggedDays
+                        + (loggedDays == 1 ? " logged day." : " logged days."));
+                basis.addClassName("averages-result-summary__basis");
+                summary.add(basis);
+            }
+            Div details = new Div();
+            details.addClassName("averages-result-summary__details");
+            Paragraph coverage = new Paragraph(loggedDays + " of " + elapsedDays + " "
+                    + (elapsedDays == 1 ? "day" : "days") + " logged"
+                    + (to.isAfter(today) ? " through today." : "."));
+            coverage.addClassNames(LumoUtility.TextColor.SECONDARY);
+            details.add(coverage);
+            if (to.isAfter(today)) {
+                details.add(new Paragraph("Future dates are excluded."));
+            }
+            summary.add(details);
+        }
 
-            long dayCount = ChronoUnit.DAYS.between(
-                    LocalDate.parse(result.getFromDate(), DATE_FORMAT),
-                    LocalDate.parse(result.getToDate(), DATE_FORMAT)) + 1;
-            Paragraph dayCountLabel = new Paragraph(dayCount + (dayCount == 1 ? " day" : " days"));
-            dayCountLabel.addClassNames(LumoUtility.TextColor.SECONDARY);
-            dayCountLabel.getStyle().set("margin-top", "0").set("margin-bottom", "0.25rem");
-            content.add(dayCountLabel);
-
+        if (result != null && result.getAverages() != null) {
             Div averagesGrid = createCardsGrid("120px");
             StatsDTO.Averages avg = result.getAverages();
 
@@ -255,6 +285,8 @@ public class RollingAveragesView extends VerticalLayout {
         if (weekdayBreakdown != null && !weekdayBreakdown.isEmpty()) {
             content.add(new H3("By Day of the Week"));
             content.add(createWeekdayGrid(weekdayBreakdown));
+        } else if (!from.isAfter(today)) {
+            content.add(new Paragraph("No logged data in this range."));
         }
 
         resultDiv.add(content);

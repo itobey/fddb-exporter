@@ -37,6 +37,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
 
     private final FddbDataClient fddbDataClient;
     private final StatsClient statsClient;
+    private final FddbExporterProperties properties;
     private final String fddbLinkPrefix;
 
     private DatePicker entriesFromDatePicker;
@@ -63,6 +64,7 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
     public EntriesView(FddbDataClient fddbDataClient, StatsClient statsClient, FddbExporterProperties properties) {
         this.fddbDataClient = fddbDataClient;
         this.statsClient = statsClient;
+        this.properties = properties;
         this.fddbLinkPrefix = properties.getUi() != null && properties.getUi().getFddbLinkPrefix() != null
                 ? properties.getUi().getFddbLinkPrefix()
                 : "https://fddb.info";
@@ -447,15 +449,26 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
         }
         missingFeedback.setVisible(false);
 
+        LocalDate today = LocalDate.now(properties.resolveZone());
+        if (from.isAfter(today)) {
+            clearGrid(missingDaysGrid, missingDaysCountLabel);
+            showEmptyState(missingFeedback, "This range is in the future. No logged data yet.");
+            return;
+        }
+        LocalDate effectiveTo = to.isAfter(today) ? today : to;
+        String futureNote = to.isAfter(today) ? " Future dates are excluded; gaps are checked through today." : "";
         try {
-            List<LocalDate> missingDays = statsClient.getMissingDays(from.format(DATE_FORMAT), to.format(DATE_FORMAT));
+            List<LocalDate> missingDays = statsClient.getMissingDays(from.format(DATE_FORMAT), effectiveTo.format(DATE_FORMAT));
             int count = populateGrid(missingDaysGrid, missingDaysCountLabel, missingDays, size(missingDays) + " missing days");
 
             if (count > 0) {
                 showSuccess("Found " + count + " missing days");
+                if (to.isAfter(today)) {
+                    showEmptyState(missingFeedback, futureNote.strip());
+                }
             } else {
-                showEmptyState(missingFeedback, "No gaps from " + from + " to " + to
-                        + " — every day in this range is logged. Choose a wider range to check more days.");
+                showEmptyState(missingFeedback, "No gaps from " + from + " to " + effectiveTo
+                        + " — every day in this range is logged. Choose a wider range to check more days." + futureNote);
             }
         } catch (ApiException e) {
             showInlineError(missingFeedback, e.getMessage(), this::loadMissingDays);

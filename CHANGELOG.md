@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.6.4 (Unreleased)
+
+### Fixed
+
+- **Rolling Averages shows the logged days behind each average**, with coverage measured through today when the
+  selected range extends into the future. Future dates are excluded, and ranges without data show a clear empty state.
+- **Trends coverage excludes future days and days outside the selected range**, including partial weeks and months.
+  Chart details, coverage markers, and comparisons use the same evaluated range; averages still use logged days only.
+- **Missing Days no longer reports future dates as gaps.** Future ranges show an explanatory empty state, and ranges
+  extending beyond today are checked through today while preserving the selected dates.
+
 ## 2.6.3
 
 ### ⚠️ Reimport notice

@@ -7,7 +7,11 @@ import com.vaadin.flow.component.html.Span;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -24,11 +28,20 @@ public class TrendChart extends Div {
     private final List<TrendPointDTO> points;
     private final TrendGranularity granularity;
     private final String unit;
+    private final LocalDate rangeFrom;
+    private final LocalDate rangeTo;
 
     public TrendChart(List<TrendPointDTO> points, TrendGranularity granularity, String unit, String fill) {
+        this(points, granularity, unit, fill, LocalDate.MIN, LocalDate.MAX);
+    }
+
+    public TrendChart(List<TrendPointDTO> points, TrendGranularity granularity, String unit, String fill,
+                      LocalDate rangeFrom, LocalDate rangeTo) {
         this.points = List.copyOf(points);
         this.granularity = granularity;
         this.unit = unit;
+        this.rangeFrom = rangeFrom;
+        this.rangeTo = rangeTo;
         addClassName("trend-chart");
         setWidthFull();
 
@@ -54,14 +67,14 @@ public class TrendChart extends Div {
             NativeButton button = new NativeButton();
             button.addClassName("trend-period");
             button.getElement().setAttribute("type", "button");
-            button.getElement().setAttribute("aria-label", describe(point, granularity, unit));
+            button.getElement().setAttribute("aria-label", describe(point, granularity, unit, rangeFrom, rangeTo));
             Div bar = new Div();
             bar.addClassName("trend-period__bar");
             bar.getStyle().set("height", Math.max(0, point.getAverage() / ceiling * 100) + "%")
                     .set("background", fill);
             bar.getElement().setAttribute("aria-hidden", "true");
             button.add(bar);
-            if (isIncomplete(point, granularity)) {
+            if (isIncomplete(point, granularity, rangeFrom, rangeTo)) {
                 button.addClassName("trend-period--incomplete");
             }
             button.addClickListener(e -> select(index, false));
@@ -102,7 +115,7 @@ public class TrendChart extends Div {
             bars.get(i).getElement().setAttribute("tabindex", i == index ? "0" : "-1");
             bars.get(i).getElement().setAttribute("aria-pressed", String.valueOf(i == index));
         }
-        detail.setText(describe(points.get(index), granularity, unit));
+        detail.setText(describe(points.get(index), granularity, unit, rangeFrom, rangeTo));
         if (focus) {
             bars.get(index).getElement().executeJs("this.focus(); this.scrollIntoView({block:'nearest', inline:'nearest'});");
         }
@@ -114,25 +127,57 @@ public class TrendChart extends Div {
     }
 
     public static int expectedDays(TrendPointDTO point, TrendGranularity granularity) {
-        return switch (granularity) {
-            case DAY -> 1;
-            case WEEK -> 7;
-            case MONTH -> point.getFromDate().lengthOfMonth();
+        return expectedDays(point, granularity, LocalDate.MIN, LocalDate.MAX);
+    }
+
+    public static int expectedDays(TrendPointDTO point, TrendGranularity granularity,
+                                   LocalDate rangeFrom, LocalDate rangeTo) {
+        LocalDate start = switch (granularity) {
+            case DAY -> point.getFromDate();
+            case WEEK -> point.getFromDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            case MONTH -> point.getFromDate().withDayOfMonth(1);
         };
+        LocalDate end = switch (granularity) {
+            case DAY -> start;
+            case WEEK -> start.plusDays(6);
+            case MONTH -> start.with(TemporalAdjusters.lastDayOfMonth());
+        };
+        // Intersect calendar boundaries with the evaluated range, never with the first/last
+        // logged date: missing days at either edge must still count against coverage.
+        LocalDate from = start.isBefore(rangeFrom) ? rangeFrom : start;
+        LocalDate to = end.isAfter(rangeTo) ? rangeTo : end;
+        return (int) Math.max(0, ChronoUnit.DAYS.between(from, to) + 1);
     }
 
     public static boolean isIncomplete(TrendPointDTO point, TrendGranularity granularity) {
-        return point.getDayCount() < expectedDays(point, granularity);
+        return isIncomplete(point, granularity, LocalDate.MIN, LocalDate.MAX);
+    }
+
+    public static boolean isIncomplete(TrendPointDTO point, TrendGranularity granularity,
+                                       LocalDate rangeFrom, LocalDate rangeTo) {
+        return point.getDayCount() < expectedDays(point, granularity, rangeFrom, rangeTo);
     }
 
     public static String coverage(TrendPointDTO point, TrendGranularity granularity) {
-        return point.getDayCount() + " of " + expectedDays(point, granularity) + " days logged";
+        return coverage(point, granularity, LocalDate.MIN, LocalDate.MAX);
+    }
+
+    public static String coverage(TrendPointDTO point, TrendGranularity granularity,
+                                  LocalDate rangeFrom, LocalDate rangeTo) {
+        int days = expectedDays(point, granularity, rangeFrom, rangeTo);
+        return point.getDayCount() + " of " + days + (days == 1 ? " day logged" : " days logged");
     }
 
     public static String describe(TrendPointDTO point, TrendGranularity granularity, String unit) {
+        return describe(point, granularity, unit, LocalDate.MIN, LocalDate.MAX);
+    }
+
+    public static String describe(TrendPointDTO point, TrendGranularity granularity, String unit,
+                                  LocalDate rangeFrom, LocalDate rangeTo) {
         return point.getBucket() + " · " + point.getFromDate() + " to " + point.getToDate()
                 + " · " + formatNumber(point.getAverage()) + " " + unit + " per logged day · "
-                + coverage(point, granularity) + (isIncomplete(point, granularity) ? " · Incomplete coverage" : "");
+                + coverage(point, granularity, rangeFrom, rangeTo)
+                + (isIncomplete(point, granularity, rangeFrom, rangeTo) ? " · Incomplete coverage" : "");
     }
 
     static double scaleCeiling(double max) {
