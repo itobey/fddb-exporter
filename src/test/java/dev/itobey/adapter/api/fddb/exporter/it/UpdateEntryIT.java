@@ -36,9 +36,11 @@ import org.testcontainers.utility.DockerImageName;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
 import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -100,6 +102,7 @@ class UpdateEntryIT {
     @BeforeEach
     @SneakyThrows
     void setUp() {
+        wireMockServer.resetAll();
         // prepare the database with an existing entry
         // deletes the documents rather than the collection: dropping it would take the declared indexes
         // with it, and the unique index on date is part of what these tests exercise
@@ -123,6 +126,35 @@ class UpdateEntryIT {
 
         assertMongoDbEntries(exportResultDTO);
         assertInfluxDbEntries();
+    }
+
+    @Test
+    @SneakyThrows
+    void resyncAfterDayDeletedInFddbPreservesBothDatabases() {
+        DateRangeDTO range = new DateRangeDTO("2024-09-06", "2024-09-06");
+        stubFddbResponse();
+        ExportResultDTO initialExport = fddbDataService.exportForTimerange(range);
+        assertMongoDbEntries(initialExport);
+        assertInfluxDbEntries();
+
+        FddbData savedEntry = fddbDataRepository.findAll().getFirst();
+        var savedTotals = new HashMap<>(readInfluxDbRecord().getValues());
+        String emptyDiary = new ClassPathResource("no-data-available.html")
+                .getContentAsString(StandardCharsets.UTF_8);
+        stubFor(get(urlPathEqualTo("/db/i18n/myday20/"))
+                .willReturn(ok(emptyDiary).withHeader("Content-Type", "text/html")));
+
+        // Repeated syncs of a deleted source day must preserve the archived day in both stores.
+        for (int attempt = 0; attempt < 2; attempt++) {
+            ExportResultDTO result = fddbDataService.exportForTimerange(range);
+
+            assertThat(result.getSuccessfulDays()).isEmpty();
+            assertThat(result.getUnsuccessfulDays()).containsExactly("2024-09-06");
+            List<FddbData> entries = fddbDataRepository.findAll();
+            assertThat(entries).hasSize(1);
+            assertThat(entries.getFirst()).usingRecursiveComparison().isEqualTo(savedEntry);
+            assertThat(readInfluxDbRecord().getValues()).isEqualTo(savedTotals);
+        }
     }
 
     private void assertMongoDbEntries(ExportResultDTO exportResultDTO) throws IOException {
@@ -150,19 +182,7 @@ class UpdateEntryIT {
     }
 
     private void assertInfluxDbEntries() {
-        String query = """
-                from(bucket:"test-bucket")
-                  |> range(start: 0)
-                  |> filter(fn: (r) => r._measurement == "dailyTotals")
-                  |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-                  |> yield(name: "result")""";
-
-        List<FluxTable> tables = influxDBClient.getQueryApi().query(query);
-
-        assertThat(tables).hasSize(1);
-        assertThat(tables.getFirst().getRecords()).hasSize(1);
-
-        FluxRecord record1 = tables.getFirst().getRecords().getFirst();
+        FluxRecord record1 = readInfluxDbRecord();
         ZonedDateTime expectedTime2 = ZonedDateTime.of(2024, 9, 6, 0, 0, 0, 0, properties.resolveZone());
         AssertionsForClassTypes.assertThat(record1.getTime()).isEqualTo(expectedTime2.toInstant());
         AssertionsForClassTypes.assertThat(record1.getValueByKey("calories")).isEqualTo(2656.0);
@@ -171,7 +191,23 @@ class UpdateEntryIT {
         AssertionsForClassTypes.assertThat(record1.getValueByKey("sugar")).isEqualTo(50.4);
         AssertionsForClassTypes.assertThat(record1.getValueByKey("protein")).isEqualTo(113.9);
         AssertionsForClassTypes.assertThat(record1.getValueByKey("fibre")).isEqualTo(14.6);
+    }
 
+    private FluxRecord readInfluxDbRecord() {
+        String query = """
+                from(bucket:"test-bucket")
+                  |> range(start: 0)
+                  |> filter(fn: (r) => r._measurement == "dailyTotals")
+                  |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+                  |> drop(columns: ["_start", "_stop"])
+                  |> yield(name: "result")""";
+
+        List<FluxTable> tables = influxDBClient.getQueryApi().query(query);
+
+        assertThat(tables).hasSize(1);
+        assertThat(tables.getFirst().getRecords()).hasSize(1);
+
+        return tables.getFirst().getRecords().getFirst();
     }
 
 }

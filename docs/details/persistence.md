@@ -22,6 +22,13 @@ If you enabled InfluxDB after already having exported data, you can use the [RES
 your data from MongoDB to InfluxDB, so you don't have to re-export your data. Depending on the size of your
 data, this may take a while.
 
+## Resyncing Deleted FDDB Days
+
+Persisted diary days are retained when the corresponding day is later deleted or emptied in FDDB.
+Resyncing an empty day skips persistence and reports that day as unsuccessful; it does not delete or overwrite
+the existing MongoDB entry or InfluxDB totals. Authentication and parsing failures also leave the saved day untouched.
+Resyncing a day that still contains products updates its saved data when it has changed.
+
 ## Data Structure
 
 Depending on the persistence layer chosen, the exported data is structured differently. MongoDB contains all
