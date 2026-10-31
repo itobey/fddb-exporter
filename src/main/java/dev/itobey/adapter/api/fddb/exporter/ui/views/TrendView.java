@@ -26,6 +26,7 @@ import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
@@ -43,6 +44,7 @@ public class TrendView extends VerticalLayout {
     private static final int INLINE_GRID_ROWS = 15;
 
     private final StatsClient statsClient;
+    private final FddbExporterProperties properties;
 
     private ComboBox<NutrientMetric> metricSelect;
     private ComboBox<TrendGranularity> granularitySelect;
@@ -54,6 +56,7 @@ public class TrendView extends VerticalLayout {
 
     public TrendView(StatsClient statsClient, FddbExporterProperties properties) {
         this.statsClient = statsClient;
+        this.properties = properties;
 
         addClassName("trend-view");
         setSpacing(true);
@@ -202,13 +205,17 @@ public class TrendView extends VerticalLayout {
                 ? granularitySelect.getValue() : TrendGranularity.DAY;
 
         try {
-            List<TrendPointDTO> points = statsClient.getTrend(
+            LocalDate from = fromDatePicker.getValue();
+            LocalDate to = toDatePicker.getValue();
+            LocalDate today = LocalDate.now(properties.resolveZone());
+            LocalDate effectiveTo = to.isAfter(today) ? today : to;
+            List<TrendPointDTO> points = from.isAfter(today) ? List.of() : statsClient.getTrend(
                     metric,
-                    fromDatePicker.getValue().format(DATE_FORMAT),
-                    toDatePicker.getValue().format(DATE_FORMAT),
+                    from.format(DATE_FORMAT),
+                    effectiveTo.format(DATE_FORMAT),
                     granularity);
 
-            displayResult(points, metric, granularity);
+            displayResult(points, metric, granularity, from, to, today);
             scrollIntoViewWhenSettled(resultDiv);
 
             if (points != null && !points.isEmpty()) {
@@ -220,7 +227,8 @@ public class TrendView extends VerticalLayout {
         }
     }
 
-    private void displayResult(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity) {
+    private void displayResult(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity,
+                               LocalDate from, LocalDate to, LocalDate today) {
         resultDiv.removeAll();
         resultDiv.setVisible(true);
 
@@ -228,9 +236,26 @@ public class TrendView extends VerticalLayout {
         content.setSpacing(true);
         content.setPadding(false);
 
+        if (from.isAfter(today)) {
+            content.add(new Paragraph("This range is in the future. No logged data yet."));
+            resultDiv.add(content);
+            return;
+        }
+        LocalDate effectiveTo = to.isAfter(today) ? today : to;
+        long loggedDays = points == null ? 0 : points.stream().mapToLong(TrendPointDTO::getDayCount).sum();
+        long elapsedDays = ChronoUnit.DAYS.between(from, effectiveTo) + 1;
+        Paragraph coverage = new Paragraph(loggedDays + " of " + elapsedDays + " "
+                + (elapsedDays == 1 ? "day" : "days") + " logged"
+                + (to.isAfter(today) ? " through today." : "."));
+        coverage.addClassNames(LumoUtility.TextColor.SECONDARY);
+        content.add(coverage);
+        if (to.isAfter(today)) {
+            content.add(new Paragraph("Future dates are excluded."));
+        }
+
         if (points == null || points.isEmpty()) {
-            Paragraph noData = new Paragraph("No entries found from " + fromDatePicker.getValue()
-                    + " to " + toDatePicker.getValue() + ". Choose another preset or widen the custom date range.");
+            Paragraph noData = new Paragraph("No entries found from " + from
+                    + " to " + effectiveTo + ". Choose another preset or widen the custom date range.");
             noData.addClassNames(LumoUtility.TextColor.SECONDARY);
             content.add(noData);
             resultDiv.add(content);
@@ -242,13 +267,13 @@ public class TrendView extends VerticalLayout {
         Paragraph comparison = new Paragraph(points.size() < 2
                 ? "Change needs at least two periods with entries."
                 : "Change compares the last period's daily average with the first: "
-                + points.getFirst().getBucket() + " (" + TrendChart.coverage(points.getFirst(), granularity)
-                + ") → " + points.getLast().getBucket() + " (" + TrendChart.coverage(points.getLast(), granularity)
-                + "). Incomplete coverage may reflect the selected range or missing diary days.");
+                + points.getFirst().getBucket() + " (" + TrendChart.coverage(points.getFirst(), granularity, from, effectiveTo)
+                + ") → " + points.getLast().getBucket() + " (" + TrendChart.coverage(points.getLast(), granularity, from, effectiveTo)
+                + "). Coverage counts days within the selected range through today. Incomplete coverage indicates missing diary days.");
         comparison.addClassName("trend-comparison-note");
         content.add(comparison);
-        content.add(createChart(points, metric, granularity));
-        content.add(createTrendGrid(points, metric, granularity));
+        content.add(createChart(points, metric, granularity, from, effectiveTo));
+        content.add(createTrendGrid(points, metric, granularity, from, effectiveTo));
 
         resultDiv.add(content);
     }
@@ -290,19 +315,21 @@ public class TrendView extends VerticalLayout {
     /**
      * The chart owns scales, period inspection and coverage markers.
      */
-    private Component createChart(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity) {
-        return new TrendChart(points, granularity, unitOf(metric), fillOf(metric));
+    private Component createChart(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity,
+                                   LocalDate from, LocalDate to) {
+        return new TrendChart(points, granularity, unitOf(metric), fillOf(metric), from, to);
     }
 
-    private Component createTrendGrid(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity) {
+    private Component createTrendGrid(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity,
+                                       LocalDate from, LocalDate to) {
         String unit = unitOf(metric);
 
         Grid<TrendPointDTO> grid = new Grid<>(TrendPointDTO.class, false);
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
 
         grid.addColumn(TrendPointDTO::getBucket).setHeader("Period").setAutoWidth(true);
-        grid.addColumn(point -> TrendChart.isIncomplete(point, granularity)
-                        ? "Incomplete: " + TrendChart.coverage(point, granularity) : "Complete")
+        grid.addColumn(point -> TrendChart.isIncomplete(point, granularity, from, to)
+                        ? "Incomplete: " + TrendChart.coverage(point, granularity, from, to) : "Complete")
                 .setHeader("Coverage").setAutoWidth(true);
         grid.addColumn(TrendPointDTO::getFromDate).setHeader("From").setAutoWidth(true);
         grid.addColumn(TrendPointDTO::getToDate).setHeader("To").setAutoWidth(true);

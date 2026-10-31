@@ -2334,6 +2334,37 @@ textarea {
     font-size: 16px;
 }
 
+/* Keep the range and its calculation context together above the nutrient cards. */
+.averages-result-summary {
+    display: grid;
+    gap: var(--lumo-space-xs);
+    width: 100%;
+    min-width: 0;
+}
+
+.averages-result-summary > h3,
+.averages-result-summary p {
+    margin: 0;
+}
+
+.averages-result-summary > h3 {
+    margin-bottom: var(--lumo-space-s);
+    overflow-wrap: anywhere;
+}
+
+.averages-result-summary__basis {
+    font-weight: 600;
+}
+
+.averages-result-summary__details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-xs) var(--lumo-space-m);
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    line-height: 1.5;
+}
+
 /* ViewUtils.createCardsGrid sets display, gap and grid-template-columns as inline styles,
    which outrank this stylesheet. align-items is not set inline, so it is the one property
    this rule can still affect.

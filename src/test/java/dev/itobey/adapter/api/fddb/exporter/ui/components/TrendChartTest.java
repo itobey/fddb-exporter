@@ -16,6 +16,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class TrendChartTest {
     @Test
+    void currentWeekCoverageExcludesFutureDaysInDetailsAndAccessibleLabels() {
+        TrendPointDTO point = point("2026-10-26", 3);
+        LocalDate from = LocalDate.parse("2026-10-01");
+        LocalDate today = LocalDate.parse("2026-10-28");
+        TrendChart chart = new TrendChart(List.of(point), TrendGranularity.WEEK, "kcal", "red", from, today);
+
+        assertThat(TrendChart.coverage(point, TrendGranularity.WEEK, from, today)).isEqualTo("3 of 3 days logged");
+        assertThat(TrendChart.isIncomplete(point, TrendGranularity.WEEK, from, today)).isFalse();
+        assertThat(chart.getElement().getTextRecursively()).contains("3 of 3 days logged");
+        NativeButton bar = components(chart).filter(NativeButton.class::isInstance)
+                .map(NativeButton.class::cast).findFirst().orElseThrow();
+        assertThat(bar.getElement().getAttribute("aria-label")).contains("3 of 3 days logged");
+        assertThat(bar.hasClassName("trend-period--incomplete")).isFalse();
+    }
+
+    @Test
+    void coverageClipsPartialMonthsButStillCountsMissingDaysAtBothEdges() {
+        TrendPointDTO point = point("2024-02-12", 10);
+        LocalDate from = LocalDate.parse("2024-02-10");
+        LocalDate to = LocalDate.parse("2024-02-25");
+        assertThat(TrendChart.coverage(point, TrendGranularity.MONTH, from, to)).isEqualTo("10 of 16 days logged");
+        assertThat(TrendChart.isIncomplete(point, TrendGranularity.MONTH, from, to)).isTrue();
+    }
+
+    @Test
     void coverage_shouldDistinguishAnIncompleteWeekFromACompleteOne() {
         TrendPointDTO first = point("2026-10-05", 7);
         TrendPointDTO last = point("2026-10-12", 2);
