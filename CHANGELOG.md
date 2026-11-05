@@ -2,6 +2,12 @@
 
 ## 2.6.4 (Unreleased)
 
+### Added
+
+- **Return from diary days to your product search** using browser Back or "Back to product results".
+  The search term, date range, weekday filters, sorting, selected occurrence, and scroll position are restored,
+  and matching products are highlighted in the day view.
+
 ### Fixed
 
 - **Rolling Averages shows the logged days behind each average**, with coverage measured through today when the

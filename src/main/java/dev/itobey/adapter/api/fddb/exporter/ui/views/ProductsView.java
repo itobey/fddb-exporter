@@ -6,6 +6,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -13,14 +14,15 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
+import com.vaadin.flow.data.provider.SortDirection;
+import com.vaadin.flow.router.*;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
+import dev.itobey.adapter.api.fddb.exporter.ui.util.ProductExplorerState;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -41,7 +43,7 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
  */
 @Route(value = "products", layout = MainLayout.class)
 @PageTitle("Products | FDDB Exporter")
-public class ProductsView extends VerticalLayout {
+public class ProductsView extends VerticalLayout implements BeforeEnterObserver {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final int MIN_SEARCH_LENGTH = 2;
@@ -63,6 +65,10 @@ public class ProductsView extends VerticalLayout {
     private Div summarySection;
     private Grid<ProductWithDateDTO> occurrencesGrid;
     private Span occurrencesCountLabel;
+    private VerticalLayout explorerLayout;
+    private ProductExplorerState committedSearch;
+    private boolean restoringSearch;
+    private int selectedOccurrence = -1;
     private final Div explorerFeedback = createFeedbackRegion();
 
     // Explorer weekday filter: the full occurrence set for the current term is held in memory and
@@ -126,6 +132,7 @@ public class ProductsView extends VerticalLayout {
 
     private VerticalLayout createExplorerTab() {
         VerticalLayout layout = createTabLayout();
+        explorerLayout = layout;
         // The summary block above the grid can be tall; let the whole tab scroll instead of letting
         // the fixed-height flex column squeeze the grid.
         layout.getStyle().set("overflow-y", "auto");
@@ -212,16 +219,125 @@ public class ProductsView extends VerticalLayout {
         occurrencesGrid.addComponentColumn(dto -> dto.getProduct() != null ? createFddbLink(dto.getProduct()) : new Paragraph(""))
                 .setHeader("Link").setAutoWidth(true);
 
-        // Clicking an occurrence opens that day in the Entries view (which reads the ?date param).
+        String[] columnKeys = {"date", "product", "amount", "calories", "fat", "carbs", "protein", "link"};
+        for (int i = 0; i < columnKeys.length; i++) {
+            occurrencesGrid.getColumns().get(i).setKey(columnKeys[i]);
+        }
+        occurrencesGrid.addSortListener(event -> {
+            if (!restoringSearch) {
+                selectedOccurrence = -1;
+                occurrencesGrid.deselectAll();
+                updateSearchLocation();
+            }
+        });
+
+        // Keep the committed query in both locations so Back and the return link restore it.
         occurrencesGrid.addItemClickListener(event -> {
             ProductWithDateDTO selected = event.getItem();
-            if (selected != null && selected.getDate() != null) {
-                getUI().ifPresent(ui -> ui.navigate("entries?date=" + selected.getDate().format(DATE_FORMAT)));
+            if (selected != null && selected.getDate() != null && committedSearch != null
+                    && !(event.getColumn() != null && "link".equals(event.getColumn().getKey()))) {
+                selectedOccurrence = occurrencesGrid.getListDataView().getItemIndex(selected).orElse(-1);
+                updateSearchLocation();
+                Map<String, List<String>> params = new LinkedHashMap<>(committedSearch.parameters().getParameters());
+                params.put("source", List.of("products"));
+                params.put("date", List.of(selected.getDate().toString()));
+                // Capture the tab, grid and enclosing app scroll positions before navigation detaches them.
+                explorerLayout.getElement().executeJs("""
+                        const grid = this.querySelector('vaadin-grid');
+                        const positions = [];
+                        for (let el = this; el; el = el.parentElement || el.getRootNode()?.host) {
+                            positions.push([el.scrollLeft, el.scrollTop]);
+                        }
+                        try {
+                            sessionStorage.setItem('product-explorer:' + $0, JSON.stringify({positions,
+                                grid: [grid?.shadowRoot?.querySelector('#scroller')?.scrollLeft || 0,
+                                       grid?.shadowRoot?.querySelector('#scroller')?.scrollTop || 0]}));
+                        } catch (_) { /* Navigation also works when browser storage is unavailable. */ }
+                        return true;
+                        """, committedSearch.productsLocation()).then(Boolean.class,
+                        ignored -> getUI().ifPresent(ui -> ui.navigate("entries", new QueryParameters(params))));
             }
         });
 
         layout.add(topRow, hint, explorerFeedback, summarySection, occurrencesGrid);
         return layout;
+    }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        if (productNameCombo == null) return;
+        restoringSearch = true;
+        try {
+            ProductExplorerState state = ProductExplorerState.parse(event.getLocation().getQueryParameters());
+            if (state.term().isBlank()) return;
+            productNameCombo.setValue(state.term());
+            explorerFromDatePicker.setValue(state.from());
+            explorerToDatePicker.setValue(state.to());
+            explore(state.term());
+            if (committedSearch == null) return;
+            selectedWeekdays.addAll(state.weekdays());
+            updateBarStyles();
+            applyWeekdayFilter();
+            List<GridSortOrder<ProductWithDateDTO>> sorting = new ArrayList<>();
+            for (String sort : state.sort()) {
+                String[] parts = sort.split(":", 2);
+                Grid.Column<ProductWithDateDTO> column = occurrencesGrid.getColumnByKey(parts[0]);
+                if (column != null && column.isSortable() && parts.length == 2
+                        && (parts[1].equals("asc") || parts[1].equals("desc"))) {
+                    sorting.add(new GridSortOrder<>(column,
+                            parts[1].equals("desc") ? SortDirection.DESCENDING : SortDirection.ASCENDING));
+                }
+            }
+            occurrencesGrid.sort(sorting);
+            selectedOccurrence = state.row();
+            if (selectedOccurrence >= 0 && selectedOccurrence < occurrencesGrid.getListDataView().getItemCount()) {
+                occurrencesGrid.select(occurrencesGrid.getListDataView().getItem(selectedOccurrence));
+                occurrencesGrid.scrollToIndex(selectedOccurrence);
+                occurrencesGrid.focus();
+            }
+            restoreScrollPosition(state.productsLocation());
+        } catch (java.time.DateTimeException | IllegalArgumentException e) {
+            showEmptyState(explorerFeedback, "This product search link has invalid filters. Adjust them and explore again.");
+        } finally {
+            restoringSearch = false;
+        }
+    }
+
+    private void restoreScrollPosition(String location) {
+        explorerLayout.getElement().executeJs("""
+                let saved;
+                try { saved = JSON.parse(sessionStorage.getItem('product-explorer:' + $0)); } catch (_) {}
+                if (!saved) return;
+                const restore = () => {
+                    if (!this.isConnected) return;
+                    let el = this;
+                    for (const [left, top] of saved.positions) {
+                        if (!el) break;
+                        el.scrollTo(left, top);
+                        el = el.parentElement || el.getRootNode()?.host;
+                    }
+                    this.querySelector('vaadin-grid')?.shadowRoot?.querySelector('#scroller')
+                        ?.scrollTo(...saved.grid);
+                };
+                requestAnimationFrame(() => requestAnimationFrame(restore));
+                const grid = this.querySelector('vaadin-grid');
+                grid?.addEventListener('loading-changed', function loaded(e) {
+                    if (!e.detail.value) {
+                        grid.removeEventListener('loading-changed', loaded);
+                        requestAnimationFrame(restore);
+                    }
+                });
+                """, location);
+    }
+
+    private void updateSearchLocation() {
+        if (restoringSearch || committedSearch == null) return;
+        List<String> sort = occurrencesGrid.getSortOrder().stream()
+                .map(order -> order.getSorted().getKey() + ":"
+                        + (order.getDirection() == SortDirection.ASCENDING ? "asc" : "desc")).toList();
+        committedSearch = new ProductExplorerState(committedSearch.term(), committedSearch.from(),
+                committedSearch.to(), selectedWeekdays, sort, selectedOccurrence);
+        getUI().ifPresent(ui -> ui.getPage().getHistory().replaceState(null, committedSearch.productsLocation()));
     }
 
     private void explore(String rawTerm) {
@@ -244,6 +360,11 @@ public class ProductsView extends VerticalLayout {
         String fromStr = from != null ? from.format(DATE_FORMAT) : null;
         String toStr = to != null ? to.format(DATE_FORMAT) : null;
         explorerFeedback.setVisible(false);
+        committedSearch = new ProductExplorerState(term, from, to, Set.of(), List.of(), -1);
+        selectedOccurrence = -1;
+        selectedWeekdays.clear();
+        occurrencesGrid.deselectAll();
+        updateSearchLocation();
 
         try {
             ProductSummaryDTO summary = fddbDataClient.getProductSummary(term, fromStr, toStr);
@@ -258,8 +379,8 @@ public class ProductsView extends VerticalLayout {
 
             int count = allOccurrences.size();
             if (count > 0) {
-                scrollIntoViewWhenSettled(summarySection);
-                showSuccess("Found " + count + " occurrences for \"" + term + "\"");
+                if (!restoringSearch) scrollIntoViewWhenSettled(summarySection);
+                if (!restoringSearch) showSuccess("Found " + count + " occurrences for \"" + term + "\"");
             } else {
                 summarySection.setVisible(false);
                 showEmptyState(explorerFeedback, "No products found matching \"" + term
@@ -503,6 +624,9 @@ public class ProductsView extends VerticalLayout {
         }
         updateBarStyles();
         applyWeekdayFilter();
+        selectedOccurrence = -1;
+        occurrencesGrid.deselectAll();
+        updateSearchLocation();
     }
 
     /**

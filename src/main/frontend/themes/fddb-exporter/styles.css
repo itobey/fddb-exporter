@@ -1,5 +1,41 @@
 /* FDDB Exporter - Modern Dark Theme */
 
+.product-search-context {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-s) var(--lumo-space-l);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.product-search-context > span {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+
+.product-search-return {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    min-height: 44px;
+}
+
+.product-search-return vaadin-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+.date-products-grid::part(product-search-match) {
+    background: var(--accent-surface);
+}
+
+.product-search-match-label {
+    color: var(--highlight-text);
+    font-weight: 600;
+}
+
 /* No webfont import. This app is self-hosted specifically so that nothing about a user's diary
    leaves their instance, and a stylesheet that fetches from fonts.googleapis.com on every load
    contradicts that for no benefit: the body stack resolves to -apple-system or Segoe UI on every

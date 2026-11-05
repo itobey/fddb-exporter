@@ -6,13 +6,11 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.*;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
@@ -22,6 +20,7 @@ import dev.itobey.adapter.api.fddb.exporter.ui.components.MobileEntriesList;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
+import dev.itobey.adapter.api.fddb.exporter.ui.util.ProductExplorerState;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -31,7 +30,7 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 
 @Route(value = "entries", layout = MainLayout.class)
 @PageTitle("Entries | FDDB Exporter")
-public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
+public class EntriesView extends VerticalLayout implements BeforeEnterObserver, AfterNavigationObserver {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -60,6 +59,8 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
     private Span missingDaysCountLabel;
 
     private final TabSheet tabSheet = new TabSheet();
+    private final Div productSearchContext = new Div();
+    private String sourceProductTerm;
 
     public EntriesView(FddbDataClient fddbDataClient, StatsClient statsClient, FddbExporterProperties properties) {
         this.fddbDataClient = fddbDataClient;
@@ -80,7 +81,12 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
         headerLayout.setSpacing(true);
         applyResponsivePadding(headerLayout);
 
+        productSearchContext.addClassName("product-search-context");
+        productSearchContext.setVisible(false);
+        // Keep return navigation after the heading: browser heading/scroll restoration must not
+        // place this action just above the visible viewport on mobile.
         headerLayout.add(new H2("Entries"));
+        headerLayout.add(productSearchContext);
         headerLayout.add(new Paragraph("Browse your logged days, look up a single date, and find gaps in your logging."));
         add(headerLayout);
 
@@ -105,6 +111,27 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+        if (searchDatePicker == null) return;
+        productSearchContext.setVisible(false);
+        productSearchContext.removeAll();
+        sourceProductTerm = null;
+        if (event.getLocation().getQueryParameters().getParameters()
+                .getOrDefault("source", List.of()).contains("products")) {
+            try {
+                ProductExplorerState state = ProductExplorerState.parse(event.getLocation().getQueryParameters());
+                if (state.term().length() >= 2) {
+                    sourceProductTerm = state.term();
+                    Anchor back = new Anchor(state.productsLocation(), "");
+                    back.add(VaadinIcon.ARROW_LEFT.create(), new Span("Back to product results"));
+                    back.addClassName("product-search-return");
+                    Span context = new Span("Product search: " + sourceProductTerm);
+                    productSearchContext.add(back, context);
+                    productSearchContext.setVisible(true);
+                }
+            } catch (java.time.DateTimeException | IllegalArgumentException ignored) {
+                // A malformed source query must not prevent opening a valid diary date.
+            }
+        }
         List<String> dateParams = event.getLocation().getQueryParameters().getParameters().get("date");
         if (dateParams != null) {
             dateParams.stream().findFirst().ifPresent(dateStr -> {
@@ -117,6 +144,15 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
                     showError("Invalid date parameter: " + dateStr);
                 }
             });
+        }
+    }
+
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        if (sourceProductTerm != null) {
+            // Align the whole page, including its header padding, after routing and layout settle.
+            // Aligning only the return link leaves the app layout's content scroller offset on phones.
+            scrollToPageTopWhenSettled(this);
         }
     }
 
@@ -237,7 +273,15 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
                 .set("z-index", "1");
 
         dateProductsGrid = createGrid(ProductDTO.class);
-        dateProductsGrid.addColumn(ProductDTO::getName).setHeader("Product Name").setSortable(true).setAutoWidth(true);
+        dateProductsGrid.addComponentColumn(product -> {
+            Span name = new Span(product.getName());
+            if (matchesSourceProduct(product)) {
+                name.addClassName("product-search-match-label");
+                name.getElement().setAttribute("title", "Matches your product search");
+            }
+            return name;
+        }).setComparator(ProductDTO::getName).setHeader("Product Name").setSortable(true).setAutoWidth(true);
+        dateProductsGrid.setPartNameGenerator(product -> matchesSourceProduct(product) ? "product-search-match" : null);
         dateProductsGrid.addColumn(ProductDTO::getAmount).setHeader("Amount").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getCalories())).setHeader("Calories").setSortable(true).setAutoWidth(true);
         dateProductsGrid.addColumn(dto -> formatNumber(dto.getFat())).setHeader("Fat (g)").setSortable(true).setAutoWidth(true);
@@ -253,6 +297,12 @@ public class EntriesView extends VerticalLayout implements BeforeEnterObserver {
 
         layout.add(topRow, dateFeedback, dateStatsCards, dateProductsGrid);
         return layout;
+    }
+
+    private boolean matchesSourceProduct(ProductDTO product) {
+        return sourceProductTerm != null && product.getName() != null
+                && product.getName().toLowerCase(java.util.Locale.ROOT)
+                .contains(sourceProductTerm.toLowerCase(java.util.Locale.ROOT));
     }
 
     private VerticalLayout createTabLayout() {

@@ -37,18 +37,29 @@ public class ViewUtils {
      * never settles, so the scroll still happens.
      */
     public static void scrollIntoViewWhenSettled(Component target) {
+        scrollIntoViewWhenSettled(target, true);
+    }
+
+    /** Reset every enclosing scroll container, including Vaadin's slotted content and the viewport. */
+    public static void scrollToPageTopWhenSettled(Component view) {
+        scrollIntoViewWhenSettled(view, false);
+    }
+
+    private static void scrollIntoViewWhenSettled(Component target, boolean animate) {
         target.getElement().executeJs("""
                 const block = this;
                 // prefers-reduced-motion cannot be applied to a script-initiated scroll from CSS,
                 // so the theme's Reduced Motion Rule has to be honoured here explicitly.
-                const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-                    ? 'auto' : 'smooth';
+                const behavior = $0
+                    ? (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth')
+                    : 'instant';
                 const viewport = window.visualViewport;
                 let lastHeight = -1;
                 let lastViewportHeight = -1;
                 let stableFrames = 0;
                 let framesLeft = 60;
                 const settle = () => {
+                    if (!block.isConnected) return;
                     const height = block.scrollHeight;
                     const viewportHeight = viewport ? viewport.height : window.innerHeight;
                     if (height === lastHeight && viewportHeight === lastViewportHeight) {
@@ -62,10 +73,21 @@ public class ViewUtils {
                         requestAnimationFrame(settle);
                         return;
                     }
-                    block.scrollIntoView({behavior: behavior, block: 'start'});
+                    if ($0) {
+                        block.scrollIntoView({behavior: behavior, block: 'start'});
+                    } else {
+                        // Follow the composed tree: parentElement alone skips AppLayout's scrollable
+                        // shadow-DOM content, because the view is assigned to a slot inside it.
+                        for (let element = block; element;
+                                element = element.assignedSlot || element.parentElement || element.getRootNode()?.host) {
+                            element.scrollTo({top: 0, left: 0, behavior: 'instant'});
+                        }
+                        // Android Chrome can also scroll/pan the document independently of AppLayout.
+                        window.scrollTo({top: 0, left: 0, behavior: 'instant'});
+                    }
                 };
                 requestAnimationFrame(settle);
-                """);
+                """, animate);
     }
 
     public static VerticalLayout createSection(String backgroundColor) {
