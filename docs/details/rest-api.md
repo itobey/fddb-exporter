@@ -38,6 +38,78 @@ Example responses:
 2. [example response when querying a product name](/resources/example-response-products.json)
 3. [example response when retrieving stats](/resources/example-response-stats.json)
 
+## Body measurements
+
+With [MongoDB persistence](/details/persistence.md) enabled, the exporter stores body measurements
+in a separate `bodyMeasurements` collection. FDDB's mobile tracker connections display measurements
+in the app, and the FDDB website does not expose those readings to the exporter.
+[FDDB tracker data help](https://help.fddb.info/hc/en-us/articles/4688157675794-Why-doesn-t-my-imported-data-appear-on-the-Fddb-website)
+
+### Import a Samsung Health export
+
+1. In Samsung Health, go to **More options → Settings → Download personal data**.
+2. Open the downloaded files and find the CSV beginning with `com.samsung.health.weight`.
+   If the download also includes a separate `com.samsung.health.body_fat` CSV, import it separately.
+3. In `/swagger-ui.html`, open **Body Measurements** and use
+   `POST /api/v2/body-measurements/import/samsung-health` to upload the CSV in the `file` field.
+   You can also use the command below.
+
+[Samsung Health download instructions](https://www.samsung.com/us/support/answer/ANS10001379/)
+
+```sh
+curl --form 'file=@com.samsung.health.weight.example.csv' \
+  http://localhost:8080/api/v2/body-measurements/import/samsung-health
+```
+
+The importer reads the measurement time and record ID from the CSV, stores weight in kg, and
+imports body fat and other supported fields when the file contains them. A blank field stays absent.
+The importer expects UTF-8 CSV. Download and reimport a fresh CSV to update your history.
+
+### Import from another source
+
+Send a JSON array to `POST /api/v2/body-measurements`. Garmin, Mi Fitness, Zepp, Renpho, Withings,
+and other sources can use this endpoint once their data has been converted to this schema.
+The endpoint accepts prepared records from a script or another integration.
+
+```json
+[
+  {
+    "source": "withings",
+    "externalId": "reading-123",
+    "measuredAt": "2026-01-02T07:30:00+01:00",
+    "metrics": {
+      "WEIGHT_KG": 82.5,
+      "BODY_FAT_PERCENT": 24.1
+    }
+  }
+]
+```
+
+- Use a lowercase source slug and a stable ID for each reading. Reimporting the same source and
+  ID replaces the entire reading. Keep any metric fields you want to retain in the new payload.
+- Each import accepts up to 10,000 records and returns the number processed, including updates.
+  A malformed record or duplicate ID within a batch rejects the import before any writes.
+  If a database error interrupts the write, retry the same batch.
+- Measurements use ISO 8601 timestamps with an offset and are stored in UTC at millisecond precision.
+- Supported metrics are `WEIGHT_KG`, `BODY_FAT_PERCENT`, `BODY_FAT_MASS_KG`,
+  `BODY_WATER_PERCENT`, `BODY_WATER_LITERS`, `FAT_FREE_MASS_KG`,
+  `SKELETAL_MUSCLE_PERCENT`, `SKELETAL_MUSCLE_MASS_KG`, `BMI`,
+  `BASAL_METABOLIC_RATE_KCAL_PER_DAY`, `WAIST_CM`, and `HIP_CM`.
+  Percentage values range from 0 to 100. Other values must be positive.
+
+### Query measurement history
+
+```http
+GET /api/v2/body-measurements?source=samsung-health&from=2026-01-01T00:00:00Z&to=2026-02-01T00:00:00Z
+```
+
+The optional `from` and `to` bounds are inclusive and exclusive, respectively. Omit `source` to
+query across all sources. Results are chronological. Use zero-based `page` and a `size` of 1 to 1,000
+to page through the results. The default size is 1,000.
+
+Protect access to these endpoints and the database because they hold personal health data.
+[Securing your instance](/details/security.md)
+
 ## Error responses <Badge type="tip" text="2.5.0+" />
 
 Errors handled by the global exception handler use [RFC 7807](https://www.rfc-editor.org/rfc/rfc7807) *problem details*,

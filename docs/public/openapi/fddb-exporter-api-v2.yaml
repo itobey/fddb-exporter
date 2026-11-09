@@ -10,6 +10,7 @@ info:
     - Calculating statistics and rolling averages
     - Performing correlation analysis
     - Migrating data between storage backends
+    - Importing and querying body measurements in MongoDB
     
     ## Storage Backends
     The API supports multiple storage backends:
@@ -46,8 +47,107 @@ tags:
     description: Data migration operations between storage backends
   - name: Correlation Analysis
     description: Correlation analysis between data series
+  - name: Body Measurements
+    description: Import and query body measurements independently of the food diary
 
 paths:
+  /api/v2/body-measurements:
+    get:
+      tags: [Body Measurements]
+      summary: List body measurements in chronological order
+      description: Available when MongoDB persistence is enabled.
+      operationId: listBodyMeasurements
+      parameters:
+        - in: query
+          name: from
+          description: Inclusive lower bound
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          description: Exclusive upper bound
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: source
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1000
+      responses:
+        '200':
+          description: Measurement history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BodyMeasurement'
+        '400':
+          description: Invalid query parameters
+    post:
+      tags: [Body Measurements]
+      summary: Import normalized body measurements
+      description: Available when MongoDB persistence is enabled. Replaces readings with the same source and external ID.
+      operationId: importBodyMeasurements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              maxItems: 10000
+              items:
+                $ref: '#/components/schemas/BodyMeasurement'
+      responses:
+        '200':
+          description: Number of readings processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BodyMeasurementImportResult'
+        '400':
+          description: Invalid measurement or batch
+  /api/v2/body-measurements/import/samsung-health:
+    post:
+      tags: [Body Measurements]
+      summary: Import a Samsung Health weight or body fat CSV
+      description: Available when MongoDB persistence is enabled. Upload a UTF-8 CSV with up to 10,000 readings.
+      operationId: importSamsungHealth
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Number of readings processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BodyMeasurementImportResult'
+        '400':
+          description: Invalid CSV or batch
   /api/v2/fddbdata:
     post:
       tags:
@@ -927,6 +1027,44 @@ paths:
 
 components:
   schemas:
+    BodyMeasurement:
+      type: object
+      required: [source, externalId, measuredAt, metrics]
+      properties:
+        source:
+          type: string
+          pattern: '^[a-z0-9][a-z0-9-]{0,63}$'
+          example: samsung-health
+        externalId:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: reading-123
+        measuredAt:
+          type: string
+          format: date-time
+          example: '2026-01-01T12:00:00Z'
+        metrics:
+          type: object
+          minProperties: 1
+          description: |
+            Supported keys are WEIGHT_KG, BODY_FAT_PERCENT, BODY_FAT_MASS_KG, BODY_WATER_PERCENT,
+            BODY_WATER_LITERS, FAT_FREE_MASS_KG, SKELETAL_MUSCLE_PERCENT, SKELETAL_MUSCLE_MASS_KG,
+            BMI, BASAL_METABOLIC_RATE_KCAL_PER_DAY, WAIST_CM, and HIP_CM.
+            Percentages must be between 0 and 100. Other values must be positive.
+          additionalProperties:
+            type: number
+            format: double
+          example:
+            WEIGHT_KG: 82.5
+            BODY_FAT_PERCENT: 24.1
+    BodyMeasurementImportResult:
+      type: object
+      required: [processed]
+      properties:
+        processed:
+          type: integer
+          description: Number of readings accepted, including updates
     DateRangeDTO:
       type: object
       description: Date range with from and to dates

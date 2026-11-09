@@ -1,6 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.config;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.BodyMeasurementStore.StoredMeasurement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -28,6 +29,7 @@ public class MongoIndexInitializer {
 
     @EventListener(ApplicationReadyEvent.class)
     public void ensureIndexes() {
+        ensureBodyMeasurementIndexes();
         try {
             IndexOperations indexOps = mongoTemplate.indexOps(FddbData.class);
             // Match the existing production index names to avoid IndexOptionsConflict.
@@ -37,6 +39,17 @@ public class MongoIndexInitializer {
             log.error("Failed to create MongoDB indexes. If this is the unique index on 'date', the collection "
                     + "likely already contains duplicate dates - see the upgrading docs to find and remove them, "
                     + "then restart. Continuing startup without the index in the meantime.", e);
+        }
+    }
+
+    private void ensureBodyMeasurementIndexes() {
+        try {
+            mongoTemplate.indexOps(StoredMeasurement.class).createIndex(new Index()
+                    .on("measurement.measuredAt", Sort.Direction.ASC)
+                    .on("_id", Sort.Direction.ASC)
+                    .named("measurement_time"));
+        } catch (Exception e) {
+            log.warn("Failed to create the body measurement index. Continuing startup without it.", e);
         }
     }
 
