@@ -65,7 +65,19 @@ public class BodyMeasurementStore {
             throw new IllegalArgumentException("Page must be non-negative and size must be between 1 and 1000");
         }
 
-        Query query = new Query().with(Sort.by(MEASURED_AT, "_id")).skip((long) page * size).limit(size);
+        return read(historyQuery(from, to, source).skip((long) page * size).limit(size));
+    }
+
+    public List<BodyMeasurement> findHistory(Instant from, Instant to, String source) {
+        return read(historyQuery(from, to, source));
+    }
+
+    private List<BodyMeasurement> read(Query query) {
+        return mongoTemplate.find(query, StoredMeasurement.class).stream().map(StoredMeasurement::measurement).toList();
+    }
+
+    private Query historyQuery(Instant from, Instant to, String source) {
+        Query query = new Query().with(Sort.by(MEASURED_AT, "_id"));
         if (from != null || to != null) {
             Criteria timestamp = Criteria.where(MEASURED_AT);
             // Mongo stores millisecond precision. Round both bounds up to keep the range half-open.
@@ -80,7 +92,7 @@ public class BodyMeasurementStore {
         if (source != null) {
             query.addCriteria(Criteria.where("measurement.source").is(source));
         }
-        return mongoTemplate.find(query, StoredMeasurement.class).stream().map(StoredMeasurement::measurement).toList();
+        return query;
     }
 
     private static Instant ceilMillis(Instant value) {

@@ -41,8 +41,9 @@ Example responses:
 ## Body measurements
 
 With [MongoDB persistence](/details/persistence.md) enabled, the exporter stores body measurements
-in a separate `bodyMeasurements` collection. FDDB's mobile tracker connections display measurements
-in the app, and the FDDB website does not expose those readings to the exporter.
+in a separate `bodyMeasurements` collection. Readings entered in the FDDB website's Diet Report can be
+synced from the [Trends view](/visualization/web-ui.md#fddb-weight-and-body-fat) and queried with
+`source=fddb`. FDDB's mobile tracker connections display measurements in the app.
 [FDDB tracker data help](https://help.fddb.info/hc/en-us/articles/4688157675794-Why-doesn-t-my-imported-data-appear-on-the-Fddb-website)
 
 ### Import a Samsung Health export

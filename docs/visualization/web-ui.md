@@ -180,9 +180,8 @@ After selecting a date range and clicking **Calculate Averages**, the view displ
 
 ### Trends <Badge type="tip" text="2.3.0+" />
 
-The **Trends** view charts one metric — calories, fat, carbs, sugar, protein or fibre — over a date range, bucketed by
-day, ISO week or month. Where Rolling Averages answers "what was my average over this range?", Trends answers "is that
-average moving?".
+The **Trends** view charts calories, fat, carbs, sugar, protein, fibre, or FDDB body measurements over a date range.
+You can group readings by day, ISO week, or month.
 
 Pick a **Metric**, a **Granularity** and a date range, then click **Show Trend**. The quick-select buttons preset both
 the range and a granularity that suits it (Last 30 Days daily, Last 90 Days and Last Year weekly, Current Year
@@ -194,10 +193,22 @@ The results consist of:
   bucket, and the change from the first to the last bucket
 - **Column chart** — one column per bucket, scaled to the highest bucket, with a dashed line marking the overall daily
   average; hovering a column shows its exact value and how many days it covers
-- **Bucket table** — every bucket with its date range, day count, average and total
+- **Bucket table** — every bucket with its date range, day count, average, and totals for nutritional metrics
 
 Buckets without a single entry are omitted, so unlogged days never drag an average down. Use the **Missing Days** tab
 of the Entries view to find those gaps.
+
+#### FDDB weight and body fat
+
+With MongoDB enabled, click **Sync FDDB Diet Report** on the **Trends** page to fetch the entries from
+**Diet Report → My Data** on the FDDB website. When the exporter scheduler is enabled, the Diet Report sync
+also runs on its configured schedule. If a field is missing from **My Data**, check **Configure fields**
+on FDDB and make it visible.
+
+Select **Weight (FDDB)** or **Body fat (FDDB)**, choose a date range, and click **Show Trend**. The chart averages
+multiple readings on the same day first, then gives each measured day equal weight in the period. Body fat
+changes are shown in percentage points. The chart uses FDDB website readings. Samsung Health files can still
+be imported and queried through the [body measurements API](/details/rest-api.md#body-measurements).
 
 ## Mobile Support
 
