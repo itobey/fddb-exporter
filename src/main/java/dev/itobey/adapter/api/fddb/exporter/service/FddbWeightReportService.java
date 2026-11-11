@@ -10,7 +10,6 @@ import dev.itobey.adapter.api.fddb.exporter.util.DateRanges;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -23,22 +22,21 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 @ConditionalOnProperty(name = "fddb-exporter.persistence.mongodb.enabled", havingValue = "true")
-public class FddbDietReportService {
+public class FddbWeightReportService {
     private final FddbApi fddbApi;
     private final BodyMeasurementStore store;
     private final FddbExporterProperties properties;
 
-    public synchronized int sync() {
-        var measurements = FddbDietReportParser.parse(fddbApi.getDietReport(), properties.resolveZone());
+    int sync() {
+        var measurements = FddbWeightReportParser.parse(fddbApi.getWeightReport(), properties.resolveZone());
         return measurements.isEmpty() ? 0 : store.importMeasurements(measurements);
     }
 
-    @Scheduled(cron = "#{${fddb-exporter.scheduler.enabled:false} ? '${fddb-exporter.scheduler.cron:-}' : '-'}")
-    void syncScheduled() {
+    void syncAlongsideDiary() {
         try {
             sync();
         } catch (RuntimeException ex) {
-            log.warn("Could not sync the FDDB Diet Report ({})", ex.getClass().getSimpleName());
+            log.warn("Could not sync the FDDB Weight Report ({})", ex.getClass().getSimpleName());
         }
     }
 
@@ -47,7 +45,7 @@ public class FddbDietReportService {
         DateRanges.validate(from, to);
         var zone = properties.resolveZone();
         var readings = store.findHistory(from.atStartOfDay(zone).toInstant(),
-                to.plusDays(1).atStartOfDay(zone).toInstant(), FddbDietReportParser.SOURCE);
+                to.plusDays(1).atStartOfDay(zone).toInstant(), FddbWeightReportParser.SOURCE);
 
         // Give each measured day equal weight even when FDDB has several readings for that day.
         var days = new LinkedHashMap<LocalDate, DoubleSummaryStatistics>();

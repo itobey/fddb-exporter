@@ -41,30 +41,10 @@ Example responses:
 ## Body measurements
 
 With [MongoDB persistence](/details/persistence.md) enabled, the exporter stores body measurements
-in a separate `bodyMeasurements` collection. Readings entered in the FDDB website's Diet Report can be
-synced from the [Trends view](/visualization/web-ui.md#fddb-weight-and-body-fat) and queried with
+in a separate `bodyMeasurements` collection. Readings entered in the FDDB website's Weight Report can be
+synced with the diary and viewed in [Trends](/visualization/web-ui.md#fddb-weight-report) and queried with
 `source=fddb`. FDDB's mobile tracker connections display measurements in the app.
 [FDDB tracker data help](https://help.fddb.info/hc/en-us/articles/4688157675794-Why-doesn-t-my-imported-data-appear-on-the-Fddb-website)
-
-### Import a Samsung Health export
-
-1. In Samsung Health, go to **More options → Settings → Download personal data**.
-2. Open the downloaded files and find the CSV beginning with `com.samsung.health.weight`.
-   If the download also includes a separate `com.samsung.health.body_fat` CSV, import it separately.
-3. In `/swagger-ui.html`, open **Body Measurements** and use
-   `POST /api/v2/body-measurements/import/samsung-health` to upload the CSV in the `file` field.
-   You can also use the command below.
-
-[Samsung Health download instructions](https://www.samsung.com/us/support/answer/ANS10001379/)
-
-```sh
-curl --form 'file=@com.samsung.health.weight.example.csv' \
-  http://localhost:8080/api/v2/body-measurements/import/samsung-health
-```
-
-The importer reads the measurement time and record ID from the CSV, stores weight in kg, and
-imports body fat and other supported fields when the file contains them. A blank field stays absent.
-The importer expects UTF-8 CSV. Download and reimport a fresh CSV to update your history.
 
 ### Import from another source
 

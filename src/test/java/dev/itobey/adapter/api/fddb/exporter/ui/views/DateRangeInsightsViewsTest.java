@@ -11,7 +11,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
-import dev.itobey.adapter.api.fddb.exporter.service.FddbDietReportService;
+import dev.itobey.adapter.api.fddb.exporter.service.FddbWeightReportService;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 import org.junit.jupiter.api.AfterEach;
@@ -81,12 +81,9 @@ class DateRangeInsightsViewsTest {
     }
 
     @Test
-    void syncsDietReportAndChartsBodyFatChangeInPercentagePoints() {
-        var dietReport = mock(FddbDietReportService.class);
+    void chartsBodyFatChangeInPercentagePoints() {
+        var dietReport = mock(FddbWeightReportService.class);
         var view = new TrendView(client, properties, Optional.of(dietReport));
-        when(dietReport.sync()).thenReturn(2);
-        button(view, "Sync FDDB Diet Report").click();
-        verify(dietReport).sync();
 
         LocalDate from = today.minusDays(29);
         when(dietReport.getTrend(BodyMetric.BODY_FAT_PERCENT, from, today, TrendGranularity.DAY))
@@ -101,7 +98,7 @@ class DateRangeInsightsViewsTest {
         selector.setValue(TrendView.Metric.BODY_FAT);
         button(view, "Last 30 Days").click();
 
-        assertThat(view.getElement().getTextRecursively()).contains("Body fat (FDDB) per day", "-1.0 percentage points");
+        assertThat(view.getElement().getTextRecursively()).contains("Body fat percentage per day", "-1.0 percentage points");
         verifyNoInteractions(client);
     }
 

@@ -25,5 +25,5 @@ public interface FddbApi {
     );
 
     @GetMapping("/db/i18n/mydata/?lang=en&action=data")
-    String getDietReport();
+    String getWeightReport();
 }

@@ -13,6 +13,7 @@ import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceServi
 import dev.itobey.adapter.api.fddb.exporter.util.DateRanges;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.DateTimeException;
@@ -39,6 +40,7 @@ public class FddbDataService {
     private final FddbDataMapper fddbDataMapper;
     private final StatsService statsService;
     private final FddbExporterProperties properties;
+    private final ObjectProvider<FddbWeightReportService> weightReport;
 
     /**
      * Guards every scraping run in this application against every other one: the scheduler, the
@@ -54,6 +56,7 @@ public class FddbDataService {
      * at one FDDB account would still overlap, and nothing here pretends otherwise.
      */
     private final ReentrantLock exportLock = new ReentrantLock();
+    private boolean weightReportPending;
 
     /**
      * Upper bound for range queries. Without it a caller could pull years of entries — including
@@ -245,6 +248,7 @@ public class FddbDataService {
                         onDay.accept(date, successfulDays.contains(date.toString()));
                     });
 
+            weightReportPending = true;
             ExportResultDTO result = new ExportResultDTO();
             result.setSuccessfulDays(successfulDays);
             result.setUnsuccessfulDays(unsuccessfulDays);
@@ -340,9 +344,20 @@ public class FddbDataService {
                     + "finish before starting another. Exports scrape fddb.info one day at a time, "
                     + "so a large one can take a while.");
         }
+        boolean outermost = exportLock.getHoldCount() == 1;
         try {
-            return export.get();
+            T result = export.get();
+            if (outermost && weightReportPending) {
+                FddbWeightReportService report = weightReport.getIfAvailable();
+                if (report != null) {
+                    report.syncAlongsideDiary();
+                }
+            }
+            return result;
         } finally {
+            if (outermost) {
+                weightReportPending = false;
+            }
             exportLock.unlock();
         }
     }

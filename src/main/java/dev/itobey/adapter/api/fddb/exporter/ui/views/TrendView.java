@@ -20,8 +20,7 @@ import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
-import dev.itobey.adapter.api.fddb.exporter.exception.ParseException;
-import dev.itobey.adapter.api.fddb.exporter.service.FddbDietReportService;
+import dev.itobey.adapter.api.fddb.exporter.service.FddbWeightReportService;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.components.TrendChart;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
@@ -52,7 +51,7 @@ public class TrendView extends VerticalLayout {
 
     private final StatsClient statsClient;
     private final FddbExporterProperties properties;
-    private final Optional<FddbDietReportService> dietReport;
+    private final Optional<FddbWeightReportService> weightReport;
 
     private ComboBox<Metric> metricSelect;
     private ComboBox<TrendGranularity> granularitySelect;
@@ -63,10 +62,10 @@ public class TrendView extends VerticalLayout {
     private final Div feedback = createFeedbackRegion();
 
     public TrendView(StatsClient statsClient, FddbExporterProperties properties,
-                     Optional<FddbDietReportService> dietReport) {
+                     Optional<FddbWeightReportService> weightReport) {
         this.statsClient = statsClient;
         this.properties = properties;
-        this.dietReport = dietReport;
+        this.weightReport = weightReport;
 
         addClassName("trend-view");
         setSpacing(true);
@@ -92,7 +91,7 @@ public class TrendView extends VerticalLayout {
 
         metricSelect = new ComboBox<>("Metric");
         metricSelect.setItems(Arrays.stream(Metric.values())
-                .filter(metric -> metric.bodyMetric == null || dietReport.isPresent()).toList());
+                .filter(metric -> metric.bodyMetric == null || weightReport.isPresent()).toList());
         metricSelect.setItemLabelGenerator(TrendView::metricLabel);
         metricSelect.setValue(Metric.CALORIES);
         metricSelect.setAllowCustomValue(false);
@@ -158,28 +157,7 @@ public class TrendView extends VerticalLayout {
         toDatePicker.addValueChangeListener(e -> updateSummary.run());
         updateSummary.run();
         section.add(metricRow, quickButtons, rangeSummary, loadButton, customRange, feedback);
-        if (dietReport.isPresent()) {
-            section.add(new Button("Sync FDDB Diet Report", event -> syncDietReport()));
-        }
         return section;
-    }
-
-    private void syncDietReport() {
-        feedback.setVisible(false);
-        try {
-            int count = dietReport.orElseThrow().sync();
-            if (count == 0) {
-                showInlineError(feedback, "FDDB returned no weight or body fat readings.", this::syncDietReport);
-                return;
-            }
-            showSuccess("Synced " + count + " FDDB Diet Report readings");
-        } catch (ParseException ex) {
-            showInlineError(feedback, ex.getMessage(), this::syncDietReport);
-        } catch (RuntimeException ex) {
-            log.warn("Diet Report sync failed ({})", ex.getClass().getSimpleName());
-            showInlineError(feedback, "Could not sync the FDDB Diet Report. Check the FDDB connection and MongoDB.",
-                    this::syncDietReport);
-        }
     }
 
     private Button createPresetButton(String label, TrendGranularity granularity, int days) {
@@ -272,7 +250,7 @@ public class TrendView extends VerticalLayout {
     private List<TrendPointDTO> loadBodyTrend(BodyMetric metric, LocalDate from, LocalDate to,
                                              TrendGranularity granularity) throws ApiException {
         try {
-            return dietReport.orElseThrow().getTrend(metric, from, to, granularity);
+            return weightReport.orElseThrow().getTrend(metric, from, to, granularity);
         } catch (RuntimeException ex) {
             log.warn("Body measurement trend query failed ({})", ex.getClass().getSimpleName());
             throw new ApiException("Could not load body measurements. Check the MongoDB connection.", ex);
@@ -355,7 +333,7 @@ public class TrendView extends VerticalLayout {
                 createStatCard("Highest", formatNumber(highest.getAverage()) + " " + unit, highest.getBucket()),
                 createStatCard("Lowest", formatNumber(lowest.getAverage()) + " " + unit, lowest.getBucket()),
                 createStatCard("Change", points.size() > 1
-                                ? formatChange(change, metric == Metric.BODY_FAT ? "percentage points" : unit) : "N/A",
+                                ? formatChange(change, "%".equals(unit) ? "percentage points" : unit) : "N/A",
                         points.size() > 1 ? "Last vs first daily average" : "Only one period")
         );
         return cards;
@@ -406,8 +384,10 @@ public class TrendView extends VerticalLayout {
 
     private static String metricLabel(Metric metric) {
         return switch (metric) {
-            case WEIGHT -> "Weight (FDDB)";
-            case BODY_FAT -> "Body fat (FDDB)";
+            case BODY_FAT -> "Body fat percentage";
+            case BODY_WATER -> "Body water";
+            case WAIST -> "Waist circumference";
+            case HIP -> "Hip circumference";
             default -> capitalize(metric.name());
         };
     }
@@ -432,7 +412,8 @@ public class TrendView extends VerticalLayout {
         return switch (metric) {
             case CALORIES -> "kcal";
             case WEIGHT -> "kg";
-            case BODY_FAT -> "%";
+            case BODY_FAT, BODY_WATER -> "%";
+            case WAIST, HIP -> "cm";
             default -> "g";
         };
     }
@@ -445,7 +426,10 @@ public class TrendView extends VerticalLayout {
         PROTEIN(NutrientMetric.PROTEIN),
         FIBRE(NutrientMetric.FIBRE),
         WEIGHT(null, BodyMetric.WEIGHT_KG),
-        BODY_FAT(null, BodyMetric.BODY_FAT_PERCENT);
+        BODY_FAT(null, BodyMetric.BODY_FAT_PERCENT),
+        BODY_WATER(null, BodyMetric.BODY_WATER_PERCENT),
+        WAIST(null, BodyMetric.WAIST_CM),
+        HIP(null, BodyMetric.HIP_CM);
 
         private final NutrientMetric nutrient;
         private final BodyMetric bodyMetric;
@@ -474,6 +458,9 @@ public class TrendView extends VerticalLayout {
             case FIBRE -> "var(--nutrient-fibre)";
             case WEIGHT -> "var(--nutrient-protein)";
             case BODY_FAT -> "var(--nutrient-fat)";
+            case BODY_WATER -> "var(--nutrient-carbs)";
+            case WAIST -> "var(--nutrient-fibre)";
+            case HIP -> "var(--nutrient-sugar)";
         };
     }
 }

@@ -17,21 +17,21 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-final class FddbDietReportParser {
+final class FddbWeightReportParser {
     static final String SOURCE = "fddb";
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("d.M.uuuu", Locale.ROOT)
             .withResolverStyle(ResolverStyle.STRICT);
     private static final Pattern ID = Pattern.compile("[?&]q=(\\d+)(?:&|$)");
-    private static final Pattern VALUE = Pattern.compile("([0-9]+(?:[.,][0-9]+)?)\\s*(kg|%)?",
+    private static final Pattern VALUE = Pattern.compile("([0-9]+(?:[.,][0-9]+)?)\\s*(kg|cm|%)?",
             Pattern.CASE_INSENSITIVE);
 
-    private FddbDietReportParser() {
+    private FddbWeightReportParser() {
     }
 
     static List<BodyMeasurement> parse(String html, ZoneId zone) {
         Element table = Jsoup.parse(html == null ? "" : html).selectFirst("table.mydata-history");
         if (table == null) {
-            throw new ParseException("FDDB did not return the Diet Report history table. Check that My Data is available.");
+            throw new ParseException("FDDB did not return the Weight Report history table. Check that My Data is available.");
         }
 
         var rows = table.select(":scope > tr, :scope > tbody > tr, :scope > thead > tr");
@@ -46,11 +46,14 @@ final class FddbDietReportParser {
                 case "weight", "gewicht" -> columns.put(BodyMetric.WEIGHT_KG, i);
                 case "bodyfat", "body fat", "body fat percentage", "body fat ratio", "fat", "fat ratio", "fat percentage",
                      "körperfett", "körperfettanteil", "fett", "fettanteil" -> columns.put(BodyMetric.BODY_FAT_PERCENT, i);
+                case "body water", "wasseranteil" -> columns.put(BodyMetric.BODY_WATER_PERCENT, i);
+                case "waist circumference", "taillenumfang" -> columns.put(BodyMetric.WAIST_CM, i);
+                case "hip circumference", "hüftumfang" -> columns.put(BodyMetric.HIP_CM, i);
                 default -> { }
             }
         }
         if (date < 0 || columns.isEmpty()) {
-            throw new ParseException("FDDB Diet Report is missing the date, weight or body fat columns.");
+            throw new ParseException("FDDB Weight Report is missing the date column or all supported measurements.");
         }
 
         List<BodyMeasurement> measurements = new ArrayList<>();
@@ -73,7 +76,7 @@ final class FddbDietReportParser {
                 LocalDate day = LocalDate.parse(cells.get(date).text(), DATE);
                 measurements.add(new BodyMeasurement(SOURCE, id.group(1), day.atStartOfDay(zone).toInstant(), metrics));
             } catch (IllegalArgumentException | IndexOutOfBoundsException | DateTimeParseException ex) {
-                throw new ParseException("FDDB Diet Report contains an invalid measurement row.");
+                throw new ParseException("FDDB Weight Report contains an invalid measurement row.");
             }
         }
         return measurements;
@@ -84,7 +87,11 @@ final class FddbDietReportParser {
             return;
         }
         var match = VALUE.matcher(value);
-        String unit = metric == BodyMetric.WEIGHT_KG ? "kg" : "%";
+        String unit = switch (metric) {
+            case WEIGHT_KG -> "kg";
+            case WAIST_CM, HIP_CM -> "cm";
+            default -> "%";
+        };
         if (!match.matches() || (match.group(2) != null && !unit.equalsIgnoreCase(match.group(2)))) {
             throw new IllegalArgumentException();
         }

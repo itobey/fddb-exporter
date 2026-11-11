@@ -82,7 +82,8 @@ public class DataExportView extends VerticalLayout {
         applyResponsivePadding(this);
 
         Div introduction = new Div(new H2("Sync from FDDB"),
-                new Paragraph("Import diary entries from your FDDB account into this app's configured storage. Existing days are updated."));
+                new Paragraph("Import diary entries from your FDDB account and update existing days. "
+                        + "When MongoDB is enabled, the Weight Report is also synced."));
         introduction.addClassName("export-introduction");
 
         Div sectionsLayout = new Div();

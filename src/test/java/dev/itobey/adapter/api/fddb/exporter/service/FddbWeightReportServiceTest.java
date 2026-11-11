@@ -17,37 +17,37 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
-import static dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric.BODY_FAT_PERCENT;
-import static dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric.WEIGHT_KG;
+import static dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-class FddbDietReportServiceTest {
+class FddbWeightReportServiceTest {
     private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
     private final FddbApi api = mock(FddbApi.class);
     private final BodyMeasurementStore store = mock(BodyMeasurementStore.class);
-    private final FddbDietReportService service = new FddbDietReportService(api, store, new FddbExporterProperties());
+    private final FddbWeightReportService service = new FddbWeightReportService(api, store, new FddbExporterProperties());
 
     @ParameterizedTest
     @CsvSource(delimiter = '|', value = {
-            "Date|Weight|Body fat|74.2 kg|19.4 %",
-            "Datum|Gewicht|Körperfettanteil|74,2 kg|19,4 %"
+            "Date|Weight|Body fat percentage|Body water|Waist circumference|Hip circumference|.",
+            "Datum|Gewicht|Körperfett|Wasseranteil|Taillenumfang|Hüftumfang|,"
     })
     void importsLocalizedRowsWithNestedActionTables(String date, String weight, String fat,
-                                                      String weightValue, String fatValue) {
-        when(api.getDietReport()).thenReturn("""
+                                                      String water, String waist, String hip, String decimal) {
+        when(api.getWeightReport()).thenReturn("""
                 <table class="mydata-history">
-                  <tr><th>%s</th><th>%s</th><th>%s</th><th colspan="2">Actions</th></tr>
-                  <tr><td>08.01.2026</td><td>%s</td><td>%s</td>
+                  <tr><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th colspan="2">Actions</th></tr>
+                  <tr><td>08.01.2026</td><td>74@2 kg</td><td>19@4 %%</td><td>53@1 %%</td><td>80@5 cm</td><td>95@2 cm</td>
                     <td><table><tr><td><a href="/db/i18n/mydata/?lang=en&amp;action=edit&amp;q=123">Edit</a></td></tr></table></td>
                   </tr>
-                  <tr><td>09.01.2026</td><td>74 kg</td><td>—</td>
+                  <tr><td>09.01.2026</td><td>74 kg</td><td>—</td><td>-</td><td></td><td>-</td>
                     <td><a href="/db/i18n/mydata/?lang=en&amp;action=edit&amp;q=124">Edit</a></td>
                   </tr>
                 </table>
-                """.formatted(date, weight, fat, weightValue, fatValue));
-        var first = reading("123", LocalDate.of(2026, 1, 8), Map.of(WEIGHT_KG, 74.2, BODY_FAT_PERCENT, 19.4));
+                """.formatted(date, weight, fat, water, waist, hip).replace("@", decimal));
+        var first = reading("123", LocalDate.of(2026, 1, 8),
+                Map.of(WEIGHT_KG, 74.2, BODY_FAT_PERCENT, 19.4, BODY_WATER_PERCENT, 53.1, WAIST_CM, 80.5, HIP_CM, 95.2));
         var second = reading("124", LocalDate.of(2026, 1, 9), Map.of(WEIGHT_KG, 74.0));
         when(store.importMeasurements(List.of(first, second))).thenReturn(2);
 
@@ -57,7 +57,7 @@ class FddbDietReportServiceTest {
 
     @Test
     void rejectsAnUnexpectedPageBeforeWriting() {
-        when(api.getDietReport()).thenReturn("<html><form>Log in</form></html>");
+        when(api.getWeightReport()).thenReturn("<html><form>Log in</form></html>");
         assertThatThrownBy(service::sync).isInstanceOf(ParseException.class);
         verifyNoInteractions(store);
     }

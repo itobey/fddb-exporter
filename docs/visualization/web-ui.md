@@ -198,17 +198,16 @@ The results consist of:
 Buckets without a single entry are omitted, so unlogged days never drag an average down. Use the **Missing Days** tab
 of the Entries view to find those gaps.
 
-#### FDDB weight and body fat
+#### FDDB Weight Report
 
-With MongoDB enabled, click **Sync FDDB Diet Report** on the **Trends** page to fetch the entries from
-**Diet Report → My Data** on the FDDB website. When the exporter scheduler is enabled, the Diet Report sync
-also runs on its configured schedule. If a field is missing from **My Data**, check **Configure fields**
-on FDDB and make it visible.
+With MongoDB enabled, a diary export also fetches **Weight Report → My Data** once per sync, including
+scheduled exports. The Weight Report has its own history, so syncing a single diary day can import older
+measurements. Enable the fields you want to sync under **Configure fields** on the FDDB website.
 
-Select **Weight (FDDB)** or **Body fat (FDDB)**, choose a date range, and click **Show Trend**. The chart averages
-multiple readings on the same day first, then gives each measured day equal weight in the period. Body fat
-changes are shown in percentage points. The chart uses FDDB website readings. Samsung Health files can still
-be imported and queried through the [body measurements API](/details/rest-api.md#body-measurements).
+In **Trends**, select **Weight**, **Body fat percentage**, **Body water**, **Waist circumference**, or
+**Hip circumference**, choose a date range, and click **Show Trend**. The chart averages multiple readings
+on the same day first, then gives each measured day equal weight in the period. Body fat and body water
+changes are shown in percentage points. Circumferences are shown in centimeters.
 
 ## Mobile Support
 

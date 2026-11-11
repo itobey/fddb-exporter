@@ -122,32 +122,6 @@ paths:
                 $ref: '#/components/schemas/BodyMeasurementImportResult'
         '400':
           description: Invalid measurement or batch
-  /api/v2/body-measurements/import/samsung-health:
-    post:
-      tags: [Body Measurements]
-      summary: Import a Samsung Health weight or body fat CSV
-      description: Available when MongoDB persistence is enabled. Upload a UTF-8 CSV with up to 10,000 readings.
-      operationId: importSamsungHealth
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          description: Number of readings processed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BodyMeasurementImportResult'
-        '400':
-          description: Invalid CSV or batch
   /api/v2/fddbdata:
     post:
       tags:
