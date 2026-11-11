@@ -181,29 +181,30 @@ public class DataDownloadService {
             }
             csvWriter.writeNext(header);
 
+            int nextReading = 0;
             for (FddbDataDTO entry : data) {
+                while (nextReading < report.size() && report.get(nextReading).date().isBefore(entry.getDate())) {
+                    writeReportRow(csvWriter, report.get(nextReading++), diaryHeader.length, decimalSeparator);
+                }
+                WeightReportReading reading = null;
+                if (nextReading < report.size() && report.get(nextReading).date().equals(entry.getDate())) {
+                    reading = report.get(nextReading++);
+                }
                 if (!includeProducts) {
-                    writeDiaryRow(csvWriter, createTotalsRow(entry, decimalSeparator), extraColumns);
+                    writeDiaryRow(csvWriter, createTotalsRow(entry, decimalSeparator), extraColumns, reading, decimalSeparator);
                 } else if (hasProducts(entry)) {
                     for (ProductDTO product : entry.getProducts()) {
-                        writeDiaryRow(csvWriter, createProductRow(entry, product, decimalSeparator), extraColumns);
+                        writeDiaryRow(csvWriter, createProductRow(entry, product, decimalSeparator),
+                                extraColumns, reading, decimalSeparator);
+                        reading = null;
                     }
                 } else {
-                    writeDiaryRow(csvWriter, createEmptyProductRow(entry, decimalSeparator), extraColumns);
+                    writeDiaryRow(csvWriter, createEmptyProductRow(entry, decimalSeparator),
+                            extraColumns, reading, decimalSeparator);
                 }
             }
-            for (WeightReportReading reading : report) {
-                String[] row = new String[header.length];
-                Arrays.fill(row, EMPTY_FIELD);
-                row[0] = reading.date().toString();
-                row[diaryHeader.length] = reading.id();
-                for (int i = 0; i < WEIGHT_REPORT_METRICS.size(); i++) {
-                    Double value = reading.metrics().get(WEIGHT_REPORT_METRICS.get(i));
-                    if (value != null) {
-                        row[diaryHeader.length + 1 + i] = formatNumber(value, decimalSeparator);
-                    }
-                }
-                writeRow(csvWriter, row);
+            while (nextReading < report.size()) {
+                writeReportRow(csvWriter, report.get(nextReading++), diaryHeader.length, decimalSeparator);
             }
         } catch (Exception exception) {
             log.error("Error generating CSV", exception);
@@ -212,11 +213,29 @@ public class DataDownloadService {
         return output.toByteArray();
     }
 
-    private void writeDiaryRow(CSVWriter writer, String[] row, int extraColumns) {
+    private void writeReportRow(CSVWriter writer, WeightReportReading reading, int diaryColumns,
+                                String decimalSeparator) {
+        String[] diary = new String[diaryColumns];
+        Arrays.fill(diary, EMPTY_FIELD);
+        diary[0] = reading.date().toString();
+        writeDiaryRow(writer, diary, WEIGHT_REPORT_CSV_HEADER.length, reading, decimalSeparator);
+    }
+
+    private void writeDiaryRow(CSVWriter writer, String[] row, int extraColumns,
+                               WeightReportReading reading, String decimalSeparator) {
         if (extraColumns > 0) {
             int diaryColumns = row.length;
             row = Arrays.copyOf(row, diaryColumns + extraColumns);
             Arrays.fill(row, diaryColumns, row.length, EMPTY_FIELD);
+            if (reading != null) {
+                row[diaryColumns] = reading.id();
+                for (int i = 0; i < WEIGHT_REPORT_METRICS.size(); i++) {
+                    Double value = reading.metrics().get(WEIGHT_REPORT_METRICS.get(i));
+                    if (value != null) {
+                        row[diaryColumns + 1 + i] = formatNumber(value, decimalSeparator);
+                    }
+                }
+            }
         }
         writeRow(writer, row);
     }

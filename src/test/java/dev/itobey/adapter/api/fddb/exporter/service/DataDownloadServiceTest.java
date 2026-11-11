@@ -102,6 +102,27 @@ class DataDownloadServiceTest {
     }
 
     @Test
+    void csvJoinsTheFirstReadingToItsDiaryDayAndKeepsAllDatesInOrder() {
+        var zone = new FddbExporterProperties().resolveZone();
+        var earlier = LocalDate.of(2023, 12, 31);
+        var diaryDay = earlier.plusDays(1);
+        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(testFddbDataDTO);
+        when(fddbDataMapper.toFddbDataDTOWithoutProducts(anyList())).thenReturn(testFddbDataDTO);
+        when(measurements.getIfAvailable()).thenReturn(bodyStore);
+        when(bodyStore.find(null, null, "fddb", 0, 366)).thenReturn(List.of(
+                new BodyMeasurement("fddb", "100", earlier.atStartOfDay(zone).toInstant(), Map.of(BodyMetric.WEIGHT_KG, 83.0)),
+                new BodyMeasurement("fddb", "101", diaryDay.atStartOfDay(zone).toInstant(), Map.of(BodyMetric.WEIGHT_KG, 82.5)),
+                new BodyMeasurement("fddb", "102", diaryDay.atStartOfDay(zone).toInstant(), Map.of(BodyMetric.WEIGHT_KG, 82.6))));
+
+        var rows = new String(dataDownloadService.downloadData(null, null, DownloadFormat.CSV,
+                false, ".", true), StandardCharsets.UTF_8).lines().toList();
+        assertThat(rows.get(1)).startsWith("\"2023-12-31\";\"\";").contains("\"100\";\"83.0\"");
+        assertThat(rows.get(2)).startsWith("\"2024-01-01\";\"2000.0\";").contains("\"101\";\"82.5\"");
+        assertThat(rows.get(3)).startsWith("\"2024-01-01\";\"\";").contains("\"102\";\"82.6\"");
+        assertThat(rows.get(4)).startsWith("\"2024-01-02\";").endsWith(";\"\";\"\";\"\";\"\";\"\";\"\"");
+    }
+
+    @Test
     void includesWeightReportReadingsOnDatesWithoutDiaryEntries() {
         var properties = new FddbExporterProperties();
         var zone = properties.resolveZone();

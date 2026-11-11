@@ -739,9 +739,10 @@ and some endpoints answered with a bare string. Failed logins were `500` and unc
     - By default, returns the diary array filtered by the selected date range.
     - With `includeWeightReport=true`, returns an object with separate `diary` and `weightReport` arrays.
 
-With the Weight Report enabled, CSV adds columns for the report ID and measurements and appends one row
-per reading with blank diary columns. Both formats include readings from dates with no diary entry and
-preserve multiple readings on the same date. A single download can include up to 365 Weight Report readings.
+With the Weight Report enabled, CSV lists dates chronologically and puts the first reading for each day
+beside that day's diary data. Dates without diary entries and any additional readings get rows with blank
+diary columns. Both formats preserve multiple readings on the same date. A single download can include up
+to 365 Weight Report readings.
 
 #### Maximum download size <Badge type="tip" text="2.5.0+" />
 
