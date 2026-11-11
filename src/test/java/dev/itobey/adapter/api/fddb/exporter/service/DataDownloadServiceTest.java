@@ -1,10 +1,14 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMeasurement;
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.DownloadFormat;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductDTO;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.BodyMeasurementStore;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import dev.itobey.adapter.api.fddb.exporter.testutil.TestDataLoader;
 import lombok.SneakyThrows;
@@ -13,12 +17,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -73,6 +79,12 @@ class DataDownloadServiceTest {
     @Mock
     private FddbDataMapper fddbDataMapper;
 
+    @Mock
+    private ObjectProvider<BodyMeasurementStore> measurements;
+
+    @Mock
+    private BodyMeasurementStore bodyStore;
+
     private DataDownloadService dataDownloadService;
 
     private List<FddbData> testFddbData;
@@ -81,11 +93,48 @@ class DataDownloadServiceTest {
     @BeforeEach
     void setUp() {
         // Match Boot's Jackson 3 defaults: ISO dates by default, pretty-printing applied by the service.
-        dataDownloadService = new DataDownloadService(persistenceService, fddbDataMapper, JsonMapper.builder().build());
+        dataDownloadService = new DataDownloadService(persistenceService, fddbDataMapper, measurements,
+                new FddbExporterProperties(), JsonMapper.builder().build());
 
         // Load test data from JSON fixtures
         testFddbData = TestDataLoader.loadListFromJson(TEST_DATA_PATH + "fddb-data-input.json", FddbData.class);
         testFddbDataDTO = TestDataLoader.loadListFromJson(TEST_DATA_PATH + "fddb-data-dto-input.json", FddbDataDTO.class);
+    }
+
+    @Test
+    void includesWeightReportReadingsOnDatesWithoutDiaryEntries() {
+        var properties = new FddbExporterProperties();
+        var zone = properties.resolveZone();
+        var from = LocalDate.of(2026, 10, 24);
+        var to = from.plusDays(1);
+        var measuredAt = to.atStartOfDay(zone).toInstant();
+        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(new ArrayList<>());
+        when(fddbDataMapper.toFddbDataDTOWithoutProducts(anyList())).thenReturn(List.of());
+        when(measurements.getIfAvailable()).thenReturn(bodyStore);
+        when(bodyStore.find(from.atStartOfDay(zone).toInstant(), to.plusDays(1).atStartOfDay(zone).toInstant(),
+                "fddb", 0, 366)).thenReturn(List.of(
+                new BodyMeasurement("fddb", "101", measuredAt, Map.of(
+                        BodyMetric.WEIGHT_KG, 82.5, BodyMetric.BODY_FAT_PERCENT, 19.5,
+                        BodyMetric.BODY_WATER_PERCENT, 55.5, BodyMetric.WAIST_CM, 81.5, BodyMetric.HIP_CM, 96.5)),
+                new BodyMeasurement("fddb", "102", measuredAt, Map.of(BodyMetric.WEIGHT_KG, 82.6))));
+
+        for (boolean includeProducts : List.of(false, true)) {
+            var csv = new String(dataDownloadService.downloadData(from, to, DownloadFormat.CSV,
+                    includeProducts, ",", true), StandardCharsets.UTF_8);
+            var rows = csv.lines().toList();
+            assertThat(rows).hasSize(3);
+            assertThat(rows.getFirst()).contains("\"Body Water (%)\"", "\"Hip Circumference (cm)\"");
+            assertThat(rows.get(1)).startsWith("\"2026-10-25\";\"\";")
+                    .endsWith("\"101\";\"82,5\";\"19,5\";\"55,5\";\"81,5\";\"96,5\"");
+            assertThat(rows.get(2)).endsWith("\"102\";\"82,6\";\"\";\"\";\"\";\"\"");
+        }
+        var json = JsonMapper.builder().build().readTree(dataDownloadService.downloadData(from, to,
+                DownloadFormat.JSON, false, ".", true));
+        assertThat(json.path("diary").size()).isZero();
+        assertThat(json.path("weightReport").size()).isEqualTo(2);
+        assertThat(json.at("/weightReport/0/date").asString()).isEqualTo("2026-10-25");
+        assertThat(json.at("/weightReport/0/metrics/HIP_CM").asDouble()).isEqualTo(96.5);
+        assertThat(json.at("/weightReport/1/metrics/HIP_CM").isMissingNode()).isTrue();
     }
 
     @Test

@@ -711,6 +711,8 @@ and some endpoints answered with a bare string. Failed logins were `500` and unc
     - `format` _(required)_: Download format. Valid values: `CSV`, `JSON`.
     - `includeProducts` _(optional)_: Whether to include product details (`true`) or just daily totals (`false`).
       Defaults to `false`.
+    - `includeWeightReport` _(optional)_: Include stored FDDB Weight Report readings in the same date range.
+      Defaults to `false` for API callers. The **Download file** page enables it.
     - `decimalSeparator` _(optional)_: Decimal separator for CSV format. Valid values: `comma`, `dot`. Defaults to
       `comma`. Only applicable when format is `CSV`.
 
@@ -734,8 +736,12 @@ and some endpoints answered with a bare string. Failed logins were `500` and unc
       including all nutritional values and product information.
 
 - **JSON Format:**
-    - Returns data in the same structure as the `/api/v2/fddbdata` endpoint, but filtered by the specified date range if
-      provided.
+    - By default, returns the diary array filtered by the selected date range.
+    - With `includeWeightReport=true`, returns an object with separate `diary` and `weightReport` arrays.
+
+With the Weight Report enabled, CSV adds columns for the report ID and measurements and appends one row
+per reading with blank diary columns. Both formats include readings from dates with no diary entry and
+preserve multiple readings on the same date. A single download can include up to 365 Weight Report readings.
 
 #### Maximum download size <Badge type="tip" text="2.5.0+" />
 

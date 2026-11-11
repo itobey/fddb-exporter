@@ -59,7 +59,7 @@ public class DataDownloadView extends VerticalLayout {
         applyResponsivePadding(this);
 
         add(new H2("Download file"));
-        add(new Paragraph("Save diary entries already stored in this app as a CSV or JSON file."));
+        add(new Paragraph("Save stored diary entries and Weight Report readings as a CSV or JSON file."));
 
         if (!isMongoDbEnabled(properties)) {
             add(createMongoDbDisabledWarning("Download file"));
@@ -114,7 +114,7 @@ public class DataDownloadView extends VerticalLayout {
         // Include products checkbox
         includeProductsCheckbox = new Checkbox("Include product details");
         includeProductsCheckbox.setValue(false);
-        includeProductsCheckbox.setTooltipText("If checked, includes all consumed products for each day. If unchecked, only downloads daily totals (calories, fat, carbs, etc.)");
+        includeProductsCheckbox.setTooltipText("Include individual products alongside daily nutrition totals.");
 
         // Decimal separator selection (only for CSV)
         decimalSeparatorSelection = new RadioButtonGroup<>();

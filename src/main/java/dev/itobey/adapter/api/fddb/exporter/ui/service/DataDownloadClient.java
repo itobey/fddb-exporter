@@ -34,6 +34,7 @@ public class DataDownloadClient {
                 .fromUriString(DOWNLOAD_URL)
                 .queryParam("format", format.name())
                 .queryParam("includeProducts", includeProducts)
+                .queryParam("includeWeightReport", true)
                 .queryParam("decimalSeparator", decimalSeparator);
 
         if (fromDate != null) {

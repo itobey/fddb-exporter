@@ -56,6 +56,7 @@ public class DataDownloadResourceV2 {
      * @param format           the download format (CSV or JSON)
      * @param includeProducts  whether to include product details (true) or just daily totals (false)
      * @param decimalSeparator the decimal separator for CSV format (comma or dot)
+     * @param includeWeightReport whether to include FDDB Weight Report readings
      * @return the data as a downloadable file, or {@code 413 Content Too Large} with an explanatory plain-text
      * body if the request covers more than {@link DataDownloadService#MAX_DOWNLOAD_ENTRIES} days
      */
@@ -88,7 +89,10 @@ public class DataDownloadResourceV2 {
             @RequestParam(defaultValue = "false") boolean includeProducts,
 
             @Parameter(description = "Decimal separator for CSV format: comma or dot", example = "comma")
-            @RequestParam(defaultValue = "comma") String decimalSeparator) {
+            @RequestParam(defaultValue = "comma") String decimalSeparator,
+
+            @Parameter(description = "Include FDDB Weight Report readings alongside diary entries")
+            @RequestParam(defaultValue = "false") boolean includeWeightReport) {
 
         log.info("V2: Downloading data: fromDate={}, toDate={}, format={}, includeProducts={}, decimalSeparator={}",
                 fromDate, toDate, format, includeProducts, decimalSeparator);
@@ -110,7 +114,9 @@ public class DataDownloadResourceV2 {
 
         byte[] data;
         try {
-            data = dataDownloadService.downloadData(fromDate, toDate, format, includeProducts, actualDecimalSeparator);
+            data = includeWeightReport
+                    ? dataDownloadService.downloadData(fromDate, toDate, format, includeProducts, actualDecimalSeparator, true)
+                    : dataDownloadService.downloadData(fromDate, toDate, format, includeProducts, actualDecimalSeparator);
         } catch (DataDownloadService.DownloadTooLargeException tooLarge) {
             // the Web UI navigates the browser to this URL, so the message has to be the response body itself
             log.warn("Refusing download: {}", tooLarge.getMessage());
@@ -129,6 +135,9 @@ public class DataDownloadResourceV2 {
         headers.setContentType(MediaType.parseMediaType(contentType));
         headers.setContentDispositionFormData("attachment", filename);
         headers.setContentLength(data.length);
+        if (includeWeightReport) {
+            headers.setCacheControl("no-store");
+        }
 
         return ResponseEntity.ok()
                 .headers(headers)

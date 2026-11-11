@@ -610,6 +610,12 @@ paths:
             type: boolean
             default: false
             example: false
+        - name: includeWeightReport
+          in: query
+          description: Include stored FDDB Weight Report readings. JSON uses separate diary and weightReport arrays. CSV adds measurement columns and rows.
+          schema:
+            type: boolean
+            default: false
         - name: decimalSeparator
           in: query
           description: Decimal separator for CSV format (. or ,). Only applies when format is CSV.
@@ -631,13 +637,34 @@ paths:
                 format: binary
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/FddbDataDTO'
-                description: |
-                  Returns an array of FddbDataDTO objects.
-                  When includeProducts=false, the 'id' and 'products' fields will be null.
-                  When includeProducts=true, all fields are populated.
+                oneOf:
+                  - type: array
+                    description: Diary entries when includeWeightReport is false.
+                    items:
+                      $ref: '#/components/schemas/FddbDataDTO'
+                  - type: object
+                    required: [diary, weightReport]
+                    properties:
+                      diary:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FddbDataDTO'
+                      weightReport:
+                        type: array
+                        items:
+                          type: object
+                          required: [date, id, metrics]
+                          properties:
+                            date:
+                              type: string
+                              format: date
+                            id:
+                              type: string
+                            metrics:
+                              type: object
+                              additionalProperties:
+                                type: number
+                                format: double
         '400':
           description: Invalid parameters (e.g., fromDate is after toDate)
           content:
