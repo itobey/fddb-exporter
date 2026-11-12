@@ -69,12 +69,12 @@ final class FddbWeightReportParser {
             try {
                 var metrics = new EnumMap<BodyMetric, Double>(BodyMetric.class);
                 columns.forEach((metric, index) -> addMetric(metrics, metric, cells.get(index).text()));
-                if (metrics.isEmpty()) {
-                    continue;
-                }
                 Element edit = row.selectFirst("a[href*=/mydata/][href*=action=edit]");
                 var id = ID.matcher(edit == null ? "" : edit.attr("href"));
                 if (!id.find()) {
+                    if (metrics.isEmpty()) {
+                        continue;
+                    }
                     throw new IllegalArgumentException();
                 }
                 LocalDate day = LocalDate.parse(cells.get(date).text(), DATE);

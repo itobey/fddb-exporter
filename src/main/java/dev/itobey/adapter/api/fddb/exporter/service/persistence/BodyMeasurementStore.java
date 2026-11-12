@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.BulkOperations.BulkMode;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -15,6 +16,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +27,7 @@ import java.util.Set;
 public class BodyMeasurementStore {
     public static final int MAX_IMPORT_RECORDS = 10_000;
     private static final String MEASURED_AT = "measurement.measuredAt";
+    private static final String METRICS = "measurement.metrics.";
 
     private final MongoTemplate mongoTemplate;
 
@@ -51,7 +54,7 @@ public class BodyMeasurementStore {
                     .set("measurement.externalId", measurement.externalId())
                     .set(MEASURED_AT, measurement.measuredAt());
             visibleMetrics.forEach(metric -> {
-                String field = "measurement.metrics." + metric.name();
+                String field = METRICS + metric.name();
                 Double value = measurement.metrics().get(metric);
                 if (value == null) {
                     update.unset(field);
@@ -59,10 +62,31 @@ public class BodyMeasurementStore {
                     update.set(field, value);
                 }
             });
-            bulk.upsert(Query.query(Criteria.where("_id").is(idFor(measurement))), update);
+            String id = idFor(measurement);
+            if (measurement.metrics().isEmpty()) {
+                clearVisibleMetrics(bulk, id, update, visibleMetrics);
+            } else {
+                bulk.upsert(Query.query(Criteria.where("_id").is(id)), update);
+            }
         }
         bulk.execute();
         return measurements.size();
+    }
+
+    private void clearVisibleMetrics(BulkOperations bulk, String id, Update update, Set<BodyMetric> visibleMetrics) {
+        Criteria[] hiddenFields = Arrays.stream(BodyMetric.values())
+                .filter(metric -> !visibleMetrics.contains(metric))
+                .map(metric -> Criteria.where(METRICS + metric.name()).exists(true))
+                .toArray(Criteria[]::new);
+
+        // Keep rows with hidden values and remove rows left with no measurements.
+        // The two filters are disjoint, and the update only changes visible metrics.
+        Criteria withoutHiddenFields = Criteria.where("_id").is(id);
+        if (hiddenFields.length > 0) {
+            bulk.updateOne(Query.query(Criteria.where("_id").is(id).orOperator(hiddenFields)), update);
+            withoutHiddenFields.norOperator(hiddenFields);
+        }
+        bulk.remove(Query.query(withoutHiddenFields));
     }
 
     public List<BodyMeasurement> find(Instant from, Instant to, String source, int page, int size) {

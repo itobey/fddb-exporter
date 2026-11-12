@@ -25,6 +25,29 @@ class BodyMeasurementStoreIT {
     static final MongoDBContainer MONGO = new MongoDBContainer("mongo:7.0.9");
 
     @Test
+    void blankVisibleFieldsClearStoredValuesAndPreserveHiddenValues() {
+        try (var client = MongoClients.create(MONGO.getReplicaSetUrl())) {
+            var store = new BodyMeasurementStore(new MongoTemplate(client, "blank_measurements"));
+            var date = Instant.parse("2026-01-01T12:00:00Z");
+            var original = new BodyMeasurement("fddb", "123", date, Map.of(WEIGHT_KG, 82.5, BODY_FAT_PERCENT, 24.0));
+            var blank = new BodyMeasurement("fddb", "123", date, Map.of());
+            var columns = Set.of(WEIGHT_KG, BODY_FAT_PERCENT);
+
+            store.updateMeasurements(List.of(blank), columns);
+            assertThat(store.findHistory(null, null, "fddb")).isEmpty();
+
+            store.updateMeasurements(List.of(original), columns);
+            store.updateMeasurements(List.of(blank), Set.of(BODY_FAT_PERCENT));
+            store.updateMeasurements(List.of(blank), Set.of(BODY_FAT_PERCENT));
+            assertThat(store.findHistory(null, null, "fddb"))
+                    .containsExactly(new BodyMeasurement("fddb", "123", date, Map.of(WEIGHT_KG, 82.5)));
+
+            store.updateMeasurements(List.of(blank), columns);
+            assertThat(store.findHistory(null, null, "fddb")).isEmpty();
+        }
+    }
+
+    @Test
     void retriesAndCorrectionsPreserveSourceScopedHistory() {
         try (var client = MongoClients.create(MONGO.getReplicaSetUrl())) {
             var store = new BodyMeasurementStore(new MongoTemplate(client, "measurements"));

@@ -20,8 +20,8 @@ public record BodyMeasurement(String source, String externalId, Instant measured
         }
         validateTimestamp(measuredAt);
         measuredAt = measuredAt.truncatedTo(ChronoUnit.MILLIS);
-        if (metrics == null || metrics.isEmpty() || metrics.keySet().stream().anyMatch(key -> key == null)) {
-            throw new IllegalArgumentException("At least one supported metric is required");
+        if (metrics == null || metrics.keySet().stream().anyMatch(key -> key == null)) {
+            throw new IllegalArgumentException("Metrics must be a map of supported metrics");
         }
         metrics.forEach(BodyMetric::validate);
         metrics = Map.copyOf(metrics);

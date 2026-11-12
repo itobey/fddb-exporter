@@ -58,6 +58,23 @@ class FddbWeightReportServiceTest {
     }
 
     @Test
+    void sendsAReadingWithOnlyBlankVisibleFieldsToTheStore() {
+        when(api.getWeightReport()).thenReturn("""
+                <table class="mydata-history">
+                  <tr><th>Datum</th><th>Körperfett</th></tr>
+                  <tr><td>08.01.2026</td><td>—</td>
+                    <td><a href="/db/i18n/mydata/?action=edit&amp;q=123">Edit</a></td>
+                  </tr>
+                </table>
+                """);
+        var visibleMetrics = Set.of(BODY_FAT_PERCENT);
+        var blankReading = reading("123", LocalDate.of(2026, 1, 8), Map.of());
+        when(store.updateMeasurements(List.of(blankReading), visibleMetrics)).thenReturn(1);
+
+        assertThat(service.sync()).isEqualTo(1);
+    }
+
+    @Test
     void rejectsAnUnexpectedPageBeforeWriting() {
         when(api.getWeightReport()).thenReturn("<html><form>Log in</form></html>");
         assertThatThrownBy(service::sync).isInstanceOf(ParseException.class);
