@@ -180,7 +180,7 @@ After selecting a date range and clicking **Calculate Averages**, the view displ
 
 ### Trends <Badge type="tip" text="2.3.0+" />
 
-The **Trends** view charts calories, fat, carbs, sugar, protein, fibre, or FDDB body measurements over a date range.
+The **Trends** view charts calories, fat, carbs, sugar, protein, and fibre over a date range.
 You can group readings by day, ISO week, or month.
 
 Pick a **Metric**, a **Granularity** and a date range, then click **Show Trend**. The quick-select buttons preset both
@@ -198,7 +198,7 @@ The results consist of:
 Buckets without a single entry are omitted, so unlogged days never drag an average down. Use the **Missing Days** tab
 of the Entries view to find those gaps.
 
-#### FDDB Weight Report
+#### FDDB Weight Report <Badge type="tip" text="2.6.4+" />
 
 With MongoDB enabled, a diary export also fetches **Weight Report → My Data** once per sync, including
 scheduled exports. The Weight Report has its own history, so syncing a single diary day can import older
