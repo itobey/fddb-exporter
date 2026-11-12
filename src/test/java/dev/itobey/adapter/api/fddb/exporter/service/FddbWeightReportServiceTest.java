@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,10 +50,11 @@ class FddbWeightReportServiceTest {
         var first = reading("123", LocalDate.of(2026, 1, 8),
                 Map.of(WEIGHT_KG, 74.2, BODY_FAT_PERCENT, 19.4, BODY_WATER_PERCENT, 53.1, WAIST_CM, 80.5, HIP_CM, 95.2));
         var second = reading("124", LocalDate.of(2026, 1, 9), Map.of(WEIGHT_KG, 74.0));
-        when(store.importMeasurements(List.of(first, second))).thenReturn(2);
+        var columns = Set.of(WEIGHT_KG, BODY_FAT_PERCENT, BODY_WATER_PERCENT, WAIST_CM, HIP_CM);
+        when(store.updateMeasurements(List.of(first, second), columns)).thenReturn(2);
 
         assertThat(service.sync()).isEqualTo(2);
-        verify(store).importMeasurements(List.of(first, second));
+        verify(store).updateMeasurements(List.of(first, second), columns);
     }
 
     @Test

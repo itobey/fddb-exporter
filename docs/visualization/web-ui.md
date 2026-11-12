@@ -203,6 +203,7 @@ of the Entries view to find those gaps.
 With MongoDB enabled, a diary export also fetches **Weight Report → My Data** once per sync, including
 scheduled exports. The Weight Report has its own history, so syncing a single diary day can import older
 measurements. Enable the fields you want to sync under **Configure fields** on the FDDB website.
+Hiding a field keeps its previously synced values.
 
 In **Trends**, select **Weight**, **Body fat percentage**, **Body water**, **Waist circumference**, or
 **Hip circumference**, choose a date range, and click **Show Trend**. The chart averages multiple readings

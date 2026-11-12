@@ -31,10 +31,12 @@ class DateRangeInsightsViewsTest {
     private final StatsClient client = mock(StatsClient.class);
     private final FddbExporterProperties properties = mock(FddbExporterProperties.class, RETURNS_DEEP_STUBS);
     private final LocalDate today = LocalDate.now(ZoneId.of("Europe/Berlin"));
+    private UI ui;
 
     @BeforeEach
     void setUp() {
-        UI.setCurrent(new UI());
+        ui = new UI();
+        UI.setCurrent(ui);
         when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(true);
         doReturn(ZoneId.of("Europe/Berlin")).when(properties).resolveZone();
     }

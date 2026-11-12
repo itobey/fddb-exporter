@@ -10,7 +10,7 @@ info:
     - Calculating statistics and rolling averages
     - Performing correlation analysis
     - Migrating data between storage backends
-    - Importing and querying body measurements in MongoDB
+    - Querying stored body measurements in MongoDB
     
     ## Storage Backends
     The API supports multiple storage backends:
@@ -48,7 +48,7 @@ tags:
   - name: Correlation Analysis
     description: Correlation analysis between data series
   - name: Body Measurements
-    description: Import and query body measurements independently of the food diary
+    description: Query stored body measurements independently of the food diary
 
 paths:
   /api/v2/body-measurements:
@@ -98,30 +98,6 @@ paths:
                   $ref: '#/components/schemas/BodyMeasurement'
         '400':
           description: Invalid query parameters
-    post:
-      tags: [Body Measurements]
-      summary: Import normalized body measurements
-      description: Available when MongoDB persistence is enabled. Replaces readings with the same source and external ID.
-      operationId: importBodyMeasurements
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              minItems: 1
-              maxItems: 10000
-              items:
-                $ref: '#/components/schemas/BodyMeasurement'
-      responses:
-        '200':
-          description: Number of readings processed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BodyMeasurementImportResult'
-        '400':
-          description: Invalid measurement or batch
   /api/v2/fddbdata:
     post:
       tags:
@@ -1059,13 +1035,6 @@ components:
           example:
             WEIGHT_KG: 82.5
             BODY_FAT_PERCENT: 24.1
-    BodyMeasurementImportResult:
-      type: object
-      required: [processed]
-      properties:
-        processed:
-          type: integer
-          description: Number of readings accepted, including updates
     DateRangeDTO:
       type: object
       description: Date range with from and to dates

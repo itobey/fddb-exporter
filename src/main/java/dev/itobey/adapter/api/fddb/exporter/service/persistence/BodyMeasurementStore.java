@@ -1,6 +1,7 @@
 package dev.itobey.adapter.api.fddb.exporter.service.persistence;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.BodyMeasurement;
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.annotation.Id;
@@ -31,7 +32,8 @@ public class BodyMeasurementStore {
     public record StoredMeasurement(@Id String id, BodyMeasurement measurement) {
     }
 
-    public int importMeasurements(List<BodyMeasurement> measurements) {
+    /** Updates visible report columns and preserves previously synced values for hidden columns. */
+    public int updateMeasurements(List<BodyMeasurement> measurements, Set<BodyMetric> visibleMetrics) {
         if (measurements == null || measurements.isEmpty() || measurements.size() > MAX_IMPORT_RECORDS) {
             throw new IllegalArgumentException("Provide between 1 and " + MAX_IMPORT_RECORDS + " measurements");
         }
@@ -44,8 +46,20 @@ public class BodyMeasurementStore {
 
         var bulk = mongoTemplate.bulkOps(BulkMode.UNORDERED, StoredMeasurement.class);
         for (BodyMeasurement measurement : measurements) {
-            bulk.upsert(Query.query(Criteria.where("_id").is(idFor(measurement))),
-                    new Update().set("measurement", measurement));
+            var update = new Update()
+                    .set("measurement.source", measurement.source())
+                    .set("measurement.externalId", measurement.externalId())
+                    .set(MEASURED_AT, measurement.measuredAt());
+            visibleMetrics.forEach(metric -> {
+                String field = "measurement.metrics." + metric.name();
+                Double value = measurement.metrics().get(metric);
+                if (value == null) {
+                    update.unset(field);
+                } else {
+                    update.set(field, value);
+                }
+            });
+            bulk.upsert(Query.query(Criteria.where("_id").is(idFor(measurement))), update);
         }
         bulk.execute();
         return measurements.size();

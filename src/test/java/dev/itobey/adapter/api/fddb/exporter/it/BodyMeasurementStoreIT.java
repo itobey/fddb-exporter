@@ -12,6 +12,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric.BODY_FAT_PERCENT;
 import static dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric.WEIGHT_KG;
@@ -35,12 +36,19 @@ class BodyMeasurementStoreIT {
             var next = new BodyMeasurement("samsung-health", "next", day2, Map.of(WEIGHT_KG, 82.3));
             var corrected = new BodyMeasurement("samsung-health", "same-id", day1, Map.of(WEIGHT_KG, 82.4));
 
-            store.importMeasurements(List.of(next, original, otherSource));
-            store.importMeasurements(List.of(next, original, otherSource));
-            assertThatIllegalArgumentException().isThrownBy(() -> store.importMeasurements(List.of(original, corrected)));
+            var columns = Set.of(WEIGHT_KG, BODY_FAT_PERCENT);
+            store.updateMeasurements(List.of(next, original, otherSource), columns);
+            store.updateMeasurements(List.of(next, original, otherSource), columns);
+            assertThatIllegalArgumentException().isThrownBy(
+                    () -> store.updateMeasurements(List.of(original, corrected), columns));
             assertThat(store.find(null, null, null, 0, 10)).containsExactly(otherSource, original, next);
 
-            store.importMeasurements(List.of(corrected));
+            store.updateMeasurements(List.of(corrected), Set.of(WEIGHT_KG));
+            var withHiddenFat = new BodyMeasurement("samsung-health", "same-id", day1,
+                    Map.of(WEIGHT_KG, 82.4, BODY_FAT_PERCENT, 24.0));
+            assertThat(store.find(day1, day2, "samsung-health", 0, 10)).containsExactly(withHiddenFat);
+
+            store.updateMeasurements(List.of(corrected), columns);
             assertThat(store.find(day1, day2, "samsung-health", 0, 10)).containsExactly(corrected);
             assertThat(store.find(day1.plusNanos(1), null, null, 0, 10)).containsExactly(next);
             assertThat(store.find(null, null, null, 1, 1)).containsExactly(corrected);

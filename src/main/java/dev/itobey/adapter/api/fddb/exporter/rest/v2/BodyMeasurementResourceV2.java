@@ -7,11 +7,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.CacheControl;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,7 +20,7 @@ import java.util.List;
 @RequestMapping("/api/v2/body-measurements")
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "fddb-exporter.persistence.mongodb.enabled", havingValue = "true")
-@Tag(name = "Body Measurements", description = "Import and query body measurements independently of the food diary")
+@Tag(name = "Body Measurements", description = "Query stored body measurements independently of the food diary")
 public class BodyMeasurementResourceV2 {
     private final BodyMeasurementStore store;
 
@@ -39,13 +36,4 @@ public class BodyMeasurementResourceV2 {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(store.find(from, to, source, page, size));
     }
 
-    @Operation(summary = "Import normalized body measurements",
-            description = "An existing record with the same source and externalId is replaced.")
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ImportResult importMeasurements(@RequestBody List<BodyMeasurement> measurements) {
-        return new ImportResult(store.importMeasurements(measurements));
-    }
-
-    public record ImportResult(int processed) {
-    }
 }

@@ -46,42 +46,10 @@ synced with the diary and viewed in [Trends](/visualization/web-ui.md#fddb-weigh
 `source=fddb`. FDDB's mobile tracker connections display measurements in the app.
 [FDDB tracker data help](https://help.fddb.info/hc/en-us/articles/4688157675794-Why-doesn-t-my-imported-data-appear-on-the-Fddb-website)
 
-### Import from another source
-
-Send a JSON array to `POST /api/v2/body-measurements`. Garmin, Mi Fitness, Zepp, Renpho, Withings,
-and other sources can use this endpoint once their data has been converted to this schema.
-The endpoint accepts prepared records from a script or another integration.
-
-```json
-[
-  {
-    "source": "withings",
-    "externalId": "reading-123",
-    "measuredAt": "2026-01-02T07:30:00+01:00",
-    "metrics": {
-      "WEIGHT_KG": 82.5,
-      "BODY_FAT_PERCENT": 24.1
-    }
-  }
-]
-```
-
-- Use a lowercase source slug and a stable ID for each reading. Reimporting the same source and
-  ID replaces the entire reading. Keep any metric fields you want to retain in the new payload.
-- Each import accepts up to 10,000 records and returns the number processed, including updates.
-  A malformed record or duplicate ID within a batch rejects the import before any writes.
-  If a database error interrupts the write, retry the same batch.
-- Measurements use ISO 8601 timestamps with an offset and are stored in UTC at millisecond precision.
-- Supported metrics are `WEIGHT_KG`, `BODY_FAT_PERCENT`, `BODY_FAT_MASS_KG`,
-  `BODY_WATER_PERCENT`, `BODY_WATER_LITERS`, `FAT_FREE_MASS_KG`,
-  `SKELETAL_MUSCLE_PERCENT`, `SKELETAL_MUSCLE_MASS_KG`, `BMI`,
-  `BASAL_METABOLIC_RATE_KCAL_PER_DAY`, `WAIST_CM`, and `HIP_CM`.
-  Percentage values range from 0 to 100. Other values must be positive.
-
 ### Query measurement history
 
 ```http
-GET /api/v2/body-measurements?source=samsung-health&from=2026-01-01T00:00:00Z&to=2026-02-01T00:00:00Z
+GET /api/v2/body-measurements?source=fddb&from=2026-01-01T00:00:00Z&to=2026-02-01T00:00:00Z
 ```
 
 The optional `from` and `to` bounds are inclusive and exclusive, respectively. Omit `source` to

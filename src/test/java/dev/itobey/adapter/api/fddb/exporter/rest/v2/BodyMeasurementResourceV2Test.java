@@ -31,30 +31,21 @@ class BodyMeasurementResourceV2Test {
     }
 
     @Test
-    void importsNormalizedJsonAndListsMeasurementsWithSourceAndTimeBounds() throws Exception {
-        var measurement = new BodyMeasurement("withings", "abc-123", MEASURED_AT, Map.of(WEIGHT_KG, 82.5));
-        when(store.importMeasurements(List.of(measurement))).thenReturn(1);
-        mvc.perform(post(PATH).contentType("application/json").content("""
-                [{"source":"withings","externalId":"abc-123","measuredAt":"2026-01-02T00:15:00.123+01:00",
-                  "metrics":{"WEIGHT_KG":82.5}}]
-                """)).andExpect(status().isOk()).andExpect(jsonPath("$.processed").value(1));
-
+    void listsMeasurementsWithSourceAndTimeBounds() throws Exception {
+        var measurement = new BodyMeasurement("fddb", "123", MEASURED_AT, Map.of(WEIGHT_KG, 82.5));
         var from = Instant.parse("2026-01-01T00:00:00Z");
         var to = Instant.parse("2026-02-01T00:00:00Z");
-        when(store.find(from, to, "withings", 1, 25)).thenReturn(List.of(measurement));
-        mvc.perform(get(PATH).param("source", "withings").param("from", from.toString())
+        when(store.find(from, to, "fddb", 1, 25)).thenReturn(List.of(measurement));
+        mvc.perform(get(PATH).param("source", "fddb").param("from", from.toString())
                         .param("to", to.toString()).param("page", "1").param("size", "25"))
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(jsonPath("$[0].externalId").value("abc-123"))
+                .andExpect(jsonPath("$[0].externalId").value("123"))
                 .andExpect(jsonPath("$[0].metrics.WEIGHT_KG").value(82.5));
     }
 
     @Test
-    void rejectsUnsupportedMetricInJson() throws Exception {
-        mvc.perform(post(PATH).contentType("application/json").content("""
-                [{"source":"withings","externalId":"abc-123","measuredAt":"2026-01-01T23:15:00Z",
-                  "metrics":{"BODY_FAT":0.24}}]
-                """)).andExpect(status().isBadRequest());
+    void keepsTheMeasurementApiReadOnly() throws Exception {
+        mvc.perform(post(PATH)).andExpect(status().isMethodNotAllowed());
         verifyNoInteractions(store);
     }
 

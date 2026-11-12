@@ -28,8 +28,8 @@ public class FddbWeightReportService {
     private final FddbExporterProperties properties;
 
     int sync() {
-        var measurements = FddbWeightReportParser.parse(fddbApi.getWeightReport(), properties.resolveZone());
-        return measurements.isEmpty() ? 0 : store.importMeasurements(measurements);
+        var report = FddbWeightReportParser.parse(fddbApi.getWeightReport(), properties.resolveZone());
+        return report.readings().isEmpty() ? 0 : store.updateMeasurements(report.readings(), report.visibleMetrics());
     }
 
     void syncAlongsideDiary() {

@@ -2,6 +2,13 @@
 
 ## 2.6.4 (Unreleased)
 
+### Added
+
+- **FDDB Weight Report sync.** A diary sync also imports weight, body fat, body water, waist circumference, and hip
+  circumference when MongoDB is enabled. Trends charts the stored readings by day, week, or month.
+- **Weight Report downloads.** The Download file page includes diary data and measurements in CSV and JSON.
+  Direct REST downloads include measurements when requested with `includeWeightReport=true`.
+
 ### Fixed
 
 - **Rolling Averages shows the logged days behind each average**, with coverage measured through today when the

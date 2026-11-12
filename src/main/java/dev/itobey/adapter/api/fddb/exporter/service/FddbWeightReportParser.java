@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 final class FddbWeightReportParser {
@@ -28,7 +29,10 @@ final class FddbWeightReportParser {
     private FddbWeightReportParser() {
     }
 
-    static List<BodyMeasurement> parse(String html, ZoneId zone) {
+    record Report(List<BodyMeasurement> readings, Set<BodyMetric> visibleMetrics) {
+    }
+
+    static Report parse(String html, ZoneId zone) {
         Element table = Jsoup.parse(html == null ? "" : html).selectFirst("table.mydata-history");
         if (table == null) {
             throw new ParseException("FDDB did not return the Weight Report history table. Check that My Data is available.");
@@ -79,7 +83,7 @@ final class FddbWeightReportParser {
                 throw new ParseException("FDDB Weight Report contains an invalid measurement row.");
             }
         }
-        return measurements;
+        return new Report(measurements, Set.copyOf(columns.keySet()));
     }
 
     private static void addMetric(EnumMap<BodyMetric, Double> metrics, BodyMetric metric, String value) {
