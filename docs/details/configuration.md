@@ -61,7 +61,7 @@ For more information about the scheduler and how the export works, see [Export d
 The cron expression is a **Spring** expression and has six fields, the first being seconds. A five-field Unix
 expression is rejected at startup. `/actuator/scheduledtasks` lists the schedules actually in use.
 
-### Body Measurement Sync <Badge type="tip" text="2.6.4+" />
+### Body Measurement Sync <Badge type="tip" text="2.7.0+" />
 
 Body measurement sync defaults to `false`. Set `FDDB_EXPORTER_BODY_MEASUREMENTS_ENABLED=true` or add the
 following to `application.yml` to enable it. MongoDB must also be enabled.

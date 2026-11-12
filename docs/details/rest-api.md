@@ -38,7 +38,7 @@ Example responses:
 2. [example response when querying a product name](/resources/example-response-products.json)
 3. [example response when retrieving stats](/resources/example-response-stats.json)
 
-## Body measurements <Badge type="tip" text="2.6.4+" />
+## Body measurements <Badge type="tip" text="2.7.0+" />
 
 With [MongoDB persistence](/details/persistence.md) enabled, the exporter stores body measurements
 in a separate `bodyMeasurements` collection. Enable
@@ -690,7 +690,7 @@ and some endpoints answered with a bare string. Failed logins were `500` and unc
     - `format` _(required)_: Download format. Valid values: `CSV`, `JSON`.
     - `includeProducts` _(optional)_: Whether to include product details (`true`) or just daily totals (`false`).
       Defaults to `false`.
-    - `includeWeightReport` _(optional)_ <Badge type="tip" text="2.6.4+" />: Include stored FDDB Weight Report
+    - `includeWeightReport` _(optional)_ <Badge type="tip" text="2.7.0+" />: Include stored FDDB Weight Report
       readings in the same date range.
       Defaults to `false` for API callers. The **Download file** page enables it.
     - `decimalSeparator` _(optional)_: Decimal separator for CSV format. Valid values: `comma`, `dot`. Defaults to

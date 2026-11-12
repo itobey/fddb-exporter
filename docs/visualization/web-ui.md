@@ -198,7 +198,7 @@ The results consist of:
 Buckets without a single entry are omitted, so unlogged days never drag an average down. Use the **Missing Days** tab
 of the Entries view to find those gaps.
 
-#### FDDB Weight Report <Badge type="tip" text="2.6.4+" />
+#### FDDB Weight Report <Badge type="tip" text="2.7.0+" />
 
 Enable MongoDB and [body measurement sync](/details/configuration.md#body-measurement-sync) to fetch
 **Weight Report → My Data** once per diary sync, including scheduled exports. The Weight Report has its own

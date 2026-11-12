@@ -72,7 +72,7 @@ fddb:
 timezone: "Europe/Berlin"
 ```
 
-### Body Measurement Sync <Badge type="tip" text="2.6.4+" />
+### Body Measurement Sync <Badge type="tip" text="2.7.0+" />
 
 Set `bodyMeasurements.enabled` to `true` to sync the FDDB Weight Report alongside diary entries.
 The setting defaults to `false` and requires MongoDB. For example, pass

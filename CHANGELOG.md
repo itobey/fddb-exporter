@@ -1,12 +1,12 @@
 # Changelog
 
-## 2.6.4 (Unreleased)
+## 2.7.0
 
 ### Added
 
 - **FDDB Weight Report sync.** Set `fddb-exporter.body-measurements.enabled=true` with MongoDB enabled to import weight,
   body fat, body water, waist circumference, and hip circumference with the diary. Trends charts the stored readings
-  by day, week, or month.
+  by day, week, or month. The REST API exposes measurement history and trends under `/api/v2/body-measurements`.
 - **Weight Report downloads.** The Download file page includes diary data and measurements in CSV and JSON.
   Direct REST downloads include measurements when requested with `includeWeightReport=true`.
 
