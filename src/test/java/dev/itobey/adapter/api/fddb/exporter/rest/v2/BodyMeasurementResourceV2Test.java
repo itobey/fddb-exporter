@@ -1,7 +1,10 @@
 package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.BodyMeasurement;
+import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
+import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
 import dev.itobey.adapter.api.fddb.exporter.exception.GlobalExceptionHandler;
+import dev.itobey.adapter.api.fddb.exporter.service.FddbWeightReportService;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.BodyMeasurementStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -22,11 +26,12 @@ class BodyMeasurementResourceV2Test {
     private static final Instant MEASURED_AT = Instant.parse("2026-01-01T23:15:00.123Z");
 
     private final BodyMeasurementStore store = mock(BodyMeasurementStore.class);
+    private final FddbWeightReportService weightReport = mock(FddbWeightReportService.class);
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.standaloneSetup(new BodyMeasurementResourceV2(store))
+        mvc = MockMvcBuilders.standaloneSetup(new BodyMeasurementResourceV2(store, weightReport))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
@@ -41,6 +46,20 @@ class BodyMeasurementResourceV2Test {
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$[0].externalId").value("123"))
                 .andExpect(jsonPath("$[0].metrics.WEIGHT_KG").value(82.5));
+    }
+
+    @Test
+    void returnsBodyMeasurementTrendWithNoCaching() throws Exception {
+        LocalDate from = LocalDate.of(2026, 1, 1);
+        LocalDate to = from.plusDays(2);
+        when(weightReport.getTrend(WEIGHT_KG, from, to, TrendGranularity.WEEK))
+                .thenReturn(List.of(TrendPointDTO.builder().bucket("2026-W01").dayCount(1).average(82.5).build()));
+
+        mvc.perform(get(PATH + "/trend").param("metric", "WEIGHT_KG").param("fromDate", from.toString())
+                        .param("toDate", to.toString()).param("granularity", "WEEK"))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$[0].bucket").value("2026-W01"))
+                .andExpect(jsonPath("$[0].average").value(82.5));
     }
 
     @Test

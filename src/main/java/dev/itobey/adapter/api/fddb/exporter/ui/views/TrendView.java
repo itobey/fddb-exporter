@@ -20,29 +20,23 @@ import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
-import dev.itobey.adapter.api.fddb.exporter.service.FddbWeightReportService;
 import dev.itobey.adapter.api.fddb.exporter.ui.MainLayout;
 import dev.itobey.adapter.api.fddb.exporter.ui.components.TrendChart;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiException;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
-import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 
 /**
- * Visualizes the {@code /api/v2/stats/trend} time series: one metric over a date range,
- * bucketed by day, ISO week or month.
+ * Visualizes a nutrient or body measurement over a date range, bucketed by day, ISO week or month.
  */
 @Route(value = "trend", layout = MainLayout.class)
 @PageTitle("Trends | FDDB Exporter")
-@Slf4j
 public class TrendView extends VerticalLayout {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -51,7 +45,6 @@ public class TrendView extends VerticalLayout {
 
     private final StatsClient statsClient;
     private final FddbExporterProperties properties;
-    private final Optional<FddbWeightReportService> weightReport;
 
     private ComboBox<Metric> metricSelect;
     private ComboBox<TrendGranularity> granularitySelect;
@@ -61,11 +54,9 @@ public class TrendView extends VerticalLayout {
     private Details customRange;
     private final Div feedback = createFeedbackRegion();
 
-    public TrendView(StatsClient statsClient, FddbExporterProperties properties,
-                     Optional<FddbWeightReportService> weightReport) {
+    public TrendView(StatsClient statsClient, FddbExporterProperties properties) {
         this.statsClient = statsClient;
         this.properties = properties;
-        this.weightReport = weightReport;
 
         addClassName("trend-view");
         setSpacing(true);
@@ -90,8 +81,7 @@ public class TrendView extends VerticalLayout {
         section.add(new H3("Select Metric and Range"));
 
         metricSelect = new ComboBox<>("Metric");
-        metricSelect.setItems(Arrays.stream(Metric.values())
-                .filter(metric -> metric.bodyMetric == null || weightReport.isPresent()).toList());
+        metricSelect.setItems(Metric.values());
         metricSelect.setItemLabelGenerator(TrendView::metricLabel);
         metricSelect.setValue(Metric.CALORIES);
         metricSelect.setAllowCustomValue(false);
@@ -229,10 +219,11 @@ public class TrendView extends VerticalLayout {
             LocalDate effectiveTo = to.isAfter(today) ? today : to;
             List<TrendPointDTO> points = List.of();
             if (!from.isAfter(today)) {
+                String fromDate = from.format(DATE_FORMAT);
+                String toDate = effectiveTo.format(DATE_FORMAT);
                 points = metric.bodyMetric == null
-                        ? statsClient.getTrend(metric.nutrient, from.format(DATE_FORMAT),
-                                effectiveTo.format(DATE_FORMAT), granularity)
-                        : loadBodyTrend(metric.bodyMetric, from, effectiveTo, granularity);
+                        ? statsClient.getTrend(metric.nutrient, fromDate, toDate, granularity)
+                        : statsClient.getBodyMeasurementTrend(metric.bodyMetric, fromDate, toDate, granularity);
             }
 
             displayResult(points, metric, granularity, from, to, today);
@@ -244,16 +235,6 @@ public class TrendView extends VerticalLayout {
         } catch (ApiException apiException) {
             resultDiv.setVisible(false);
             showInlineError(feedback, apiException.getMessage(), this::loadTrend);
-        }
-    }
-
-    private List<TrendPointDTO> loadBodyTrend(BodyMetric metric, LocalDate from, LocalDate to,
-                                             TrendGranularity granularity) throws ApiException {
-        try {
-            return weightReport.orElseThrow().getTrend(metric, from, to, granularity);
-        } catch (RuntimeException ex) {
-            log.warn("Body measurement trend query failed ({})", ex.getClass().getSimpleName());
-            throw new ApiException("Could not load body measurements. Check the MongoDB connection.", ex);
         }
     }
 

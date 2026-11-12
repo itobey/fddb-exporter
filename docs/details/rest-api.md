@@ -56,6 +56,16 @@ The optional `from` and `to` bounds are inclusive and exclusive, respectively. O
 query across all sources. Results are chronological. Use zero-based `page` and a `size` of 1 to 1,000
 to page through the results. The default size is 1,000.
 
+### Query measurement trends
+
+```http
+GET /api/v2/body-measurements/trend?metric=WEIGHT_KG&fromDate=2026-01-01&toDate=2026-01-31&granularity=WEEK
+```
+
+Use inclusive dates in `YYYY-MM-DD` format. FDDB supplies `WEIGHT_KG`, `BODY_FAT_PERCENT`,
+`BODY_WATER_PERCENT`, `WAIST_CM`, and `HIP_CM`. Granularity defaults to `DAY` and also supports `WEEK`
+and `MONTH`. The response groups daily averages into trend buckets and omits days without the selected metric.
+
 Protect access to these endpoints and the database because they hold personal health data.
 [Securing your instance](/details/security.md)
 

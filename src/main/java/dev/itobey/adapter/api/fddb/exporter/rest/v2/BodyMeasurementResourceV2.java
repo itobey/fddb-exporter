@@ -1,11 +1,16 @@
 package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.BodyMeasurement;
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
+import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
+import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
+import dev.itobey.adapter.api.fddb.exporter.service.FddbWeightReportService;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.BodyMeasurementStore;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -23,6 +29,7 @@ import java.util.List;
 @Tag(name = "Body Measurements", description = "Query stored body measurements independently of the food diary")
 public class BodyMeasurementResourceV2 {
     private final BodyMeasurementStore store;
+    private final FddbWeightReportService weightReport;
 
     @Operation(summary = "List body measurements in chronological order",
             description = "Filter by source and UTC instants. The lower bound is inclusive and the upper bound is exclusive.")
@@ -34,6 +41,18 @@ public class BodyMeasurementResourceV2 {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "1000") int size) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(store.find(from, to, source, page, size));
+    }
+
+    @Operation(summary = "Get a trend for an FDDB body measurement",
+            description = "Groups daily averages by day, ISO week or month. Days without the selected metric are omitted.")
+    @GetMapping("/trend")
+    public ResponseEntity<List<TrendPointDTO>> getBodyMeasurementTrend(
+            @RequestParam BodyMetric metric,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(defaultValue = "DAY") TrendGranularity granularity) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(weightReport.getTrend(metric, fromDate, toDate, granularity));
     }
 
 }

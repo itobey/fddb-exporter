@@ -98,6 +98,50 @@ paths:
                   $ref: '#/components/schemas/BodyMeasurement'
         '400':
           description: Invalid query parameters
+  /api/v2/body-measurements/trend:
+    get:
+      tags: [Body Measurements]
+      summary: Get a trend for an FDDB body measurement
+      description: Groups daily averages and omits days without the selected metric. Available with MongoDB enabled.
+      operationId: getBodyMeasurementTrend
+      parameters:
+        - in: query
+          name: metric
+          required: true
+          schema:
+            type: string
+            example: WEIGHT_KG
+        - in: query
+          name: fromDate
+          description: Inclusive start date
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: toDate
+          description: Inclusive end date
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: granularity
+          schema:
+            type: string
+            enum: [DAY, WEEK, MONTH]
+            default: DAY
+      responses:
+        '200':
+          description: Trend time series
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrendPointDTO'
+        '400':
+          description: Invalid query parameters
   /api/v2/fddbdata:
     post:
       tags:

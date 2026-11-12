@@ -7,25 +7,28 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.tabs.TabSheet;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
-import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
-import dev.itobey.adapter.api.fddb.exporter.service.FddbWeightReportService;
+import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiBaseUrl;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class DateRangeInsightsViewsTest {
     private final StatsClient client = mock(StatsClient.class);
@@ -48,7 +51,7 @@ class DateRangeInsightsViewsTest {
 
     @Test
     void trendClampsTheRequestAndShowsElapsedCoverage() throws Exception {
-        TrendView view = new TrendView(client, properties, Optional.empty());
+        TrendView view = new TrendView(client, properties);
         LocalDate from = today.minusDays(6);
         when(client.getTrend(NutrientMetric.CALORIES, from.toString(), today.toString(), TrendGranularity.WEEK))
                 .thenReturn(List.of(TrendPointDTO.builder().bucket("test").fromDate(today).toDate(today)
@@ -65,7 +68,7 @@ class DateRangeInsightsViewsTest {
 
     @Test
     void futureTrendRangeClearsPreviousResultsWithoutRequestingFutureData() throws Exception {
-        TrendView view = new TrendView(client, properties, Optional.empty());
+        TrendView view = new TrendView(client, properties);
         LocalDate from = today.minusDays(2);
         when(client.getTrend(NutrientMetric.CALORIES, from.toString(), today.toString(), TrendGranularity.WEEK))
                 .thenReturn(List.of());
@@ -84,16 +87,21 @@ class DateRangeInsightsViewsTest {
 
     @Test
     void chartsBodyFatChangeInPercentagePoints() {
-        var dietReport = mock(FddbWeightReportService.class);
-        var view = new TrendView(client, properties, Optional.of(dietReport));
+        var restTemplate = new RestTemplate();
+        var server = MockRestServiceServer.bindTo(restTemplate).build();
+        var apiBaseUrl = mock(ApiBaseUrl.class);
+        when(apiBaseUrl.get()).thenReturn("http://localhost:8080");
+        var view = new TrendView(new StatsClient(restTemplate, apiBaseUrl), properties);
 
         LocalDate from = today.minusDays(29);
-        when(dietReport.getTrend(BodyMetric.BODY_FAT_PERCENT, from, today, TrendGranularity.DAY))
-                .thenReturn(List.of(
-                        TrendPointDTO.builder().bucket(from.toString()).fromDate(from).toDate(from)
-                                .dayCount(1).total(20).average(20).build(),
-                        TrendPointDTO.builder().bucket(today.toString()).fromDate(today).toDate(today)
-                                .dayCount(1).total(19).average(19).build()));
+        server.expect(requestTo("http://localhost:8080/api/v2/body-measurements/trend?metric=BODY_FAT_PERCENT"
+                        + "&fromDate=" + from + "&toDate=" + today + "&granularity=DAY"))
+                .andRespond(withSuccess("""
+                        [
+                          {"bucket":"%1$s","fromDate":"%1$s","toDate":"%1$s","dayCount":1,"total":20,"average":20},
+                          {"bucket":"%2$s","fromDate":"%2$s","toDate":"%2$s","dayCount":1,"total":19,"average":19}
+                        ]
+                        """.formatted(from, today), MediaType.APPLICATION_JSON));
         var metric = descendants(view).filter(ComboBox.class::isInstance).findFirst().orElseThrow();
         @SuppressWarnings("unchecked")
         var selector = (ComboBox<TrendView.Metric>) metric;
@@ -101,7 +109,7 @@ class DateRangeInsightsViewsTest {
         button(view, "Last 30 Days").click();
 
         assertThat(view.getElement().getTextRecursively()).contains("Body fat percentage per day", "-1.0 percentage points");
-        verifyNoInteractions(client);
+        server.verify();
     }
 
     @Test
