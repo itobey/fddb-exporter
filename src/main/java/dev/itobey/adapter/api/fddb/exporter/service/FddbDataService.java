@@ -347,7 +347,7 @@ public class FddbDataService {
         boolean outermost = exportLock.getHoldCount() == 1;
         try {
             T result = export.get();
-            if (outermost && weightReportPending) {
+            if (outermost && weightReportPending && properties.getBodyMeasurements().isEnabled()) {
                 FddbWeightReportService report = weightReport.getIfAvailable();
                 if (report != null) {
                     report.syncAlongsideDiary();

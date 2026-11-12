@@ -93,8 +93,20 @@ class FddbDataServiceTest {
     }
 
     @Test
+    void exportsDiaryWithoutLookingUpTheWeightReportServiceWhenDisabled() {
+        when(exportService.exportData(any())).thenReturn(mockFddbData);
+
+        var result = fddbDataService.exportForTimerange(new DateRangeDTO("2026-10-01", "2026-10-01"));
+
+        assertEquals(List.of("2026-10-01"), result.getSuccessfulDays());
+        verify(persistenceService).saveOrUpdate(mockFddbData);
+        verifyNoInteractions(weightReport);
+    }
+
+    @Test
     void syncsWeightReportOnceForNestedDayExportsEvenWithEmptyDiaries() {
         var report = mock(FddbWeightReportService.class);
+        when(properties.getBodyMeasurements().isEnabled()).thenReturn(true);
         when(weightReport.getIfAvailable()).thenReturn(report);
         when(exportService.exportData(any())).thenThrow(new EmptyDiaryException());
 

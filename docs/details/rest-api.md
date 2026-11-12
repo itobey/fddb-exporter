@@ -41,9 +41,10 @@ Example responses:
 ## Body measurements <Badge type="tip" text="2.6.4+" />
 
 With [MongoDB persistence](/details/persistence.md) enabled, the exporter stores body measurements
-in a separate `bodyMeasurements` collection. Readings entered in the FDDB website's Weight Report can be
-synced with the diary and viewed in [Trends](/visualization/web-ui.md#fddb-weight-report) and queried with
-`source=fddb`. FDDB's mobile tracker connections display measurements in the app.
+in a separate `bodyMeasurements` collection. Enable
+[body measurement sync](/details/configuration.md#body-measurement-sync) to fetch Weight Report readings with the diary.
+Readings can be viewed in [Trends](/visualization/web-ui.md#fddb-weight-report) and queried with `source=fddb`.
+FDDB's mobile tracker connections display measurements in the app.
 [FDDB tracker data help](https://help.fddb.info/hc/en-us/articles/4688157675794-Why-doesn-t-my-imported-data-appear-on-the-Fddb-website)
 
 ### Query measurement history
@@ -718,7 +719,7 @@ and some endpoints answered with a bare string. Failed logins were `500` and unc
     - By default, returns the diary array filtered by the selected date range.
     - With `includeWeightReport=true`, returns an object with separate `diary` and `weightReport` arrays.
 
-With the Weight Report enabled, CSV lists dates chronologically and puts the first reading for each day
+With `includeWeightReport=true`, CSV lists dates chronologically and puts the first reading for each day
 beside that day's diary data. Dates without diary entries and any additional readings get rows with blank
 diary columns. Both formats preserve multiple readings on the same date. A single download can include up
 to 365 Weight Report readings.

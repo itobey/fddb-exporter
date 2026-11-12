@@ -61,6 +61,20 @@ For more information about the scheduler and how the export works, see [Export d
 The cron expression is a **Spring** expression and has six fields, the first being seconds. A five-field Unix
 expression is rejected at startup. `/actuator/scheduledtasks` lists the schedules actually in use.
 
+### Body Measurement Sync <Badge type="tip" text="2.6.4+" />
+
+Body measurement sync defaults to `false`. Set `FDDB_EXPORTER_BODY_MEASUREMENTS_ENABLED=true` or add the
+following to `application.yml` to enable it. MongoDB must also be enabled.
+
+```yaml
+fddb-exporter:
+  body-measurements:
+    enabled: true
+```
+
+Each diary sync then makes one additional request for the FDDB Weight Report. You can view and download
+measurements already stored in MongoDB independently of this setting.
+
 ### Timezone
 
 FDDB Exporter keys every entry on its diary date and stores it as midnight of that date in the configured timezone, so

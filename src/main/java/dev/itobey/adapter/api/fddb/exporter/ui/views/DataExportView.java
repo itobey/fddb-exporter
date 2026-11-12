@@ -83,7 +83,7 @@ public class DataExportView extends VerticalLayout {
 
         Div introduction = new Div(new H2("Sync from FDDB"),
                 new Paragraph("Import diary entries from your FDDB account and update existing days. "
-                        + "When MongoDB is enabled, the Weight Report is also synced."));
+                        + "Weight Report sync requires MongoDB and must be enabled in the configuration."));
         introduction.addClassName("export-introduction");
 
         Div sectionsLayout = new Div();

@@ -40,8 +40,7 @@ To authenticate with FDDB, MongoDB, and InfluxDB, you have two options:
 Important:
 If both `secretRef` and direct username/password options are provided, the `secretRef` will take precedence.
 
-Any additional configuration options for the application will be stored in a ConfigMap. Both secrets and ConfigMaps will
-be exposed as environment variables and mounted into the container for access.
+The chart supplies application configuration and secret references through environment variables.
 
 ```yaml
 mongodb:
@@ -72,3 +71,9 @@ fddb:
 
 timezone: "Europe/Berlin"
 ```
+
+### Body Measurement Sync <Badge type="tip" text="2.6.4+" />
+
+Set `bodyMeasurements.enabled` to `true` to sync the FDDB Weight Report alongside diary entries.
+The setting defaults to `false` and requires MongoDB. For example, pass
+`--set bodyMeasurements.enabled=true,mongodb.enabled=true` to Helm.
