@@ -38,6 +38,27 @@ Example responses:
 2. [example response when querying a product name](/resources/example-response-products.json)
 3. [example response when retrieving stats](/resources/example-response-stats.json)
 
+## Body measurements
+
+With [MongoDB persistence](/details/persistence.md) enabled, the exporter stores body measurements
+in a separate `bodyMeasurements` collection. Readings entered in the FDDB website's Weight Report can be
+synced with the diary and viewed in [Trends](/visualization/web-ui.md#fddb-weight-report) and queried with
+`source=fddb`. FDDB's mobile tracker connections display measurements in the app.
+[FDDB tracker data help](https://help.fddb.info/hc/en-us/articles/4688157675794-Why-doesn-t-my-imported-data-appear-on-the-Fddb-website)
+
+### Query measurement history
+
+```http
+GET /api/v2/body-measurements?source=fddb&from=2026-01-01T00:00:00Z&to=2026-02-01T00:00:00Z
+```
+
+The optional `from` and `to` bounds are inclusive and exclusive, respectively. Omit `source` to
+query across all sources. Results are chronological. Use zero-based `page` and a `size` of 1 to 1,000
+to page through the results. The default size is 1,000.
+
+Protect access to these endpoints and the database because they hold personal health data.
+[Securing your instance](/details/security.md)
+
 ## Error responses <Badge type="tip" text="2.5.0+" />
 
 Errors handled by the global exception handler use [RFC 7807](https://www.rfc-editor.org/rfc/rfc7807) *problem details*,
@@ -658,6 +679,8 @@ and some endpoints answered with a bare string. Failed logins were `500` and unc
     - `format` _(required)_: Download format. Valid values: `CSV`, `JSON`.
     - `includeProducts` _(optional)_: Whether to include product details (`true`) or just daily totals (`false`).
       Defaults to `false`.
+    - `includeWeightReport` _(optional)_: Include stored FDDB Weight Report readings in the same date range.
+      Defaults to `false` for API callers. The **Download file** page enables it.
     - `decimalSeparator` _(optional)_: Decimal separator for CSV format. Valid values: `comma`, `dot`. Defaults to
       `comma`. Only applicable when format is `CSV`.
 
@@ -681,8 +704,13 @@ and some endpoints answered with a bare string. Failed logins were `500` and unc
       including all nutritional values and product information.
 
 - **JSON Format:**
-    - Returns data in the same structure as the `/api/v2/fddbdata` endpoint, but filtered by the specified date range if
-      provided.
+    - By default, returns the diary array filtered by the selected date range.
+    - With `includeWeightReport=true`, returns an object with separate `diary` and `weightReport` arrays.
+
+With the Weight Report enabled, CSV lists dates chronologically and puts the first reading for each day
+beside that day's diary data. Dates without diary entries and any additional readings get rows with blank
+diary columns. Both formats preserve multiple readings on the same date. A single download can include up
+to 365 Weight Report readings.
 
 #### Maximum download size <Badge type="tip" text="2.5.0+" />
 

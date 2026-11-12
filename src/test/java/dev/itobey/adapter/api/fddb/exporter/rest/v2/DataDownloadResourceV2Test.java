@@ -33,6 +33,19 @@ class DataDownloadResourceV2Test {
 
     @Test
     @SneakyThrows
+    void downloadCanIncludeTheWeightReport() {
+        byte[] json = "{\"diary\":[],\"weightReport\":[]}".getBytes(StandardCharsets.UTF_8);
+        when(dataDownloadService.downloadData(null, null, DownloadFormat.JSON, false, ",", true))
+                .thenReturn(json);
+        mockMvc.perform(get("/api/v2/fddbdata/download")
+                        .param("format", "JSON").param("includeWeightReport", "true"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(content().bytes(json));
+    }
+
+    @Test
+    @SneakyThrows
     void downloadData_shouldReturnCsvWithAllParameters() {
         // given
         byte[] csvData = "Date;Calories\n2024-01-01;2000".getBytes(StandardCharsets.UTF_8);

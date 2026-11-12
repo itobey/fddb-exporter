@@ -14,9 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.IsoFields;
 import java.util.*;
 import java.util.function.ToDoubleFunction;
 
@@ -195,7 +193,7 @@ public class StatsService {
         ToDoubleFunction<FddbData> valueOf = metricAccessor(metric);
         Map<String, List<FddbData>> buckets = new LinkedHashMap<>();
         for (FddbData entry : statsRepository.findDailyTotals(fromDate, toDate)) {
-            buckets.computeIfAbsent(bucketLabel(entry.getDate(), granularity), key -> new ArrayList<>()).add(entry);
+            buckets.computeIfAbsent(granularity.bucketLabel(entry.getDate()), key -> new ArrayList<>()).add(entry);
         }
 
         List<TrendPointDTO> trend = new ArrayList<>();
@@ -444,15 +442,6 @@ public class StatsService {
             case SUGAR -> FddbData::getTotalSugar;
             case PROTEIN -> FddbData::getTotalProtein;
             case FIBRE -> FddbData::getTotalFibre;
-        };
-    }
-
-    private String bucketLabel(LocalDate date, TrendGranularity granularity) {
-        return switch (granularity) {
-            case DAY -> date.toString();
-            case WEEK -> "%d-W%02d".formatted(
-                    date.get(IsoFields.WEEK_BASED_YEAR), date.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR));
-            case MONTH -> YearMonth.from(date).toString();
         };
     }
 

@@ -3,12 +3,15 @@ package dev.itobey.adapter.api.fddb.exporter.ui.views;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.tabs.TabSheet;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
+import dev.itobey.adapter.api.fddb.exporter.service.FddbWeightReportService;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 import org.junit.jupiter.api.AfterEach;
@@ -18,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,10 +31,12 @@ class DateRangeInsightsViewsTest {
     private final StatsClient client = mock(StatsClient.class);
     private final FddbExporterProperties properties = mock(FddbExporterProperties.class, RETURNS_DEEP_STUBS);
     private final LocalDate today = LocalDate.now(ZoneId.of("Europe/Berlin"));
+    private UI ui;
 
     @BeforeEach
     void setUp() {
-        UI.setCurrent(new UI());
+        ui = new UI();
+        UI.setCurrent(ui);
         when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(true);
         doReturn(ZoneId.of("Europe/Berlin")).when(properties).resolveZone();
     }
@@ -42,7 +48,7 @@ class DateRangeInsightsViewsTest {
 
     @Test
     void trendClampsTheRequestAndShowsElapsedCoverage() throws Exception {
-        TrendView view = new TrendView(client, properties);
+        TrendView view = new TrendView(client, properties, Optional.empty());
         LocalDate from = today.minusDays(6);
         when(client.getTrend(NutrientMetric.CALORIES, from.toString(), today.toString(), TrendGranularity.WEEK))
                 .thenReturn(List.of(TrendPointDTO.builder().bucket("test").fromDate(today).toDate(today)
@@ -59,7 +65,7 @@ class DateRangeInsightsViewsTest {
 
     @Test
     void futureTrendRangeClearsPreviousResultsWithoutRequestingFutureData() throws Exception {
-        TrendView view = new TrendView(client, properties);
+        TrendView view = new TrendView(client, properties, Optional.empty());
         LocalDate from = today.minusDays(2);
         when(client.getTrend(NutrientMetric.CALORIES, from.toString(), today.toString(), TrendGranularity.WEEK))
                 .thenReturn(List.of());
@@ -74,6 +80,28 @@ class DateRangeInsightsViewsTest {
         assertThat(view.getElement().getTextRecursively())
                 .contains("This range is in the future. No logged data yet.")
                 .doesNotContain("No entries found from");
+    }
+
+    @Test
+    void chartsBodyFatChangeInPercentagePoints() {
+        var dietReport = mock(FddbWeightReportService.class);
+        var view = new TrendView(client, properties, Optional.of(dietReport));
+
+        LocalDate from = today.minusDays(29);
+        when(dietReport.getTrend(BodyMetric.BODY_FAT_PERCENT, from, today, TrendGranularity.DAY))
+                .thenReturn(List.of(
+                        TrendPointDTO.builder().bucket(from.toString()).fromDate(from).toDate(from)
+                                .dayCount(1).total(20).average(20).build(),
+                        TrendPointDTO.builder().bucket(today.toString()).fromDate(today).toDate(today)
+                                .dayCount(1).total(19).average(19).build()));
+        var metric = descendants(view).filter(ComboBox.class::isInstance).findFirst().orElseThrow();
+        @SuppressWarnings("unchecked")
+        var selector = (ComboBox<TrendView.Metric>) metric;
+        selector.setValue(TrendView.Metric.BODY_FAT);
+        button(view, "Last 30 Days").click();
+
+        assertThat(view.getElement().getTextRecursively()).contains("Body fat percentage per day", "-1.0 percentage points");
+        verifyNoInteractions(client);
     }
 
     @Test

@@ -1,0 +1,52 @@
+package dev.itobey.adapter.api.fddb.exporter.rest.v2;
+
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMeasurement;
+import dev.itobey.adapter.api.fddb.exporter.exception.GlobalExceptionHandler;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.BodyMeasurementStore;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+
+import static dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+class BodyMeasurementResourceV2Test {
+    private static final String PATH = "/api/v2/body-measurements";
+    private static final Instant MEASURED_AT = Instant.parse("2026-01-01T23:15:00.123Z");
+
+    private final BodyMeasurementStore store = mock(BodyMeasurementStore.class);
+    private MockMvc mvc;
+
+    @BeforeEach
+    void setUp() {
+        mvc = MockMvcBuilders.standaloneSetup(new BodyMeasurementResourceV2(store))
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
+    }
+
+    @Test
+    void listsMeasurementsWithSourceAndTimeBounds() throws Exception {
+        var measurement = new BodyMeasurement("fddb", "123", MEASURED_AT, Map.of(WEIGHT_KG, 82.5));
+        var from = Instant.parse("2026-01-01T00:00:00Z");
+        var to = Instant.parse("2026-02-01T00:00:00Z");
+        when(store.find(from, to, "fddb", 1, 25)).thenReturn(List.of(measurement));
+        mvc.perform(get(PATH).param("source", "fddb").param("from", from.toString())
+                        .param("to", to.toString()).param("page", "1").param("size", "25"))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$[0].externalId").value("123"))
+                .andExpect(jsonPath("$[0].metrics.WEIGHT_KG").value(82.5));
+    }
+
+    @Test
+    void keepsTheMeasurementApiReadOnly() throws Exception {
+        mvc.perform(post(PATH)).andExpect(status().isMethodNotAllowed());
+        verifyNoInteractions(store);
+    }
+
+}

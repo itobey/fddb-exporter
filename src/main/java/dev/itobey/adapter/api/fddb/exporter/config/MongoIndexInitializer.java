@@ -1,12 +1,14 @@
 package dev.itobey.adapter.api.fddb.exporter.config;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.BodyMeasurementStore.StoredMeasurement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
@@ -33,10 +35,25 @@ public class MongoIndexInitializer {
             // Match the existing production index names to avoid IndexOptionsConflict.
             indexOps.createIndex(new Index().on("date", Sort.Direction.ASC).unique().named("date"));
             indexOps.createIndex(new Index().on("products.name", Sort.Direction.ASC).named("products.name"));
+        } catch (DataAccessResourceFailureException e) {
+            log.warn("MongoDB is unavailable. Skipping index creation for this startup.", e);
+            return;
         } catch (Exception e) {
             log.error("Failed to create MongoDB indexes. If this is the unique index on 'date', the collection "
                     + "likely already contains duplicate dates - see the upgrading docs to find and remove them, "
                     + "then restart. Continuing startup without the index in the meantime.", e);
+        }
+        ensureBodyMeasurementIndexes();
+    }
+
+    private void ensureBodyMeasurementIndexes() {
+        try {
+            mongoTemplate.indexOps(StoredMeasurement.class).createIndex(new Index()
+                    .on("measurement.measuredAt", Sort.Direction.ASC)
+                    .on("_id", Sort.Direction.ASC)
+                    .named("measurement_time"));
+        } catch (Exception e) {
+            log.warn("Failed to create the body measurement index. Continuing startup without it.", e);
         }
     }
 

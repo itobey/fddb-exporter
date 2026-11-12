@@ -39,6 +39,8 @@ See the [documentation](https://itobey.github.io/fddb-exporter/) for a deep dive
 - **Product search** with optional filtering by day of the week (e.g., only Mondays and Thursdays)
 - Provides a RESTful API for data retrieval and export operations
 - Interactive Swagger UI for easy API exploration and testing
+- Syncs FDDB Weight Report measurements into MongoDB and charts them in Trends.
+  [Body measurement API](docs/details/rest-api.md#body-measurements)
 - A special API endpoint to find correlations to matching dates for checking food allergies
 - **MCP server** (opt-in) so an AI assistant can answer questions about your diary in natural language, with ready-made
   workflows for a weekly review, a trigger-food analysis, a protein gap check and a logging hygiene check — read-only

@@ -33,7 +33,7 @@ class DataDownloadClientTest {
         String url = dataDownloadClient.buildDownloadUrl(fromDate, toDate, format, includeProducts, decimalSeparator);
 
         // then
-        assertThat(url).isEqualTo("/api/v2/fddbdata/download?format=CSV&includeProducts=true&decimalSeparator=comma&fromDate=2024-01-01&toDate=2024-12-31");
+        assertThat(url).isEqualTo("/api/v2/fddbdata/download?format=CSV&includeProducts=true&includeWeightReport=true&decimalSeparator=comma&fromDate=2024-01-01&toDate=2024-12-31");
     }
 
     @Test
@@ -47,7 +47,7 @@ class DataDownloadClientTest {
         String url = dataDownloadClient.buildDownloadUrl(null, null, format, includeProducts, decimalSeparator);
 
         // then
-        assertThat(url).isEqualTo("/api/v2/fddbdata/download?format=JSON&includeProducts=false&decimalSeparator=dot");
+        assertThat(url).isEqualTo("/api/v2/fddbdata/download?format=JSON&includeProducts=false&includeWeightReport=true&decimalSeparator=dot");
     }
 
     @Test

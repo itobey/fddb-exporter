@@ -10,6 +10,7 @@ info:
     - Calculating statistics and rolling averages
     - Performing correlation analysis
     - Migrating data between storage backends
+    - Querying stored body measurements in MongoDB
     
     ## Storage Backends
     The API supports multiple storage backends:
@@ -46,8 +47,57 @@ tags:
     description: Data migration operations between storage backends
   - name: Correlation Analysis
     description: Correlation analysis between data series
+  - name: Body Measurements
+    description: Query stored body measurements independently of the food diary
 
 paths:
+  /api/v2/body-measurements:
+    get:
+      tags: [Body Measurements]
+      summary: List body measurements in chronological order
+      description: Available when MongoDB persistence is enabled.
+      operationId: listBodyMeasurements
+      parameters:
+        - in: query
+          name: from
+          description: Inclusive lower bound
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          description: Exclusive upper bound
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: source
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1000
+      responses:
+        '200':
+          description: Measurement history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BodyMeasurement'
+        '400':
+          description: Invalid query parameters
   /api/v2/fddbdata:
     post:
       tags:
@@ -536,6 +586,12 @@ paths:
             type: boolean
             default: false
             example: false
+        - name: includeWeightReport
+          in: query
+          description: Include stored FDDB Weight Report readings. JSON uses separate diary and weightReport arrays. CSV adds measurement columns and rows.
+          schema:
+            type: boolean
+            default: false
         - name: decimalSeparator
           in: query
           description: Decimal separator for CSV format (. or ,). Only applies when format is CSV.
@@ -557,13 +613,34 @@ paths:
                 format: binary
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/FddbDataDTO'
-                description: |
-                  Returns an array of FddbDataDTO objects.
-                  When includeProducts=false, the 'id' and 'products' fields will be null.
-                  When includeProducts=true, all fields are populated.
+                oneOf:
+                  - type: array
+                    description: Diary entries when includeWeightReport is false.
+                    items:
+                      $ref: '#/components/schemas/FddbDataDTO'
+                  - type: object
+                    required: [diary, weightReport]
+                    properties:
+                      diary:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FddbDataDTO'
+                      weightReport:
+                        type: array
+                        items:
+                          type: object
+                          required: [date, id, metrics]
+                          properties:
+                            date:
+                              type: string
+                              format: date
+                            id:
+                              type: string
+                            metrics:
+                              type: object
+                              additionalProperties:
+                                type: number
+                                format: double
         '400':
           description: Invalid parameters (e.g., fromDate is after toDate)
           content:
@@ -927,6 +1004,37 @@ paths:
 
 components:
   schemas:
+    BodyMeasurement:
+      type: object
+      required: [source, externalId, measuredAt, metrics]
+      properties:
+        source:
+          type: string
+          pattern: '^[a-z0-9][a-z0-9-]{0,63}$'
+          example: samsung-health
+        externalId:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: reading-123
+        measuredAt:
+          type: string
+          format: date-time
+          example: '2026-01-01T12:00:00Z'
+        metrics:
+          type: object
+          minProperties: 1
+          description: |
+            Supported keys are WEIGHT_KG, BODY_FAT_PERCENT, BODY_FAT_MASS_KG, BODY_WATER_PERCENT,
+            BODY_WATER_LITERS, FAT_FREE_MASS_KG, SKELETAL_MUSCLE_PERCENT, SKELETAL_MUSCLE_MASS_KG,
+            BMI, BASAL_METABOLIC_RATE_KCAL_PER_DAY, WAIST_CM, and HIP_CM.
+            Percentages must be between 0 and 100. Other values must be positive.
+          additionalProperties:
+            type: number
+            format: double
+          example:
+            WEIGHT_KG: 82.5
+            BODY_FAT_PERCENT: 24.1
     DateRangeDTO:
       type: object
       description: Date range with from and to dates
