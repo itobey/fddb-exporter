@@ -44,7 +44,9 @@ class BodyMeasurementResourceV2Test {
         mvc.perform(get(PATH).param("source", "fddb").param("from", from.toString())
                         .param("to", to.toString()).param("page", "1").param("size", "25"))
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$[0].source").value("fddb"))
                 .andExpect(jsonPath("$[0].externalId").value("123"))
+                .andExpect(jsonPath("$[0].measuredAt").value(MEASURED_AT.toString()))
                 .andExpect(jsonPath("$[0].metrics.WEIGHT_KG").value(82.5));
     }
 

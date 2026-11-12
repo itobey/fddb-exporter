@@ -2,6 +2,7 @@ package dev.itobey.adapter.api.fddb.exporter.rest.v2;
 
 import dev.itobey.adapter.api.fddb.exporter.domain.BodyMeasurement;
 import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
+import dev.itobey.adapter.api.fddb.exporter.dto.BodyMeasurementDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
 import dev.itobey.adapter.api.fddb.exporter.service.FddbWeightReportService;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v2/body-measurements")
@@ -34,13 +37,16 @@ public class BodyMeasurementResourceV2 {
     @Operation(summary = "List body measurements in chronological order",
             description = "Filter by source and UTC instants. The lower bound is inclusive and the upper bound is exclusive.")
     @GetMapping
-    public ResponseEntity<List<BodyMeasurement>> list(
+    public ResponseEntity<List<BodyMeasurementDTO>> list(
             @RequestParam(required = false) Instant from,
             @RequestParam(required = false) Instant to,
             @RequestParam(required = false) String source,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "1000") int size) {
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(store.find(from, to, source, page, size));
+        var measurements = store.find(from, to, source, page, size).stream()
+                .map(BodyMeasurementResourceV2::toDTO)
+                .toList();
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(measurements);
     }
 
     @Operation(summary = "Get a trend for an FDDB body measurement",
@@ -55,4 +61,9 @@ public class BodyMeasurementResourceV2 {
                 .body(weightReport.getTrend(metric, fromDate, toDate, granularity));
     }
 
+    private static BodyMeasurementDTO toDTO(BodyMeasurement measurement) {
+        var metrics = measurement.metrics().entrySet().stream()
+                .collect(Collectors.toUnmodifiableMap(entry -> entry.getKey().name(), Map.Entry::getValue));
+        return new BodyMeasurementDTO(measurement.source(), measurement.externalId(), measurement.measuredAt(), metrics);
+    }
 }
