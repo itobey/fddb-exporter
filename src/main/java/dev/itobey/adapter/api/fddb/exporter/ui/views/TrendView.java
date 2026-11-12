@@ -82,7 +82,7 @@ public class TrendView extends VerticalLayout {
 
         metricSelect = new ComboBox<>("Metric");
         metricSelect.setItems(Metric.values());
-        metricSelect.setItemLabelGenerator(TrendView::metricLabel);
+        metricSelect.setItemLabelGenerator(metric -> metric.label);
         metricSelect.setValue(Metric.CALORIES);
         metricSelect.setAllowCustomValue(false);
         metricSelect.setWidthFull();
@@ -273,7 +273,7 @@ public class TrendView extends VerticalLayout {
             return;
         }
 
-        content.add(new H3(metricLabel(metric) + " per " + bucketNoun(granularity)));
+        content.add(new H3(metric.label + " per " + bucketNoun(granularity)));
         content.add(createSummaryCards(points, metric));
         Paragraph comparison = new Paragraph(points.size() < 2
                 ? "Change needs at least two periods with entries."
@@ -291,7 +291,7 @@ public class TrendView extends VerticalLayout {
     }
 
     private Component createSummaryCards(List<TrendPointDTO> points, Metric metric) {
-        String unit = unitOf(metric);
+        String unit = metric.unit;
 
         long totalDays = points.stream().mapToLong(TrendPointDTO::getDayCount).sum();
         double totalValue = points.stream().mapToDouble(TrendPointDTO::getTotal).sum();
@@ -330,12 +330,12 @@ public class TrendView extends VerticalLayout {
      */
     private Component createChart(List<TrendPointDTO> points, Metric metric, TrendGranularity granularity,
                                    LocalDate from, LocalDate to) {
-        return new TrendChart(points, granularity, unitOf(metric), fillOf(metric), from, to);
+        return new TrendChart(points, granularity, metric.unit, metric.fill, from, to);
     }
 
     private Component createTrendGrid(List<TrendPointDTO> points, Metric metric, TrendGranularity granularity,
                                        LocalDate from, LocalDate to) {
-        String unit = unitOf(metric);
+        String unit = metric.unit;
 
         Grid<TrendPointDTO> grid = new Grid<>(TrendPointDTO.class, false);
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
@@ -363,16 +363,6 @@ public class TrendView extends VerticalLayout {
         return grid;
     }
 
-    private static String metricLabel(Metric metric) {
-        return switch (metric) {
-            case BODY_FAT -> "Body fat percentage";
-            case BODY_WATER -> "Body water";
-            case WAIST -> "Waist circumference";
-            case HIP -> "Hip circumference";
-            default -> capitalize(metric.name());
-        };
-    }
-
     private static String granularityLabel(TrendGranularity granularity) {
         return switch (granularity) {
             case DAY -> "Daily";
@@ -389,59 +379,39 @@ public class TrendView extends VerticalLayout {
         };
     }
 
-    private static String unitOf(Metric metric) {
-        return switch (metric) {
-            case CALORIES -> "kcal";
-            case WEIGHT -> "kg";
-            case BODY_FAT, BODY_WATER -> "%";
-            case WAIST, HIP -> "cm";
-            default -> "g";
-        };
-    }
-
     enum Metric {
-        CALORIES(NutrientMetric.CALORIES),
-        FAT(NutrientMetric.FAT),
-        CARBS(NutrientMetric.CARBS),
-        SUGAR(NutrientMetric.SUGAR),
-        PROTEIN(NutrientMetric.PROTEIN),
-        FIBRE(NutrientMetric.FIBRE),
-        WEIGHT(null, BodyMetric.WEIGHT_KG),
-        BODY_FAT(null, BodyMetric.BODY_FAT_PERCENT),
-        BODY_WATER(null, BodyMetric.BODY_WATER_PERCENT),
-        WAIST(null, BodyMetric.WAIST_CM),
-        HIP(null, BodyMetric.HIP_CM);
+        CALORIES(NutrientMetric.CALORIES, "Calories", "kcal", "--nutrient-calories"),
+        FAT(NutrientMetric.FAT, "Fat", "g", "--nutrient-fat"),
+        CARBS(NutrientMetric.CARBS, "Carbs", "g", "--nutrient-carbs"),
+        SUGAR(NutrientMetric.SUGAR, "Sugar", "g", "--nutrient-sugar"),
+        PROTEIN(NutrientMetric.PROTEIN, "Protein", "g", "--nutrient-protein"),
+        FIBRE(NutrientMetric.FIBRE, "Fibre", "g", "--nutrient-fibre"),
+        WEIGHT(BodyMetric.WEIGHT_KG, "Weight", "kg", "--nutrient-protein"),
+        BODY_FAT(BodyMetric.BODY_FAT_PERCENT, "Body fat percentage", "%", "--nutrient-fat"),
+        BODY_WATER(BodyMetric.BODY_WATER_PERCENT, "Body water", "%", "--nutrient-carbs"),
+        WAIST(BodyMetric.WAIST_CM, "Waist circumference", "cm", "--nutrient-fibre"),
+        HIP(BodyMetric.HIP_CM, "Hip circumference", "cm", "--nutrient-sugar");
 
         private final NutrientMetric nutrient;
         private final BodyMetric bodyMetric;
+        private final String label;
+        private final String unit;
+        private final String fill;
 
-        Metric(NutrientMetric nutrient) {
-            this(nutrient, null);
+        Metric(NutrientMetric nutrient, String label, String unit, String fillToken) {
+            this(nutrient, null, label, unit, fillToken);
         }
 
-        Metric(NutrientMetric nutrient, BodyMetric bodyMetric) {
+        Metric(BodyMetric bodyMetric, String label, String unit, String fillToken) {
+            this(null, bodyMetric, label, unit, fillToken);
+        }
+
+        Metric(NutrientMetric nutrient, BodyMetric bodyMetric, String label, String unit, String fillToken) {
             this.nutrient = nutrient;
             this.bodyMetric = bodyMetric;
+            this.label = label;
+            this.unit = unit;
+            this.fill = "var(" + fillToken + ")";
         }
-    }
-
-    /**
-     * The nutrient identity fill of the charted metric - a bar is a mark, never text,
-     * so this consumes the fill token rather than its {@code -text} counterpart.
-     */
-    private static String fillOf(Metric metric) {
-        return switch (metric) {
-            case CALORIES -> "var(--nutrient-calories)";
-            case FAT -> "var(--nutrient-fat)";
-            case CARBS -> "var(--nutrient-carbs)";
-            case SUGAR -> "var(--nutrient-sugar)";
-            case PROTEIN -> "var(--nutrient-protein)";
-            case FIBRE -> "var(--nutrient-fibre)";
-            case WEIGHT -> "var(--nutrient-protein)";
-            case BODY_FAT -> "var(--nutrient-fat)";
-            case BODY_WATER -> "var(--nutrient-carbs)";
-            case WAIST -> "var(--nutrient-fibre)";
-            case HIP -> "var(--nutrient-sugar)";
-        };
     }
 }
