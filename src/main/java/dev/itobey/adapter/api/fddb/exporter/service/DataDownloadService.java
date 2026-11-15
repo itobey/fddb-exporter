@@ -73,13 +73,14 @@ public class DataDownloadService {
             "Day Total Protein", "Day Total Fibre"
     };
 
-    private static final String[] WEIGHT_REPORT_CSV_HEADER = {
-            "Weight Report ID", "Weight (kg)", "Body Fat (%)", "Body Water (%)",
-            "Waist Circumference (cm)", "Hip Circumference (cm)"
-    };
-    private static final List<BodyMetric> WEIGHT_REPORT_METRICS = List.of(
-            BodyMetric.WEIGHT_KG, BodyMetric.BODY_FAT_PERCENT, BodyMetric.BODY_WATER_PERCENT,
-            BodyMetric.WAIST_CM, BodyMetric.HIP_CM);
+    private static final String WEIGHT_REPORT_ID_HEADER = "Weight Report ID";
+    private static final List<WeightReportMetricColumn> WEIGHT_REPORT_METRIC_COLUMNS = List.of(
+            new WeightReportMetricColumn("Weight (kg)", BodyMetric.WEIGHT_KG),
+            new WeightReportMetricColumn("Body Fat (%)", BodyMetric.BODY_FAT_PERCENT),
+            new WeightReportMetricColumn("Body Water (%)", BodyMetric.BODY_WATER_PERCENT),
+            new WeightReportMetricColumn("Waist Circumference (cm)", BodyMetric.WAIST_CM),
+            new WeightReportMetricColumn("Hip Circumference (cm)", BodyMetric.HIP_CM));
+    private static final int WEIGHT_REPORT_COLUMN_COUNT = 1 + WEIGHT_REPORT_METRIC_COLUMNS.size();
 
     private final PersistenceService persistenceService;
     private final FddbDataMapper fddbDataMapper;
@@ -146,6 +147,10 @@ public class DataDownloadService {
 
     private record WeightReportReading(LocalDate date, String id, Map<BodyMetric, Double> metrics) {
     }
+
+    private record WeightReportMetricColumn(String header, BodyMetric metric) {
+    }
+
     private List<FddbDataDTO> fetchData(LocalDate fromDate, LocalDate toDate) {
         List<FddbData> entries;
         if (fromDate == null && toDate == null) {
@@ -174,10 +179,14 @@ public class DataDownloadService {
         ByteArrayOutputStream output = new ByteArrayOutputStream(INITIAL_CSV_BUFFER_BYTES);
         try (CSVWriter csvWriter = createCsvWriter(output)) {
             String[] diaryHeader = includeProducts ? FULL_DATA_CSV_HEADER : TOTALS_CSV_HEADER;
-            int extraColumns = includeWeightReport ? WEIGHT_REPORT_CSV_HEADER.length : 0;
+            int extraColumns = includeWeightReport ? WEIGHT_REPORT_COLUMN_COUNT : 0;
             String[] header = Arrays.copyOf(diaryHeader, diaryHeader.length + extraColumns);
             if (includeWeightReport) {
-                System.arraycopy(WEIGHT_REPORT_CSV_HEADER, 0, header, diaryHeader.length, extraColumns);
+                int columnIndex = diaryHeader.length;
+                header[columnIndex++] = WEIGHT_REPORT_ID_HEADER;
+                for (WeightReportMetricColumn column : WEIGHT_REPORT_METRIC_COLUMNS) {
+                    header[columnIndex++] = column.header();
+                }
             }
             csvWriter.writeNext(header);
 
@@ -218,7 +227,7 @@ public class DataDownloadService {
         String[] diary = new String[diaryColumns];
         Arrays.fill(diary, EMPTY_FIELD);
         diary[0] = reading.date().toString();
-        writeDiaryRow(writer, diary, WEIGHT_REPORT_CSV_HEADER.length, reading, decimalSeparator);
+        writeDiaryRow(writer, diary, WEIGHT_REPORT_COLUMN_COUNT, reading, decimalSeparator);
     }
 
     private void writeDiaryRow(CSVWriter writer, String[] row, int extraColumns,
@@ -228,12 +237,14 @@ public class DataDownloadService {
             row = Arrays.copyOf(row, diaryColumns + extraColumns);
             Arrays.fill(row, diaryColumns, row.length, EMPTY_FIELD);
             if (reading != null) {
-                row[diaryColumns] = reading.id();
-                for (int i = 0; i < WEIGHT_REPORT_METRICS.size(); i++) {
-                    Double value = reading.metrics().get(WEIGHT_REPORT_METRICS.get(i));
+                int columnIndex = diaryColumns;
+                row[columnIndex++] = reading.id();
+                for (WeightReportMetricColumn column : WEIGHT_REPORT_METRIC_COLUMNS) {
+                    Double value = reading.metrics().get(column.metric());
                     if (value != null) {
-                        row[diaryColumns + 1 + i] = formatNumber(value, decimalSeparator);
+                        row[columnIndex] = formatNumber(value, decimalSeparator);
                     }
+                    columnIndex++;
                 }
             }
         }
