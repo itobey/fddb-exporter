@@ -55,7 +55,7 @@ paths:
     get:
       tags: [Body Measurements]
       summary: List body measurements in chronological order
-      description: Available when MongoDB persistence is enabled.
+      description: Available when MongoDB persistence is enabled. The FDDB Weight Report is the only import source.
       operationId: listBodyMeasurements
       parameters:
         - in: query
@@ -70,10 +70,6 @@ paths:
           schema:
             type: string
             format: date-time
-        - in: query
-          name: source
-          schema:
-            type: string
         - in: query
           name: page
           schema:
@@ -1054,6 +1050,7 @@ components:
       properties:
         source:
           type: string
+          description: Import source. FDDB Weight Report readings use fddb.
           pattern: '^[a-z0-9][a-z0-9-]{0,63}$'
           example: fddb
         externalId:
@@ -1069,10 +1066,9 @@ components:
           type: object
           minProperties: 1
           description: |
-            Supported keys are WEIGHT_KG, BODY_FAT_PERCENT, BODY_FAT_MASS_KG, BODY_WATER_PERCENT,
-            BODY_WATER_LITERS, FAT_FREE_MASS_KG, SKELETAL_MUSCLE_PERCENT, SKELETAL_MUSCLE_MASS_KG,
-            BMI, BASAL_METABOLIC_RATE_KCAL_PER_DAY, WAIST_CM, and HIP_CM.
-            Percentages must be between 0 and 100. Other values must be positive.
+            The FDDB Weight Report importer reads WEIGHT_KG, BODY_FAT_PERCENT, BODY_WATER_PERCENT,
+            WAIST_CM, and HIP_CM when present. The API returns the metric keys stored for each reading.
+            Percentages must be between 0 and 100 inclusive. Other values must be positive.
           additionalProperties:
             type: number
             format: double

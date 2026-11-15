@@ -35,15 +35,14 @@ public class BodyMeasurementResourceV2 {
     private final FddbWeightReportService weightReport;
 
     @Operation(summary = "List body measurements in chronological order",
-            description = "Filter by source and UTC instants. The lower bound is inclusive and the upper bound is exclusive.")
+            description = "The FDDB Weight Report is the only import source. The UTC lower bound is inclusive and the upper bound is exclusive.")
     @GetMapping
     public ResponseEntity<List<BodyMeasurementDTO>> list(
             @RequestParam(required = false) Instant from,
             @RequestParam(required = false) Instant to,
-            @RequestParam(required = false) String source,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "1000") int size) {
-        var measurements = store.find(from, to, source, page, size).stream()
+        var measurements = store.find(from, to, null, page, size).stream()
                 .map(BodyMeasurementResourceV2::toDTO)
                 .toList();
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(measurements);

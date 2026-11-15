@@ -43,18 +43,21 @@ Example responses:
 With [MongoDB persistence](/details/persistence.md) enabled, the exporter stores body measurements
 in a separate `bodyMeasurements` collection. Enable
 [body measurement sync](/details/configuration.md#body-measurement-sync) to fetch Weight Report readings with the diary.
-Readings can be viewed in [Trends](/visualization/web-ui.md#fddb-weight-report) and queried with `source=fddb`.
-FDDB's mobile tracker connections display measurements in the app.
+The FDDB Weight Report is the exporter's only source of body measurements. Imported readings have
+`"source": "fddb"` in the API response and can be viewed in [Trends](/visualization/web-ui.md#fddb-weight-report).
+
+Body weight from tracker connections is displayed locally in the FDDB mobile app and stays in the
+third-party account, so it is unavailable to the exporter through the FDDB website.
 [FDDB tracker data help](https://help.fddb.info/hc/en-us/articles/4688157675794-Why-doesn-t-my-imported-data-appear-on-the-Fddb-website)
 
 ### Query measurement history
 
 ```http
-GET /api/v2/body-measurements?source=fddb&from=2026-01-01T00:00:00Z&to=2026-02-01T00:00:00Z
+GET /api/v2/body-measurements?from=2026-01-01T00:00:00Z&to=2026-02-01T00:00:00Z
 ```
 
-The optional `from` and `to` bounds are inclusive and exclusive, respectively. Omit `source` to
-query across all sources. Results are chronological. Use zero-based `page` and a `size` of 1 to 1,000
+The optional `from` and `to` bounds are inclusive and exclusive, respectively.
+Results are chronological. Use zero-based `page` and a `size` of 1 to 1,000
 to page through the results. The default size is 1,000.
 
 ### Query measurement trends

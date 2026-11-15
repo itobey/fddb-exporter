@@ -16,9 +16,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-import static dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric.*;
+import static dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric.WEIGHT_KG;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class BodyMeasurementResourceV2Test {
@@ -36,12 +37,12 @@ class BodyMeasurementResourceV2Test {
     }
 
     @Test
-    void listsMeasurementsWithSourceAndTimeBounds() throws Exception {
+    void listsMeasurementsWithTimeBoundsAndPagination() throws Exception {
         var measurement = new BodyMeasurement("fddb", "123", MEASURED_AT, Map.of(WEIGHT_KG, 82.5));
         var from = Instant.parse("2026-01-01T00:00:00Z");
         var to = Instant.parse("2026-02-01T00:00:00Z");
-        when(store.find(from, to, "fddb", 1, 25)).thenReturn(List.of(measurement));
-        mvc.perform(get(PATH).param("source", "fddb").param("from", from.toString())
+        when(store.find(from, to, null, 1, 25)).thenReturn(List.of(measurement));
+        mvc.perform(get(PATH).param("from", from.toString())
                         .param("to", to.toString()).param("page", "1").param("size", "25"))
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$[0].source").value("fddb"))
