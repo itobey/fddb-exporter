@@ -42,7 +42,7 @@ public class BodyMeasurementResourceV2 {
             @RequestParam(required = false) Instant to,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "1000") int size) {
-        var measurements = store.find(from, to, null, page, size).stream()
+        var measurements = store.find(from, to, FddbWeightReportService.SOURCE, page, size).stream()
                 .map(BodyMeasurementResourceV2::toDTO)
                 .toList();
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(measurements);

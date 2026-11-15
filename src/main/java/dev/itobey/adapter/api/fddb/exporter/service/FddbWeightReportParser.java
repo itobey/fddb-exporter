@@ -11,15 +11,10 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 final class FddbWeightReportParser {
-    static final String SOURCE = "fddb";
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("d.M.uuuu", Locale.ROOT)
             .withResolverStyle(ResolverStyle.STRICT);
     private static final Pattern ID = Pattern.compile("[?&]q=(\\d+)(?:&|$)");
@@ -78,7 +73,8 @@ final class FddbWeightReportParser {
                     throw new IllegalArgumentException();
                 }
                 LocalDate day = LocalDate.parse(cells.get(date).text(), DATE);
-                measurements.add(new BodyMeasurement(SOURCE, id.group(1), day.atStartOfDay(zone).toInstant(), metrics));
+                measurements.add(new BodyMeasurement(FddbWeightReportService.SOURCE, id.group(1),
+                        day.atStartOfDay(zone).toInstant(), metrics));
             } catch (IllegalArgumentException | IndexOutOfBoundsException | DateTimeParseException ex) {
                 throw new ParseException("FDDB Weight Report contains an invalid measurement row.");
             }

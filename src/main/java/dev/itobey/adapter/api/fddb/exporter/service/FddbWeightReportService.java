@@ -23,6 +23,8 @@ import java.util.List;
 @Slf4j
 @ConditionalOnProperty(name = "fddb-exporter.persistence.mongodb.enabled", havingValue = "true")
 public class FddbWeightReportService {
+    public static final String SOURCE = "fddb";
+
     private final FddbApi fddbApi;
     private final BodyMeasurementStore store;
     private final FddbExporterProperties properties;
@@ -45,7 +47,7 @@ public class FddbWeightReportService {
         DateRanges.validate(from, to);
         var zone = properties.resolveZone();
         var readings = store.findHistory(from.atStartOfDay(zone).toInstant(),
-                to.plusDays(1).atStartOfDay(zone).toInstant(), FddbWeightReportParser.SOURCE);
+                to.plusDays(1).atStartOfDay(zone).toInstant(), SOURCE);
 
         // Give each measured day equal weight even when FDDB has several readings for that day.
         var days = new LinkedHashMap<LocalDate, DoubleSummaryStatistics>();

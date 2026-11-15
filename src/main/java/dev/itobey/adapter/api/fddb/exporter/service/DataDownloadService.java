@@ -133,7 +133,7 @@ public class DataDownloadService {
         var zone = properties.resolveZone();
         var from = fromDate == null ? null : fromDate.atStartOfDay(zone).toInstant();
         var to = toDate == null ? null : toDate.plusDays(1).atStartOfDay(zone).toInstant();
-        var readings = store.find(from, to, FddbWeightReportParser.SOURCE, 0, MAX_DOWNLOAD_ENTRIES + 1);
+        var readings = store.find(from, to, FddbWeightReportService.SOURCE, 0, MAX_DOWNLOAD_ENTRIES + 1);
         if (readings.size() > MAX_DOWNLOAD_ENTRIES) {
             throw new DownloadTooLargeException(readings.size(), "at least ", "Weight Report readings");
         }

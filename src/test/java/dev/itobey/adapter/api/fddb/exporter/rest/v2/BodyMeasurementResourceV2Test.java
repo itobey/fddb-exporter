@@ -37,11 +37,11 @@ class BodyMeasurementResourceV2Test {
     }
 
     @Test
-    void listsMeasurementsWithTimeBoundsAndPagination() throws Exception {
+    void listsFddbMeasurementsWithTimeBoundsAndPagination() throws Exception {
         var measurement = new BodyMeasurement("fddb", "123", MEASURED_AT, Map.of(WEIGHT_KG, 82.5));
         var from = Instant.parse("2026-01-01T00:00:00Z");
         var to = Instant.parse("2026-02-01T00:00:00Z");
-        when(store.find(from, to, null, 1, 25)).thenReturn(List.of(measurement));
+        when(store.find(from, to, "fddb", 1, 25)).thenReturn(List.of(measurement));
         mvc.perform(get(PATH).param("from", from.toString())
                         .param("to", to.toString()).param("page", "1").param("size", "25"))
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))

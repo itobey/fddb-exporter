@@ -106,6 +106,7 @@ paths:
           required: true
           schema:
             type: string
+            enum: [WEIGHT_KG, BODY_FAT_PERCENT, BODY_WATER_PERCENT, WAIST_CM, HIP_CM]
             example: WEIGHT_KG
         - in: query
           name: fromDate
