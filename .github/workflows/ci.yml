@@ -7,9 +7,77 @@ on:
     branches: [ master ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  run-ci-workflow:
-    uses: itobey/workflow-templates/.github/workflows/ci.yml@master
-    with:
-      image_name: fddb-exporter
-    secrets: inherit
+  maven:
+    name: run-ci-workflow / maven
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build with Maven
+        run: mvn -B verify -Pproduction --file pom.xml
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Package
+          path: target/*.jar
+
+  docker:
+    name: run-ci-workflow / docker
+    if: github.event_name != 'push'
+    needs: maven
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: Package
+          path: target/
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
+      - name: Build multi-platform Docker image
+        run: docker buildx build --file docker/Dockerfile --platform linux/amd64,linux/arm64 .
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: maven
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: Package
+          path: target/
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
+      - name: Log into GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Build and publish the snapshot image
+        run: |
+          version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          docker buildx build . \
+            --file docker/Dockerfile \
+            --platform linux/amd64,linux/arm64 \
+            --tag "ghcr.io/${GITHUB_REPOSITORY,,}:$version" \
+            --push
