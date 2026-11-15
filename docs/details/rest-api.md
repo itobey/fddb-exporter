@@ -111,7 +111,6 @@ The same mistake always produces the same status, whichever endpoint detects it:
 | `400 Bad Request`           | Anything the caller can fix: an inverted or oversized date range, a malformed date, a rejected parameter, or a range with no entries to average |
 | `404 Not Found`             | The requested day has no data, or the diary page could not be parsed into any                                                                   |
 | `409 Conflict`              | Another export is already running - see [only one export at a time](/details/exports-and-data.md#only-one-export-at-a-time)                     |
-| `413 Payload Too Large`     | A download would exceed the 365-day limit                                                                                                       |
 | `502 Bad Gateway`           | Logging in to fddb.info failed - the upstream site rejected the configured credentials                                                          |
 | `503 Service Unavailable`   | The endpoint needs a store that is not configured on this instance                                                                              |
 | `500 Internal Server Error` | An unexpected failure. The body is deliberately generic; the stack trace is in the server log                                                   |
@@ -724,33 +723,15 @@ and some endpoints answered with a bare string. Failed logins were `500` and unc
 
 With `includeWeightReport=true`, CSV lists dates chronologically and puts the first reading for each day
 beside that day's diary data. Dates without diary entries and any additional readings get rows with blank
-diary columns. Both formats preserve multiple readings on the same date. A single download can include up
-to 365 Weight Report readings.
+diary columns. Both formats preserve multiple readings on the same date.
 
-#### Maximum download size <Badge type="tip" text="2.5.0+" />
-
-A single download may cover at most **365 days** (roughly one year of daily logging). The whole result is held in
-memory while it is being formatted, so an open-ended request is not allowed to grow without limit along with the
-database.
-
-Requests above the limit are refused with HTTP 413 Payload Too Large and a plain-text body naming the number of days
-found and the limit, for example:
-
-```
-This download would cover 500 days, which is more than the maximum of 365 days per download. Narrow the range with
-the fromDate and toDate parameters and download the data in several parts.
-```
-
-The limit applies to the number of days returned, not to a fixed time span: pass `fromDate` and `toDate` to download a
-larger diary in several parts. There is no cap on how far apart those two dates may be, only on how many days the
-result contains.
+As of 2.7.0, omitting both dates downloads the full stored diary and, if requested, the full Weight Report.
 
 - **Error Responses:**
     - Returns HTTP 400 Bad Request if `fromDate` is after `toDate`.
     - Returns HTTP 400 Bad Request if an invalid `format`, `decimalSeparator`, or date format is provided.
     - Returns HTTP 503 Service Unavailable with `This operation requires MongoDB to be enabled` if MongoDB is
       disabled. The download reads individual entries, which only MongoDB stores. <Badge type="warning" text="was 400 before 2.5.0" />
-    - Returns HTTP 413 Payload Too Large if the request covers more than 365 days (see above).
 
 ---
 

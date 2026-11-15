@@ -38,17 +38,6 @@ import java.util.Map;
 public class DataDownloadService {
 
     /**
-     * The largest number of daily entries a single download may cover.
-     * <p>
-     * A download holds the whole result set in memory more than once — the documents, the DTOs and the
-     * serialized bytes — and the endpoint is unauthenticated and repeatable. Rather than let an open-ended
-     * request grow with the database, anything above this is refused with a message telling the caller to
-     * narrow the range; the range itself is not capped in time, so a larger diary is still fully
-     * downloadable in chunks. 365 entries is roughly one year of daily logging.
-     */
-    public static final int MAX_DOWNLOAD_ENTRIES = 365;
-
-    /**
      * Initial size of the CSV buffer, chosen so a typical download does not spend its time growing the
      * array. Roughly one screenful of rows; it grows from there.
      */
@@ -103,7 +92,6 @@ public class DataDownloadService {
      * @param includeProducts  whether to include product details
      * @param decimalSeparator the decimal separator for CSV format (. or ,)
      * @return the data as a byte array in the specified format
-     * @throws DownloadTooLargeException if the request would cover more than {@link #MAX_DOWNLOAD_ENTRIES} entries
      */
     public byte[] downloadData(LocalDate fromDate, LocalDate toDate, DownloadFormat format,
                                boolean includeProducts, String decimalSeparator) {
@@ -134,10 +122,7 @@ public class DataDownloadService {
         var zone = properties.resolveZone();
         var from = fromDate == null ? null : fromDate.atStartOfDay(zone).toInstant();
         var to = toDate == null ? null : toDate.plusDays(1).atStartOfDay(zone).toInstant();
-        var readings = store.find(from, to, FddbWeightReportService.SOURCE, 0, MAX_DOWNLOAD_ENTRIES + 1);
-        if (readings.size() > MAX_DOWNLOAD_ENTRIES) {
-            throw new DownloadTooLargeException(readings.size(), "at least ", "Weight Report readings");
-        }
+        var readings = store.findHistory(from, to, FddbWeightReportService.SOURCE);
         return readings.stream().map(reading -> new WeightReportReading(
                 reading.measuredAt().atZone(zone).toLocalDate(), reading.externalId(), reading.metrics())).toList();
     }
@@ -152,26 +137,14 @@ public class DataDownloadService {
     }
 
     private List<FddbDataDTO> fetchData(LocalDate fromDate, LocalDate toDate) {
-        List<FddbData> entries;
-        if (fromDate == null && toDate == null) {
-            // count first: the unbounded case is the one that must never be read into memory to find out how big it is
-            requireWithinLimit(persistenceService.countAllEntries());
-            entries = persistenceService.findAllEntries();
-        } else {
-            entries = persistenceService.findByDateBetween(fromDate, toDate);
-            requireWithinLimit(entries.size());
-        }
+        List<FddbData> entries = fromDate == null && toDate == null
+                ? persistenceService.findAllEntries()
+                : persistenceService.findByDateBetween(fromDate, toDate);
 
         List<FddbDataDTO> data = fddbDataMapper.toFddbDataDTO(entries);
         data.sort(Comparator.comparing(FddbDataDTO::getDate));
         log.debug("Fetched {} entries for download", data.size());
         return data;
-    }
-
-    private void requireWithinLimit(long entryCount) {
-        if (entryCount > MAX_DOWNLOAD_ENTRIES) {
-            throw new DownloadTooLargeException(entryCount);
-        }
     }
 
     private byte[] convertToCsv(List<FddbDataDTO> data, boolean includeProducts, String decimalSeparator,
@@ -358,31 +331,6 @@ public class DataDownloadService {
 
         public DownloadException(String message, Throwable cause) {
             super(message, cause);
-        }
-    }
-
-    /**
-     * Thrown when a download would cover more than {@link #MAX_DOWNLOAD_ENTRIES} entries. Its message is
-     * written for a human: the browser shows it verbatim, since the Web UI navigates straight to the
-     * download URL rather than fetching it.
-     */
-    public static class DownloadTooLargeException extends RuntimeException {
-
-        private final long entryCount;
-
-        public DownloadTooLargeException(long entryCount) {
-            this(entryCount, "", "days");
-        }
-
-        private DownloadTooLargeException(long entryCount, String qualifier, String unit) {
-            super("This download would cover " + qualifier + entryCount + " " + unit + ", which is more than the maximum of "
-                    + MAX_DOWNLOAD_ENTRIES + " " + unit + " per download. Narrow the range with the fromDate and toDate "
-                    + "parameters and download the data in several parts.");
-            this.entryCount = entryCount;
-        }
-
-        public long getEntryCount() {
-            return entryCount;
         }
     }
 

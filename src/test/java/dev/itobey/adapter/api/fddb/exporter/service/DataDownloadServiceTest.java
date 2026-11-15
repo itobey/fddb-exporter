@@ -15,6 +15,9 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
@@ -25,9 +28,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
@@ -36,41 +39,40 @@ class DataDownloadServiceTest {
 
     private static final String TEST_DATA_PATH = "testdata/download-service/";
 
-    @Test
-    void downloadData_shouldAllow365Entries() {
-        when(persistenceService.countAllEntries()).thenReturn(365L);
-        when(persistenceService.findAllEntries()).thenReturn(testFddbData);
-        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(testFddbDataDTO);
-        when(fddbDataMapper.toFddbDataDTOWithoutProducts(anyList())).thenReturn(testFddbDataDTO);
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void downloadData_shouldIncludeFullDiaryAndWeightReport(boolean filterByDate) {
+        var properties = new FddbExporterProperties();
+        var jsonMapper = JsonMapper.builder().build();
+        var service = new DataDownloadService(persistenceService, Mappers.getMapper(FddbDataMapper.class),
+                measurements, properties, jsonMapper);
+        var zone = properties.resolveZone();
+        var firstDay = LocalDate.of(2020, 1, 1);
+        int entryCount = 1300;
+        var lastDay = firstDay.plusDays(entryCount - 1);
+        var diary = IntStream.range(0, entryCount).mapToObj(index -> {
+            FddbData entry = new FddbData();
+            entry.setDate(firstDay.plusDays(index));
+            return entry;
+        }).toList();
+        var readings = IntStream.range(0, entryCount).mapToObj(index -> new BodyMeasurement("fddb",
+                Integer.toString(index), firstDay.plusDays(index).atStartOfDay(zone).toInstant(),
+                Map.of(BodyMetric.WEIGHT_KG, 82.5))).toList();
 
-        assertThat(dataDownloadService.downloadData(null, null, DownloadFormat.CSV, false, "."))
-                .isNotEmpty();
-        verify(persistenceService).findAllEntries();
-    }
+        var fromDate = filterByDate ? firstDay : null;
+        var toDate = filterByDate ? lastDay : null;
+        if (filterByDate) {
+            when(persistenceService.findByDateBetween(fromDate, toDate)).thenReturn(diary);
+        } else {
+            when(persistenceService.findAllEntries()).thenReturn(diary);
+        }
+        when(measurements.getIfAvailable()).thenReturn(bodyStore);
+        when(bodyStore.findHistory(filterByDate ? firstDay.atStartOfDay(zone).toInstant() : null,
+                filterByDate ? lastDay.plusDays(1).atStartOfDay(zone).toInstant() : null, "fddb")).thenReturn(readings);
 
-    @Test
-    void downloadData_shouldReject366EntriesBeforeLoadingAllData() {
-        when(persistenceService.countAllEntries()).thenReturn(366L);
-
-        assertThatThrownBy(() -> dataDownloadService.downloadData(null, null, DownloadFormat.CSV, false, "."))
-                .isInstanceOf(DataDownloadService.DownloadTooLargeException.class)
-                .hasMessageContaining("366 days")
-                .hasMessageContaining("maximum of 365 days");
-        verify(persistenceService, never()).findAllEntries();
-        verifyNoInteractions(fddbDataMapper);
-    }
-
-    @Test
-    void downloadData_shouldReject366EntriesInDateRangeBeforeMapping() {
-        LocalDate from = LocalDate.of(2024, 1, 1);
-        LocalDate to = LocalDate.of(2024, 12, 31);
-        when(persistenceService.findByDateBetween(from, to))
-                .thenReturn(java.util.Collections.nCopies(366, testFddbData.getFirst()));
-
-        assertThatThrownBy(() -> dataDownloadService.downloadData(from, to, DownloadFormat.JSON, true, "."))
-                .isInstanceOf(DataDownloadService.DownloadTooLargeException.class)
-                .hasMessageContaining("maximum of 365 days");
-        verifyNoInteractions(fddbDataMapper);
+        var json = jsonMapper.readTree(service.downloadData(fromDate, toDate, DownloadFormat.JSON, false, ".", true));
+        assertThat(json.path("diary").size()).isEqualTo(entryCount);
+        assertThat(json.path("weightReport").size()).isEqualTo(entryCount);
     }
 
     @Mock
@@ -109,7 +111,7 @@ class DataDownloadServiceTest {
         when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(testFddbDataDTO);
         when(fddbDataMapper.toFddbDataDTOWithoutProducts(anyList())).thenReturn(testFddbDataDTO);
         when(measurements.getIfAvailable()).thenReturn(bodyStore);
-        when(bodyStore.find(null, null, "fddb", 0, 366)).thenReturn(List.of(
+        when(bodyStore.findHistory(null, null, "fddb")).thenReturn(List.of(
                 new BodyMeasurement("fddb", "100", earlier.atStartOfDay(zone).toInstant(), Map.of(BodyMetric.WEIGHT_KG, 83.0)),
                 new BodyMeasurement("fddb", "101", diaryDay.atStartOfDay(zone).toInstant(), Map.of(BodyMetric.WEIGHT_KG, 82.5)),
                 new BodyMeasurement("fddb", "102", diaryDay.atStartOfDay(zone).toInstant(), Map.of(BodyMetric.WEIGHT_KG, 82.6))));
@@ -132,8 +134,8 @@ class DataDownloadServiceTest {
         when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(new ArrayList<>());
         when(fddbDataMapper.toFddbDataDTOWithoutProducts(anyList())).thenReturn(List.of());
         when(measurements.getIfAvailable()).thenReturn(bodyStore);
-        when(bodyStore.find(from.atStartOfDay(zone).toInstant(), to.plusDays(1).atStartOfDay(zone).toInstant(),
-                "fddb", 0, 366)).thenReturn(List.of(
+        when(bodyStore.findHistory(from.atStartOfDay(zone).toInstant(), to.plusDays(1).atStartOfDay(zone).toInstant(),
+                "fddb")).thenReturn(List.of(
                 new BodyMeasurement("fddb", "101", measuredAt, Map.of(
                         BodyMetric.WEIGHT_KG, 82.5, BodyMetric.BODY_FAT_PERCENT, 19.5,
                         BodyMetric.BODY_WATER_PERCENT, 55.5, BodyMetric.WAIST_CM, 81.5, BodyMetric.HIP_CM, 96.5)),
