@@ -9,7 +9,6 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.radiobutton.RadioGroupVariant;
@@ -30,7 +29,7 @@ import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
  * Allows users to:
  * - Choose between all data or a specific date range
  * - Select download format (CSV or JSON)
- * - Include or exclude product details (daily totals only)
+ * - Include product details or Weight Report readings
  */
 @Route(value = "download", layout = MainLayout.class)
 @PageTitle("Download file | FDDB Exporter")
@@ -46,6 +45,7 @@ public class DataDownloadView extends VerticalLayout {
     private DatePicker toDatePicker;
     private Select<DownloadFormat> formatSelect;
     private Checkbox includeProductsCheckbox;
+    private Checkbox includeWeightReportCheckbox;
     private RadioButtonGroup<String> decimalSeparatorSelection;
     private VerticalLayout dateRangeFieldsContainer;
     private VerticalLayout decimalSeparatorContainer;
@@ -59,7 +59,7 @@ public class DataDownloadView extends VerticalLayout {
         applyResponsivePadding(this);
 
         add(new H2("Download file"));
-        add(new Paragraph("Save stored diary entries and Weight Report readings as a CSV or JSON file."));
+        add(new Paragraph("Save stored diary entries as a CSV or JSON file."));
 
         if (!isMongoDbEnabled(properties)) {
             add(createMongoDbDisabledWarning("Download file"));
@@ -116,6 +116,9 @@ public class DataDownloadView extends VerticalLayout {
         includeProductsCheckbox.setValue(false);
         includeProductsCheckbox.setTooltipText("Include individual products alongside daily nutrition totals.");
 
+        includeWeightReportCheckbox = new Checkbox("Include Weight Report readings");
+        includeWeightReportCheckbox.setValue(true);
+
         // Decimal separator selection (only for CSV)
         decimalSeparatorSelection = new RadioButtonGroup<>();
         decimalSeparatorSelection.setLabel("Decimal Separator (CSV only)");
@@ -141,9 +144,9 @@ public class DataDownloadView extends VerticalLayout {
         optionsForm.add(formatSelect);
         optionsForm.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1));
 
-        HorizontalLayout checkboxLayout = new HorizontalLayout(includeProductsCheckbox);
-        checkboxLayout.setAlignItems(Alignment.CENTER);
+        VerticalLayout checkboxLayout = new VerticalLayout(includeProductsCheckbox, includeWeightReportCheckbox);
         checkboxLayout.setPadding(false);
+        checkboxLayout.setSpacing(false);
 
         section.add(
                 dateRangeSelection,
@@ -182,10 +185,12 @@ public class DataDownloadView extends VerticalLayout {
 
         DownloadFormat format = formatSelect.getValue();
         boolean includeProducts = includeProductsCheckbox.getValue();
+        boolean includeWeightReport = includeWeightReportCheckbox.getValue();
         String decimalSeparator = decimalSeparatorSelection.getValue();
 
         // Build the download URL
-        String downloadUrl = dataDownloadClient.buildDownloadUrl(fromDate, toDate, format, includeProducts, decimalSeparator);
+        String downloadUrl = dataDownloadClient.buildDownloadUrl(fromDate, toDate, format, includeProducts,
+                includeWeightReport, decimalSeparator);
 
         // Trigger download using JavaScript to avoid navigation
         UI.getCurrent().getPage().executeJs(
