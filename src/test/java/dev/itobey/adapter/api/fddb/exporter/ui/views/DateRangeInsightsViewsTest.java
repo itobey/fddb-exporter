@@ -3,17 +3,22 @@ package dev.itobey.adapter.api.fddb.exporter.ui.views;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.tabs.TabSheet;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
 import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
+import dev.itobey.adapter.api.fddb.exporter.ui.service.ApiBaseUrl;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.FddbDataClient;
 import dev.itobey.adapter.api.fddb.exporter.ui.service.StatsClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -22,15 +27,19 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class DateRangeInsightsViewsTest {
     private final StatsClient client = mock(StatsClient.class);
     private final FddbExporterProperties properties = mock(FddbExporterProperties.class, RETURNS_DEEP_STUBS);
     private final LocalDate today = LocalDate.now(ZoneId.of("Europe/Berlin"));
+    private UI ui;
 
     @BeforeEach
     void setUp() {
-        UI.setCurrent(new UI());
+        ui = new UI();
+        UI.setCurrent(ui);
         when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(true);
         doReturn(ZoneId.of("Europe/Berlin")).when(properties).resolveZone();
     }
@@ -74,6 +83,33 @@ class DateRangeInsightsViewsTest {
         assertThat(view.getElement().getTextRecursively())
                 .contains("This range is in the future. No logged data yet.")
                 .doesNotContain("No entries found from");
+    }
+
+    @Test
+    void chartsBodyFatChangeInPercentagePoints() {
+        var restTemplate = new RestTemplate();
+        var server = MockRestServiceServer.bindTo(restTemplate).build();
+        var apiBaseUrl = mock(ApiBaseUrl.class);
+        when(apiBaseUrl.get()).thenReturn("http://localhost:8080");
+        var view = new TrendView(new StatsClient(restTemplate, apiBaseUrl), properties);
+
+        LocalDate from = today.minusDays(29);
+        server.expect(requestTo("http://localhost:8080/api/v2/body-measurements/trend?metric=BODY_FAT_PERCENT"
+                        + "&fromDate=" + from + "&toDate=" + today + "&granularity=DAY"))
+                .andRespond(withSuccess("""
+                        [
+                          {"bucket":"%1$s","fromDate":"%1$s","toDate":"%1$s","dayCount":1,"total":20,"average":20},
+                          {"bucket":"%2$s","fromDate":"%2$s","toDate":"%2$s","dayCount":1,"total":19,"average":19}
+                        ]
+                        """.formatted(from, today), MediaType.APPLICATION_JSON));
+        var metric = descendants(view).filter(ComboBox.class::isInstance).findFirst().orElseThrow();
+        @SuppressWarnings("unchecked")
+        var selector = (ComboBox<TrendView.Metric>) metric;
+        selector.setValue(TrendView.Metric.BODY_FAT);
+        button(view, "Last 30 Days").click();
+
+        assertThat(view.getElement().getTextRecursively()).contains("Body fat percentage per day", "-1.0 percentage points");
+        server.verify();
     }
 
     @Test

@@ -16,6 +16,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.NutrientMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendGranularity;
 import dev.itobey.adapter.api.fddb.exporter.dto.TrendPointDTO;
@@ -32,8 +33,7 @@ import java.util.List;
 import static dev.itobey.adapter.api.fddb.exporter.ui.util.ViewUtils.*;
 
 /**
- * Visualizes the {@code /api/v2/stats/trend} time series: one metric over a date range,
- * bucketed by day, ISO week or month.
+ * Visualizes a nutrient or body measurement over a date range, bucketed by day, ISO week or month.
  */
 @Route(value = "trend", layout = MainLayout.class)
 @PageTitle("Trends | FDDB Exporter")
@@ -46,7 +46,7 @@ public class TrendView extends VerticalLayout {
     private final StatsClient statsClient;
     private final FddbExporterProperties properties;
 
-    private ComboBox<NutrientMetric> metricSelect;
+    private ComboBox<Metric> metricSelect;
     private ComboBox<TrendGranularity> granularitySelect;
     private DatePicker fromDatePicker;
     private DatePicker toDatePicker;
@@ -64,7 +64,7 @@ public class TrendView extends VerticalLayout {
         applyResponsivePadding(this);
 
         add(new H2("Trends"));
-        add(new Paragraph("Follow a nutritional metric by day, week or month. "
+        add(new Paragraph("Follow diary and body measurements by day, week or month. "
                 + "Averages use logged days only. Periods with no entries are omitted."));
 
         if (!isMongoDbEnabled(properties)) {
@@ -81,9 +81,9 @@ public class TrendView extends VerticalLayout {
         section.add(new H3("Select Metric and Range"));
 
         metricSelect = new ComboBox<>("Metric");
-        metricSelect.setItems(NutrientMetric.values());
-        metricSelect.setItemLabelGenerator(TrendView::metricLabel);
-        metricSelect.setValue(NutrientMetric.CALORIES);
+        metricSelect.setItems(Metric.values());
+        metricSelect.setItemLabelGenerator(metric -> metric.label);
+        metricSelect.setValue(Metric.CALORIES);
         metricSelect.setAllowCustomValue(false);
         metricSelect.setWidthFull();
 
@@ -153,8 +153,9 @@ public class TrendView extends VerticalLayout {
     private Button createPresetButton(String label, TrendGranularity granularity, int days) {
         Button button = new Button(label, e -> {
             granularitySelect.setValue(granularity);
-            toDatePicker.setValue(LocalDate.now().minusDays(1));
-            fromDatePicker.setValue(LocalDate.now().minusDays(days));
+            LocalDate to = presetEndDate();
+            toDatePicker.setValue(to);
+            fromDatePicker.setValue(to.minusDays(days - 1L));
             loadTrend();
         });
         return styleAsPreset(button);
@@ -163,11 +164,18 @@ public class TrendView extends VerticalLayout {
     private Button createCurrentYearButton() {
         Button button = new Button("Current Year", e -> {
             granularitySelect.setValue(TrendGranularity.MONTH);
-            fromDatePicker.setValue(LocalDate.of(LocalDate.now().getYear(), 1, 1));
-            toDatePicker.setValue(LocalDate.now().minusDays(1));
+            LocalDate today = LocalDate.now(properties.resolveZone());
+            fromDatePicker.setValue(today.withDayOfYear(1));
+            toDatePicker.setValue(presetEndDate());
             loadTrend();
         });
         return styleAsPreset(button);
+    }
+
+    private LocalDate presetEndDate() {
+        LocalDate today = LocalDate.now(properties.resolveZone());
+        Metric metric = metricSelect.getValue();
+        return metric != null && metric.bodyMetric != null ? today : today.minusDays(1);
     }
 
     private Button styleAsPreset(Button button) {
@@ -200,7 +208,7 @@ public class TrendView extends VerticalLayout {
         }
         feedback.setVisible(false);
 
-        NutrientMetric metric = metricSelect.getValue() != null ? metricSelect.getValue() : NutrientMetric.CALORIES;
+        Metric metric = metricSelect.getValue() != null ? metricSelect.getValue() : Metric.CALORIES;
         TrendGranularity granularity = granularitySelect.getValue() != null
                 ? granularitySelect.getValue() : TrendGranularity.DAY;
 
@@ -209,11 +217,14 @@ public class TrendView extends VerticalLayout {
             LocalDate to = toDatePicker.getValue();
             LocalDate today = LocalDate.now(properties.resolveZone());
             LocalDate effectiveTo = to.isAfter(today) ? today : to;
-            List<TrendPointDTO> points = from.isAfter(today) ? List.of() : statsClient.getTrend(
-                    metric,
-                    from.format(DATE_FORMAT),
-                    effectiveTo.format(DATE_FORMAT),
-                    granularity);
+            List<TrendPointDTO> points = List.of();
+            if (!from.isAfter(today)) {
+                String fromDate = from.format(DATE_FORMAT);
+                String toDate = effectiveTo.format(DATE_FORMAT);
+                points = metric.bodyMetric == null
+                        ? statsClient.getTrend(metric.nutrient, fromDate, toDate, granularity)
+                        : statsClient.getBodyMeasurementTrend(metric.bodyMetric, fromDate, toDate, granularity);
+            }
 
             displayResult(points, metric, granularity, from, to, today);
             scrollIntoViewWhenSettled(resultDiv);
@@ -227,7 +238,7 @@ public class TrendView extends VerticalLayout {
         }
     }
 
-    private void displayResult(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity,
+    private void displayResult(List<TrendPointDTO> points, Metric metric, TrendGranularity granularity,
                                LocalDate from, LocalDate to, LocalDate today) {
         resultDiv.removeAll();
         resultDiv.setVisible(true);
@@ -262,14 +273,15 @@ public class TrendView extends VerticalLayout {
             return;
         }
 
-        content.add(new H3(metricLabel(metric) + " per " + bucketNoun(granularity)));
+        content.add(new H3(metric.label + " per " + bucketNoun(granularity)));
         content.add(createSummaryCards(points, metric));
         Paragraph comparison = new Paragraph(points.size() < 2
                 ? "Change needs at least two periods with entries."
                 : "Change compares the last period's daily average with the first: "
                 + points.getFirst().getBucket() + " (" + TrendChart.coverage(points.getFirst(), granularity, from, effectiveTo)
                 + ") → " + points.getLast().getBucket() + " (" + TrendChart.coverage(points.getLast(), granularity, from, effectiveTo)
-                + "). Coverage counts days within the selected range through today. Incomplete coverage indicates missing diary days.");
+                + "). Coverage counts days within the selected range through today. Incomplete coverage indicates days without a "
+                + (metric.bodyMetric == null ? "diary entry." : "measurement for this metric."));
         comparison.addClassName("trend-comparison-note");
         content.add(comparison);
         content.add(createChart(points, metric, granularity, from, effectiveTo));
@@ -278,8 +290,8 @@ public class TrendView extends VerticalLayout {
         resultDiv.add(content);
     }
 
-    private Component createSummaryCards(List<TrendPointDTO> points, NutrientMetric metric) {
-        String unit = unitOf(metric);
+    private Component createSummaryCards(List<TrendPointDTO> points, Metric metric) {
+        String unit = metric.unit;
 
         long totalDays = points.stream().mapToLong(TrendPointDTO::getDayCount).sum();
         double totalValue = points.stream().mapToDouble(TrendPointDTO::getTotal).sum();
@@ -301,7 +313,8 @@ public class TrendView extends VerticalLayout {
                 createStatCard("Daily average", formatNumber(overallAverage) + " " + unit, "per logged day"),
                 createStatCard("Highest", formatNumber(highest.getAverage()) + " " + unit, highest.getBucket()),
                 createStatCard("Lowest", formatNumber(lowest.getAverage()) + " " + unit, lowest.getBucket()),
-                createStatCard("Change", points.size() > 1 ? formatChange(change, unit) : "N/A",
+                createStatCard("Change", points.size() > 1
+                                ? formatChange(change, "%".equals(unit) ? "percentage points" : unit) : "N/A",
                         points.size() > 1 ? "Last vs first daily average" : "Only one period")
         );
         return cards;
@@ -315,14 +328,14 @@ public class TrendView extends VerticalLayout {
     /**
      * The chart owns scales, period inspection and coverage markers.
      */
-    private Component createChart(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity,
+    private Component createChart(List<TrendPointDTO> points, Metric metric, TrendGranularity granularity,
                                    LocalDate from, LocalDate to) {
-        return new TrendChart(points, granularity, unitOf(metric), fillOf(metric), from, to);
+        return new TrendChart(points, granularity, metric.unit, metric.fill, from, to);
     }
 
-    private Component createTrendGrid(List<TrendPointDTO> points, NutrientMetric metric, TrendGranularity granularity,
+    private Component createTrendGrid(List<TrendPointDTO> points, Metric metric, TrendGranularity granularity,
                                        LocalDate from, LocalDate to) {
-        String unit = unitOf(metric);
+        String unit = metric.unit;
 
         Grid<TrendPointDTO> grid = new Grid<>(TrendPointDTO.class, false);
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
@@ -336,8 +349,10 @@ public class TrendView extends VerticalLayout {
         grid.addColumn(TrendPointDTO::getDayCount).setHeader("Days").setAutoWidth(true);
         grid.addColumn(point -> formatNumber(point.getAverage()))
                 .setHeader("Average (" + unit + ")").setAutoWidth(true);
-        grid.addColumn(point -> formatNumber(point.getTotal()))
-                .setHeader("Total (" + unit + ")").setAutoWidth(true);
+        if (metric.bodyMetric == null) {
+            grid.addColumn(point -> formatNumber(point.getTotal()))
+                    .setHeader("Total (" + unit + ")").setAutoWidth(true);
+        }
 
         grid.setItems(points);
         if (points.size() > INLINE_GRID_ROWS) {
@@ -346,10 +361,6 @@ public class TrendView extends VerticalLayout {
             grid.setAllRowsVisible(true);
         }
         return grid;
-    }
-
-    private static String metricLabel(NutrientMetric metric) {
-        return capitalize(metric.name());
     }
 
     private static String granularityLabel(TrendGranularity granularity) {
@@ -368,22 +379,39 @@ public class TrendView extends VerticalLayout {
         };
     }
 
-    private static String unitOf(NutrientMetric metric) {
-        return metric == NutrientMetric.CALORIES ? "kcal" : "g";
-    }
+    enum Metric {
+        CALORIES(NutrientMetric.CALORIES, "Calories", "kcal", "--nutrient-calories"),
+        FAT(NutrientMetric.FAT, "Fat", "g", "--nutrient-fat"),
+        CARBS(NutrientMetric.CARBS, "Carbs", "g", "--nutrient-carbs"),
+        SUGAR(NutrientMetric.SUGAR, "Sugar", "g", "--nutrient-sugar"),
+        PROTEIN(NutrientMetric.PROTEIN, "Protein", "g", "--nutrient-protein"),
+        FIBRE(NutrientMetric.FIBRE, "Fibre", "g", "--nutrient-fibre"),
+        WEIGHT(BodyMetric.WEIGHT_KG, "Weight", "kg", "--nutrient-protein"),
+        BODY_FAT(BodyMetric.BODY_FAT_PERCENT, "Body fat percentage", "%", "--nutrient-fat"),
+        BODY_WATER(BodyMetric.BODY_WATER_PERCENT, "Body water", "%", "--nutrient-carbs"),
+        WAIST(BodyMetric.WAIST_CM, "Waist circumference", "cm", "--nutrient-fibre"),
+        HIP(BodyMetric.HIP_CM, "Hip circumference", "cm", "--nutrient-sugar");
 
-    /**
-     * The nutrient identity fill of the charted metric - a bar is a mark, never text,
-     * so this consumes the fill token rather than its {@code -text} counterpart.
-     */
-    private static String fillOf(NutrientMetric metric) {
-        return switch (metric) {
-            case CALORIES -> "var(--nutrient-calories)";
-            case FAT -> "var(--nutrient-fat)";
-            case CARBS -> "var(--nutrient-carbs)";
-            case SUGAR -> "var(--nutrient-sugar)";
-            case PROTEIN -> "var(--nutrient-protein)";
-            case FIBRE -> "var(--nutrient-fibre)";
-        };
+        private final NutrientMetric nutrient;
+        private final BodyMetric bodyMetric;
+        private final String label;
+        private final String unit;
+        private final String fill;
+
+        Metric(NutrientMetric nutrient, String label, String unit, String fillToken) {
+            this(nutrient, null, label, unit, fillToken);
+        }
+
+        Metric(BodyMetric bodyMetric, String label, String unit, String fillToken) {
+            this(null, bodyMetric, label, unit, fillToken);
+        }
+
+        Metric(NutrientMetric nutrient, BodyMetric bodyMetric, String label, String unit, String fillToken) {
+            this.nutrient = nutrient;
+            this.bodyMetric = bodyMetric;
+            this.label = label;
+            this.unit = unit;
+            this.fill = "var(" + fillToken + ")";
+        }
     }
 }

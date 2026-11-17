@@ -30,24 +30,24 @@ class DataDownloadClientTest {
         String decimalSeparator = "comma";
 
         // when
-        String url = dataDownloadClient.buildDownloadUrl(fromDate, toDate, format, includeProducts, decimalSeparator);
+        String url = dataDownloadClient.buildDownloadUrl(fromDate, toDate, format, includeProducts, true, decimalSeparator);
 
         // then
-        assertThat(url).isEqualTo("/api/v2/fddbdata/download?format=CSV&includeProducts=true&decimalSeparator=comma&fromDate=2024-01-01&toDate=2024-12-31");
+        assertThat(url).isEqualTo("/api/v2/fddbdata/download?format=CSV&includeProducts=true&includeWeightReport=true&decimalSeparator=comma&fromDate=2024-01-01&toDate=2024-12-31");
     }
 
     @Test
-    void buildDownloadUrl_shouldHandleNullDates() {
+    void buildDownloadUrl_shouldHandleNullDatesWithWeightReportExcluded() {
         // given
         DownloadFormat format = DownloadFormat.JSON;
         boolean includeProducts = false;
         String decimalSeparator = "dot";
 
         // when
-        String url = dataDownloadClient.buildDownloadUrl(null, null, format, includeProducts, decimalSeparator);
+        String url = dataDownloadClient.buildDownloadUrl(null, null, format, includeProducts, false, decimalSeparator);
 
         // then
-        assertThat(url).isEqualTo("/api/v2/fddbdata/download?format=JSON&includeProducts=false&decimalSeparator=dot");
+        assertThat(url).isEqualTo("/api/v2/fddbdata/download?format=JSON&includeProducts=false&includeWeightReport=false&decimalSeparator=dot");
     }
 
     @Test

@@ -38,6 +38,41 @@ Example responses:
 2. [example response when querying a product name](/resources/example-response-products.json)
 3. [example response when retrieving stats](/resources/example-response-stats.json)
 
+## Body measurements <Badge type="tip" text="2.7.0+" />
+
+With [MongoDB persistence](/details/persistence.md) enabled, the exporter stores body measurements
+in a separate `bodyMeasurements` collection. Enable
+[body measurement sync](/details/configuration.md#body-measurement-sync) to fetch Weight Report readings with the diary.
+The FDDB Weight Report is the exporter's only source of body measurements. Imported readings have
+`"source": "fddb"` in the API response and can be viewed in [Trends](/visualization/web-ui.md#fddb-weight-report).
+
+Body weight from tracker connections is displayed locally in the FDDB mobile app and stays in the
+third-party account, so it is unavailable to the exporter through the FDDB website.
+[FDDB tracker data help](https://help.fddb.info/hc/en-us/articles/4688157675794-Why-doesn-t-my-imported-data-appear-on-the-Fddb-website)
+
+### Query measurement history
+
+```http
+GET /api/v2/body-measurements?from=2026-01-01T00:00:00Z&to=2026-02-01T00:00:00Z
+```
+
+The optional `from` and `to` bounds are inclusive and exclusive, respectively.
+Results are chronological. Use zero-based `page` and a `size` of 1 to 1,000
+to page through the results. The default size is 1,000.
+
+### Query measurement trends
+
+```http
+GET /api/v2/body-measurements/trend?metric=WEIGHT_KG&fromDate=2026-01-01&toDate=2026-01-31&granularity=WEEK
+```
+
+Use inclusive dates in `YYYY-MM-DD` format. FDDB supplies `WEIGHT_KG`, `BODY_FAT_PERCENT`,
+`BODY_WATER_PERCENT`, `WAIST_CM`, and `HIP_CM`. Granularity defaults to `DAY` and also supports `WEEK`
+and `MONTH`. The response groups daily averages into trend buckets and omits days without the selected metric.
+
+Protect access to these endpoints and the database because they hold personal health data.
+[Securing your instance](/details/security.md)
+
 ## Error responses <Badge type="tip" text="2.5.0+" />
 
 Errors handled by the global exception handler use [RFC 7807](https://www.rfc-editor.org/rfc/rfc7807) *problem details*,
@@ -76,7 +111,6 @@ The same mistake always produces the same status, whichever endpoint detects it:
 | `400 Bad Request`           | Anything the caller can fix: an inverted or oversized date range, a malformed date, a rejected parameter, or a range with no entries to average |
 | `404 Not Found`             | The requested day has no data, or the diary page could not be parsed into any                                                                   |
 | `409 Conflict`              | Another export is already running - see [only one export at a time](/details/exports-and-data.md#only-one-export-at-a-time)                     |
-| `413 Payload Too Large`     | A download would exceed the 365-day limit                                                                                                       |
 | `502 Bad Gateway`           | Logging in to fddb.info failed - the upstream site rejected the configured credentials                                                          |
 | `503 Service Unavailable`   | The endpoint needs a store that is not configured on this instance                                                                              |
 | `500 Internal Server Error` | An unexpected failure. The body is deliberately generic; the stack trace is in the server log                                                   |
@@ -658,6 +692,9 @@ and some endpoints answered with a bare string. Failed logins were `500` and unc
     - `format` _(required)_: Download format. Valid values: `CSV`, `JSON`.
     - `includeProducts` _(optional)_: Whether to include product details (`true`) or just daily totals (`false`).
       Defaults to `false`.
+    - `includeWeightReport` _(optional)_ <Badge type="tip" text="2.7.0+" />: Include stored FDDB Weight Report
+      readings in the same date range.
+      Defaults to `false` for API callers. The **Download file** page enables it.
     - `decimalSeparator` _(optional)_: Decimal separator for CSV format. Valid values: `comma`, `dot`. Defaults to
       `comma`. Only applicable when format is `CSV`.
 
@@ -681,33 +718,20 @@ and some endpoints answered with a bare string. Failed logins were `500` and unc
       including all nutritional values and product information.
 
 - **JSON Format:**
-    - Returns data in the same structure as the `/api/v2/fddbdata` endpoint, but filtered by the specified date range if
-      provided.
+    - By default, returns the diary array filtered by the selected date range.
+    - With `includeWeightReport=true`, returns an object with separate `diary` and `weightReport` arrays.
 
-#### Maximum download size <Badge type="tip" text="2.5.0+" />
+With `includeWeightReport=true`, CSV lists dates chronologically and puts the first reading for each day
+beside that day's diary data. Dates without diary entries and any additional readings get rows with blank
+diary columns. Both formats preserve multiple readings on the same date.
 
-A single download may cover at most **365 days** (roughly one year of daily logging). The whole result is held in
-memory while it is being formatted, so an open-ended request is not allowed to grow without limit along with the
-database.
-
-Requests above the limit are refused with HTTP 413 Payload Too Large and a plain-text body naming the number of days
-found and the limit, for example:
-
-```
-This download would cover 500 days, which is more than the maximum of 365 days per download. Narrow the range with
-the fromDate and toDate parameters and download the data in several parts.
-```
-
-The limit applies to the number of days returned, not to a fixed time span: pass `fromDate` and `toDate` to download a
-larger diary in several parts. There is no cap on how far apart those two dates may be, only on how many days the
-result contains.
+As of 2.7.0, omitting both dates downloads the full stored diary and, if requested, the full Weight Report.
 
 - **Error Responses:**
     - Returns HTTP 400 Bad Request if `fromDate` is after `toDate`.
     - Returns HTTP 400 Bad Request if an invalid `format`, `decimalSeparator`, or date format is provided.
     - Returns HTTP 503 Service Unavailable with `This operation requires MongoDB to be enabled` if MongoDB is
       disabled. The download reads individual entries, which only MongoDB stores. <Badge type="warning" text="was 400 before 2.5.0" />
-    - Returns HTTP 413 Payload Too Large if the request covers more than 365 days (see above).
 
 ---
 

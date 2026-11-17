@@ -26,14 +26,17 @@ public class DataDownloadClient {
      * @param toDate           optional end date
      * @param format           the download format
      * @param includeProducts  whether to include product details
+     * @param includeWeightReport whether to include stored Weight Report readings
      * @param decimalSeparator the decimal separator for CSV format
      * @return the complete download URL
      */
-    public String buildDownloadUrl(LocalDate fromDate, LocalDate toDate, DownloadFormat format, boolean includeProducts, String decimalSeparator) {
+    public String buildDownloadUrl(LocalDate fromDate, LocalDate toDate, DownloadFormat format, boolean includeProducts,
+                                   boolean includeWeightReport, String decimalSeparator) {
         UriComponentsBuilder builder = UriComponentsBuilder
                 .fromUriString(DOWNLOAD_URL)
                 .queryParam("format", format.name())
                 .queryParam("includeProducts", includeProducts)
+                .queryParam("includeWeightReport", includeWeightReport)
                 .queryParam("decimalSeparator", decimalSeparator);
 
         if (fromDate != null) {

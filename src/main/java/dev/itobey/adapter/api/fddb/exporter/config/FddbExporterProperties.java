@@ -15,6 +15,7 @@ public class FddbExporterProperties {
     private String timezone = "Europe/Berlin";
 
     private Fddb fddb;
+    private BodyMeasurements bodyMeasurements = new BodyMeasurements();
     private Scheduler scheduler;
     private Telemetry telemetry;
     private VersionCheck versionCheck;
@@ -41,6 +42,12 @@ public class FddbExporterProperties {
         private String password;
         private int minDaysBack;
         private int maxDaysBack;
+    }
+
+    @Data
+    public static class BodyMeasurements {
+        /** Fetch the FDDB Weight Report once per diary sync when MongoDB is enabled. */
+        private boolean enabled;
     }
 
     @Data

@@ -1,7 +1,7 @@
 # Securing your instance
 
 ::: danger FDDB Exporter has no authentication of its own The Web UI, the REST API, the MCP endpoint and the actuator
-endpoints are **all unauthenticated**. Anyone who can reach the port can read your complete nutrition history, trigger
+endpoints are **all unauthenticated**. Anyone who can reach the port can read your nutrition and Weight Report history, trigger
 exports against your fddb.info account, and — through the MCP endpoint, if you enable it — have an AI assistant do the
 same.
 

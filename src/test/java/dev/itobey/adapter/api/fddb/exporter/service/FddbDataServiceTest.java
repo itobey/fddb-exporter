@@ -26,6 +26,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
@@ -52,6 +53,8 @@ class FddbDataServiceTest {
     private PersistenceService persistenceService;
     @Mock
     private FddbDataMapper fddbDataMapper;
+    @Mock
+    private ObjectProvider<FddbWeightReportService> weightReport;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private FddbExporterProperties properties;
 
@@ -87,6 +90,34 @@ class FddbDataServiceTest {
         mockFddbDataDTO = mock(FddbDataDTO.class);
         mockProductWithDate = mock(ProductWithDate.class);
         mockProductWithDateDTO = mock(ProductWithDateDTO.class);
+    }
+
+    @Test
+    void exportsDiaryWithoutLookingUpTheWeightReportServiceWhenDisabled() {
+        when(exportService.exportData(any())).thenReturn(mockFddbData);
+
+        var result = fddbDataService.exportForTimerange(new DateRangeDTO("2026-10-01", "2026-10-01"));
+
+        assertEquals(List.of("2026-10-01"), result.getSuccessfulDays());
+        verify(persistenceService).saveOrUpdate(mockFddbData);
+        verifyNoInteractions(weightReport);
+    }
+
+    @Test
+    void syncsWeightReportOnceForNestedDayExportsEvenWithEmptyDiaries() {
+        var report = mock(FddbWeightReportService.class);
+        when(properties.getBodyMeasurements().isEnabled()).thenReturn(true);
+        when(weightReport.getIfAvailable()).thenReturn(report);
+        when(exportService.exportData(any())).thenThrow(new EmptyDiaryException());
+
+        fddbDataService.withExportLock(() -> {
+            fddbDataService.exportForTimerange(new DateRangeDTO("2026-10-01", "2026-10-01"));
+            fddbDataService.exportForTimerange(new DateRangeDTO("2026-10-02", "2026-10-02"));
+            verifyNoInteractions(report);
+            return null;
+        });
+
+        verify(report).syncAlongsideDiary();
     }
 
     @Test

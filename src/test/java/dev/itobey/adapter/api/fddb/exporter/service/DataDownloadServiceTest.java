@@ -1,27 +1,36 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMeasurement;
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.DownloadFormat;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductDTO;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.BodyMeasurementStore;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import dev.itobey.adapter.api.fddb.exporter.testutil.TestDataLoader;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
@@ -30,41 +39,40 @@ class DataDownloadServiceTest {
 
     private static final String TEST_DATA_PATH = "testdata/download-service/";
 
-    @Test
-    void downloadData_shouldAllow365Entries() {
-        when(persistenceService.countAllEntries()).thenReturn(365L);
-        when(persistenceService.findAllEntries()).thenReturn(testFddbData);
-        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(testFddbDataDTO);
-        when(fddbDataMapper.toFddbDataDTOWithoutProducts(anyList())).thenReturn(testFddbDataDTO);
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void downloadData_shouldIncludeFullDiaryAndWeightReport(boolean filterByDate) {
+        var properties = new FddbExporterProperties();
+        var jsonMapper = JsonMapper.builder().build();
+        var service = new DataDownloadService(persistenceService, Mappers.getMapper(FddbDataMapper.class),
+                measurements, properties, jsonMapper);
+        var zone = properties.resolveZone();
+        var firstDay = LocalDate.of(2020, 1, 1);
+        int entryCount = 1300;
+        var lastDay = firstDay.plusDays(entryCount - 1);
+        var diary = IntStream.range(0, entryCount).mapToObj(index -> {
+            FddbData entry = new FddbData();
+            entry.setDate(firstDay.plusDays(index));
+            return entry;
+        }).toList();
+        var readings = IntStream.range(0, entryCount).mapToObj(index -> new BodyMeasurement("fddb",
+                Integer.toString(index), firstDay.plusDays(index).atStartOfDay(zone).toInstant(),
+                Map.of(BodyMetric.WEIGHT_KG, 82.5))).toList();
 
-        assertThat(dataDownloadService.downloadData(null, null, DownloadFormat.CSV, false, "."))
-                .isNotEmpty();
-        verify(persistenceService).findAllEntries();
-    }
+        var fromDate = filterByDate ? firstDay : null;
+        var toDate = filterByDate ? lastDay : null;
+        if (filterByDate) {
+            when(persistenceService.findByDateBetween(fromDate, toDate)).thenReturn(diary);
+        } else {
+            when(persistenceService.findAllEntries()).thenReturn(diary);
+        }
+        when(measurements.getIfAvailable()).thenReturn(bodyStore);
+        when(bodyStore.findHistory(filterByDate ? firstDay.atStartOfDay(zone).toInstant() : null,
+                filterByDate ? lastDay.plusDays(1).atStartOfDay(zone).toInstant() : null, "fddb")).thenReturn(readings);
 
-    @Test
-    void downloadData_shouldReject366EntriesBeforeLoadingAllData() {
-        when(persistenceService.countAllEntries()).thenReturn(366L);
-
-        assertThatThrownBy(() -> dataDownloadService.downloadData(null, null, DownloadFormat.CSV, false, "."))
-                .isInstanceOf(DataDownloadService.DownloadTooLargeException.class)
-                .hasMessageContaining("366 days")
-                .hasMessageContaining("maximum of 365 days");
-        verify(persistenceService, never()).findAllEntries();
-        verifyNoInteractions(fddbDataMapper);
-    }
-
-    @Test
-    void downloadData_shouldReject366EntriesInDateRangeBeforeMapping() {
-        LocalDate from = LocalDate.of(2024, 1, 1);
-        LocalDate to = LocalDate.of(2024, 12, 31);
-        when(persistenceService.findByDateBetween(from, to))
-                .thenReturn(java.util.Collections.nCopies(366, testFddbData.getFirst()));
-
-        assertThatThrownBy(() -> dataDownloadService.downloadData(from, to, DownloadFormat.JSON, true, "."))
-                .isInstanceOf(DataDownloadService.DownloadTooLargeException.class)
-                .hasMessageContaining("maximum of 365 days");
-        verifyNoInteractions(fddbDataMapper);
+        var json = jsonMapper.readTree(service.downloadData(fromDate, toDate, DownloadFormat.JSON, false, ".", true));
+        assertThat(json.path("diary").size()).isEqualTo(entryCount);
+        assertThat(json.path("weightReport").size()).isEqualTo(entryCount);
     }
 
     @Mock
@@ -72,6 +80,12 @@ class DataDownloadServiceTest {
 
     @Mock
     private FddbDataMapper fddbDataMapper;
+
+    @Mock
+    private ObjectProvider<BodyMeasurementStore> measurements;
+
+    @Mock
+    private BodyMeasurementStore bodyStore;
 
     private DataDownloadService dataDownloadService;
 
@@ -81,11 +95,69 @@ class DataDownloadServiceTest {
     @BeforeEach
     void setUp() {
         // Match Boot's Jackson 3 defaults: ISO dates by default, pretty-printing applied by the service.
-        dataDownloadService = new DataDownloadService(persistenceService, fddbDataMapper, JsonMapper.builder().build());
+        dataDownloadService = new DataDownloadService(persistenceService, fddbDataMapper, measurements,
+                new FddbExporterProperties(), JsonMapper.builder().build());
 
         // Load test data from JSON fixtures
         testFddbData = TestDataLoader.loadListFromJson(TEST_DATA_PATH + "fddb-data-input.json", FddbData.class);
         testFddbDataDTO = TestDataLoader.loadListFromJson(TEST_DATA_PATH + "fddb-data-dto-input.json", FddbDataDTO.class);
+    }
+
+    @Test
+    void csvJoinsTheFirstReadingToItsDiaryDayAndKeepsAllDatesInOrder() {
+        var zone = new FddbExporterProperties().resolveZone();
+        var earlier = LocalDate.of(2023, 12, 31);
+        var diaryDay = earlier.plusDays(1);
+        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(testFddbDataDTO);
+        when(fddbDataMapper.toFddbDataDTOWithoutProducts(anyList())).thenReturn(testFddbDataDTO);
+        when(measurements.getIfAvailable()).thenReturn(bodyStore);
+        when(bodyStore.findHistory(null, null, "fddb")).thenReturn(List.of(
+                new BodyMeasurement("fddb", "100", earlier.atStartOfDay(zone).toInstant(), Map.of(BodyMetric.WEIGHT_KG, 83.0)),
+                new BodyMeasurement("fddb", "101", diaryDay.atStartOfDay(zone).toInstant(), Map.of(BodyMetric.WEIGHT_KG, 82.5)),
+                new BodyMeasurement("fddb", "102", diaryDay.atStartOfDay(zone).toInstant(), Map.of(BodyMetric.WEIGHT_KG, 82.6))));
+
+        var rows = new String(dataDownloadService.downloadData(null, null, DownloadFormat.CSV,
+                false, ".", true), StandardCharsets.UTF_8).lines().toList();
+        assertThat(rows.get(1)).startsWith("\"2023-12-31\";\"\";").contains("\"100\";\"83.0\"");
+        assertThat(rows.get(2)).startsWith("\"2024-01-01\";\"2000.0\";").contains("\"101\";\"82.5\"");
+        assertThat(rows.get(3)).startsWith("\"2024-01-01\";\"\";").contains("\"102\";\"82.6\"");
+        assertThat(rows.get(4)).startsWith("\"2024-01-02\";").endsWith(";\"\";\"\";\"\";\"\";\"\";\"\"");
+    }
+
+    @Test
+    void includesWeightReportReadingsOnDatesWithoutDiaryEntries() {
+        var properties = new FddbExporterProperties();
+        var zone = properties.resolveZone();
+        var from = LocalDate.of(2026, 10, 24);
+        var to = from.plusDays(1);
+        var measuredAt = to.atStartOfDay(zone).toInstant();
+        when(fddbDataMapper.toFddbDataDTO(anyList())).thenReturn(new ArrayList<>());
+        when(fddbDataMapper.toFddbDataDTOWithoutProducts(anyList())).thenReturn(List.of());
+        when(measurements.getIfAvailable()).thenReturn(bodyStore);
+        when(bodyStore.findHistory(from.atStartOfDay(zone).toInstant(), to.plusDays(1).atStartOfDay(zone).toInstant(),
+                "fddb")).thenReturn(List.of(
+                new BodyMeasurement("fddb", "101", measuredAt, Map.of(
+                        BodyMetric.WEIGHT_KG, 82.5, BodyMetric.BODY_FAT_PERCENT, 19.5,
+                        BodyMetric.BODY_WATER_PERCENT, 55.5, BodyMetric.WAIST_CM, 81.5, BodyMetric.HIP_CM, 96.5)),
+                new BodyMeasurement("fddb", "102", measuredAt, Map.of(BodyMetric.WEIGHT_KG, 82.6))));
+
+        for (boolean includeProducts : List.of(false, true)) {
+            var csv = new String(dataDownloadService.downloadData(from, to, DownloadFormat.CSV,
+                    includeProducts, ",", true), StandardCharsets.UTF_8);
+            var rows = csv.lines().toList();
+            assertThat(rows).hasSize(3);
+            assertThat(rows.getFirst()).contains("\"Body Water (%)\"", "\"Hip Circumference (cm)\"");
+            assertThat(rows.get(1)).startsWith("\"2026-10-25\";\"\";")
+                    .endsWith("\"101\";\"82,5\";\"19,5\";\"55,5\";\"81,5\";\"96,5\"");
+            assertThat(rows.get(2)).endsWith("\"102\";\"82,6\";\"\";\"\";\"\";\"\"");
+        }
+        var json = JsonMapper.builder().build().readTree(dataDownloadService.downloadData(from, to,
+                DownloadFormat.JSON, false, ".", true));
+        assertThat(json.path("diary").size()).isZero();
+        assertThat(json.path("weightReport").size()).isEqualTo(2);
+        assertThat(json.at("/weightReport/0/date").asString()).isEqualTo("2026-10-25");
+        assertThat(json.at("/weightReport/0/metrics/HIP_CM").asDouble()).isEqualTo(96.5);
+        assertThat(json.at("/weightReport/1/metrics/HIP_CM").isMissingNode()).isTrue();
     }
 
     @Test

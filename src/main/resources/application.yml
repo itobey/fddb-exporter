@@ -106,6 +106,8 @@ fddb-exporter:
     password: ---
     min-days-back: 1
     max-days-back: 365
+  body-measurements:
+    enabled: false
   scheduler:
     enabled: true
     cron: "0 0 3 * * *"

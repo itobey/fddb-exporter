@@ -1,5 +1,6 @@
 package dev.itobey.adapter.api.fddb.exporter.ui.service;
 
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import dev.itobey.adapter.api.fddb.exporter.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -25,6 +26,7 @@ public class StatsClient {
     private static final String STATS_URL = "/api/v2/stats";
     private static final String AVERAGES_URL = "/api/v2/stats/averages?fromDate={fromDate}&toDate={toDate}";
     private static final String TREND_URL = "/api/v2/stats/trend";
+    private static final String BODY_TREND_URL = "/api/v2/body-measurements/trend";
     private static final String WEEKDAYS_URL = "/api/v2/stats/weekdays";
     private static final String MACRO_SPLIT_URL = "/api/v2/stats/macro-split?fromDate={fromDate}&toDate={toDate}";
     private static final String MISSING_DAYS_URL = "/api/v2/stats/missing-days";
@@ -82,8 +84,18 @@ public class StatsClient {
      */
     public List<TrendPointDTO> getTrend(NutrientMetric metric, String fromDate, String toDate,
                                         TrendGranularity granularity) throws ApiException {
+        return getTrend(TREND_URL, metric, fromDate, toDate, granularity);
+    }
+
+    public List<TrendPointDTO> getBodyMeasurementTrend(BodyMetric metric, String fromDate, String toDate,
+                                                       TrendGranularity granularity) throws ApiException {
+        return getTrend(BODY_TREND_URL, metric, fromDate, toDate, granularity);
+    }
+
+    private List<TrendPointDTO> getTrend(String path, Enum<?> metric, String fromDate, String toDate,
+                                         TrendGranularity granularity) throws ApiException {
         try {
-            URI uri = UriComponentsBuilder.fromUriString(getBaseUrl() + TREND_URL)
+            URI uri = UriComponentsBuilder.fromUriString(getBaseUrl() + path)
                     .queryParam("metric", metric)
                     .queryParam("fromDate", fromDate)
                     .queryParam("toDate", toDate)

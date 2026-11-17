@@ -10,6 +10,7 @@ info:
     - Calculating statistics and rolling averages
     - Performing correlation analysis
     - Migrating data between storage backends
+    - Querying stored body measurements in MongoDB
     
     ## Storage Backends
     The API supports multiple storage backends:
@@ -46,8 +47,98 @@ tags:
     description: Data migration operations between storage backends
   - name: Correlation Analysis
     description: Correlation analysis between data series
+  - name: Body Measurements
+    description: Query stored body measurements independently of the food diary
 
 paths:
+  /api/v2/body-measurements:
+    get:
+      tags: [Body Measurements]
+      summary: List body measurements in chronological order
+      description: Available when MongoDB persistence is enabled. The FDDB Weight Report is the only import source.
+      operationId: listBodyMeasurements
+      parameters:
+        - in: query
+          name: from
+          description: Inclusive lower bound
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          description: Exclusive upper bound
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1000
+      responses:
+        '200':
+          description: Measurement history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BodyMeasurement'
+        '400':
+          description: Invalid query parameters
+  /api/v2/body-measurements/trend:
+    get:
+      tags: [Body Measurements]
+      summary: Get a trend for an FDDB body measurement
+      description: Groups daily averages and omits days without the selected metric. Available with MongoDB enabled.
+      operationId: getBodyMeasurementTrend
+      parameters:
+        - in: query
+          name: metric
+          required: true
+          schema:
+            type: string
+            enum: [WEIGHT_KG, BODY_FAT_PERCENT, BODY_WATER_PERCENT, WAIST_CM, HIP_CM]
+            example: WEIGHT_KG
+        - in: query
+          name: fromDate
+          description: Inclusive start date
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: toDate
+          description: Inclusive end date
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: granularity
+          schema:
+            type: string
+            enum: [DAY, WEEK, MONTH]
+            default: DAY
+      responses:
+        '200':
+          description: Trend time series
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrendPointDTO'
+        '400':
+          description: Invalid query parameters
   /api/v2/fddbdata:
     post:
       tags:
@@ -536,6 +627,12 @@ paths:
             type: boolean
             default: false
             example: false
+        - name: includeWeightReport
+          in: query
+          description: Include stored FDDB Weight Report readings. JSON uses separate diary and weightReport arrays. CSV adds measurement columns and rows.
+          schema:
+            type: boolean
+            default: false
         - name: decimalSeparator
           in: query
           description: Decimal separator for CSV format (. or ,). Only applies when format is CSV.
@@ -557,13 +654,34 @@ paths:
                 format: binary
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/FddbDataDTO'
-                description: |
-                  Returns an array of FddbDataDTO objects.
-                  When includeProducts=false, the 'id' and 'products' fields will be null.
-                  When includeProducts=true, all fields are populated.
+                oneOf:
+                  - type: array
+                    description: Diary entries when includeWeightReport is false.
+                    items:
+                      $ref: '#/components/schemas/FddbDataDTO'
+                  - type: object
+                    required: [diary, weightReport]
+                    properties:
+                      diary:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FddbDataDTO'
+                      weightReport:
+                        type: array
+                        items:
+                          type: object
+                          required: [date, id, metrics]
+                          properties:
+                            date:
+                              type: string
+                              format: date
+                            id:
+                              type: string
+                            metrics:
+                              type: object
+                              additionalProperties:
+                                type: number
+                                format: double
         '400':
           description: Invalid parameters (e.g., fromDate is after toDate)
           content:
@@ -927,6 +1045,37 @@ paths:
 
 components:
   schemas:
+    BodyMeasurement:
+      type: object
+      required: [source, externalId, measuredAt, metrics]
+      properties:
+        source:
+          type: string
+          description: Import source. FDDB Weight Report readings use fddb.
+          pattern: '^[a-z0-9][a-z0-9-]{0,63}$'
+          example: fddb
+        externalId:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: '123'
+        measuredAt:
+          type: string
+          format: date-time
+          example: '2026-01-01T12:00:00Z'
+        metrics:
+          type: object
+          minProperties: 1
+          description: |
+            The FDDB Weight Report importer reads WEIGHT_KG, BODY_FAT_PERCENT, BODY_WATER_PERCENT,
+            WAIST_CM, and HIP_CM when present. The API returns the metric keys stored for each reading.
+            Percentages must be between 0 and 100 inclusive. Other values must be positive.
+          additionalProperties:
+            type: number
+            format: double
+          example:
+            WEIGHT_KG: 82.5
+            BODY_FAT_PERCENT: 24.1
     DateRangeDTO:
       type: object
       description: Date range with from and to dates

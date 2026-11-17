@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -23,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
 /**
@@ -56,8 +54,8 @@ public class DataDownloadResourceV2 {
      * @param format           the download format (CSV or JSON)
      * @param includeProducts  whether to include product details (true) or just daily totals (false)
      * @param decimalSeparator the decimal separator for CSV format (comma or dot)
-     * @return the data as a downloadable file, or {@code 413 Content Too Large} with an explanatory plain-text
-     * body if the request covers more than {@link DataDownloadService#MAX_DOWNLOAD_ENTRIES} days
+     * @param includeWeightReport whether to include FDDB Weight Report readings
+     * @return the data as a downloadable file
      */
     @Operation(summary = "Download FDDB data",
             description = "Download FDDB data as CSV or JSON. Optionally filter by date range and choose whether to include product details or just daily totals.")
@@ -68,9 +66,7 @@ public class DataDownloadResourceV2 {
                             @Content(mediaType = "application/json")
                     }),
             @ApiResponse(responseCode = "400", description = "Invalid parameters", content = @Content),
-            @ApiResponse(responseCode = "503", description = "MongoDB is disabled", content = @Content),
-            @ApiResponse(responseCode = "413", description = "The requested range covers more days than a single download may return; narrow it with fromDate/toDate",
-                    content = @Content(mediaType = "text/plain"))
+            @ApiResponse(responseCode = "503", description = "MongoDB is disabled", content = @Content)
     })
     @GetMapping("/download")
     @RequiresMongoDb
@@ -88,7 +84,10 @@ public class DataDownloadResourceV2 {
             @RequestParam(defaultValue = "false") boolean includeProducts,
 
             @Parameter(description = "Decimal separator for CSV format: comma or dot", example = "comma")
-            @RequestParam(defaultValue = "comma") String decimalSeparator) {
+            @RequestParam(defaultValue = "comma") String decimalSeparator,
+
+            @Parameter(description = "Include FDDB Weight Report readings alongside diary entries")
+            @RequestParam(defaultValue = "false") boolean includeWeightReport) {
 
         log.info("V2: Downloading data: fromDate={}, toDate={}, format={}, includeProducts={}, decimalSeparator={}",
                 fromDate, toDate, format, includeProducts, decimalSeparator);
@@ -108,16 +107,9 @@ public class DataDownloadResourceV2 {
             return ResponseEntity.badRequest().build();
         }
 
-        byte[] data;
-        try {
-            data = dataDownloadService.downloadData(fromDate, toDate, format, includeProducts, actualDecimalSeparator);
-        } catch (DataDownloadService.DownloadTooLargeException tooLarge) {
-            // the Web UI navigates the browser to this URL, so the message has to be the response body itself
-            log.warn("Refusing download: {}", tooLarge.getMessage());
-            return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
-                    .contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8))
-                    .body(tooLarge.getMessage().getBytes(StandardCharsets.UTF_8));
-        }
+        byte[] data = includeWeightReport
+                ? dataDownloadService.downloadData(fromDate, toDate, format, includeProducts, actualDecimalSeparator, true)
+                : dataDownloadService.downloadData(fromDate, toDate, format, includeProducts, actualDecimalSeparator);
         String filename = DataDownloadClient.generateDownloadFilename(fromDate, toDate, format, includeProducts);
 
         HttpHeaders headers = new HttpHeaders();
@@ -129,6 +121,9 @@ public class DataDownloadResourceV2 {
         headers.setContentType(MediaType.parseMediaType(contentType));
         headers.setContentDispositionFormData("attachment", filename);
         headers.setContentLength(data.length);
+        if (includeWeightReport) {
+            headers.setCacheControl("no-store");
+        }
 
         return ResponseEntity.ok()
                 .headers(headers)

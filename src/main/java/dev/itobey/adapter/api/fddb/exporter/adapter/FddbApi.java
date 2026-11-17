@@ -23,4 +23,7 @@ public interface FddbApi {
             @RequestParam("from") long from,
             @RequestParam("to") long to
     );
+
+    @GetMapping("/db/i18n/mydata/?lang=en&action=data")
+    String getWeightReport();
 }

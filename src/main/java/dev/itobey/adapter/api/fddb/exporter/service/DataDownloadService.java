@@ -1,14 +1,18 @@
 package dev.itobey.adapter.api.fddb.exporter.service;
 
 import com.opencsv.CSVWriter;
+import dev.itobey.adapter.api.fddb.exporter.config.FddbExporterProperties;
+import dev.itobey.adapter.api.fddb.exporter.domain.BodyMetric;
 import dev.itobey.adapter.api.fddb.exporter.domain.FddbData;
 import dev.itobey.adapter.api.fddb.exporter.dto.DownloadFormat;
 import dev.itobey.adapter.api.fddb.exporter.dto.FddbDataDTO;
 import dev.itobey.adapter.api.fddb.exporter.dto.ProductDTO;
 import dev.itobey.adapter.api.fddb.exporter.mapper.FddbDataMapper;
+import dev.itobey.adapter.api.fddb.exporter.service.persistence.BodyMeasurementStore;
 import dev.itobey.adapter.api.fddb.exporter.service.persistence.PersistenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
@@ -18,8 +22,10 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Service for downloading FDDB data in various formats (CSV, JSON).
@@ -30,17 +36,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class DataDownloadService {
-
-    /**
-     * The largest number of daily entries a single download may cover.
-     * <p>
-     * A download holds the whole result set in memory more than once — the documents, the DTOs and the
-     * serialized bytes — and the endpoint is unauthenticated and repeatable. Rather than let an open-ended
-     * request grow with the database, anything above this is refused with a message telling the caller to
-     * narrow the range; the range itself is not capped in time, so a larger diary is still fully
-     * downloadable in chunks. 365 entries is roughly one year of daily logging.
-     */
-    public static final int MAX_DOWNLOAD_ENTRIES = 365;
 
     /**
      * Initial size of the CSV buffer, chosen so a typical download does not spend its time growing the
@@ -67,8 +62,19 @@ public class DataDownloadService {
             "Day Total Protein", "Day Total Fibre"
     };
 
+    private static final String WEIGHT_REPORT_ID_HEADER = "Weight Report ID";
+    private static final List<WeightReportMetricColumn> WEIGHT_REPORT_METRIC_COLUMNS = List.of(
+            new WeightReportMetricColumn("Weight (kg)", BodyMetric.WEIGHT_KG),
+            new WeightReportMetricColumn("Body Fat (%)", BodyMetric.BODY_FAT_PERCENT),
+            new WeightReportMetricColumn("Body Water (%)", BodyMetric.BODY_WATER_PERCENT),
+            new WeightReportMetricColumn("Waist Circumference (cm)", BodyMetric.WAIST_CM),
+            new WeightReportMetricColumn("Hip Circumference (cm)", BodyMetric.HIP_CM));
+    private static final int WEIGHT_REPORT_COLUMN_COUNT = 1 + WEIGHT_REPORT_METRIC_COLUMNS.size();
+
     private final PersistenceService persistenceService;
     private final FddbDataMapper fddbDataMapper;
+    private final ObjectProvider<BodyMeasurementStore> bodyMeasurements;
+    private final FddbExporterProperties properties;
     /**
      * The application's single, Spring-configured Jackson mapper - the same one that serializes the REST API,
      * so the download and the API can never drift apart in date format, property naming or null inclusion.
@@ -86,43 +92,54 @@ public class DataDownloadService {
      * @param includeProducts  whether to include product details
      * @param decimalSeparator the decimal separator for CSV format (. or ,)
      * @return the data as a byte array in the specified format
-     * @throws DownloadTooLargeException if the request would cover more than {@link #MAX_DOWNLOAD_ENTRIES} entries
      */
     public byte[] downloadData(LocalDate fromDate, LocalDate toDate, DownloadFormat format,
                                boolean includeProducts, String decimalSeparator) {
+        return downloadData(fromDate, toDate, format, includeProducts, decimalSeparator, false);
+    }
+
+    public byte[] downloadData(LocalDate fromDate, LocalDate toDate, DownloadFormat format,
+                               boolean includeProducts, String decimalSeparator, boolean includeWeightReport) {
         log.info("Downloading data: fromDate={}, toDate={}, format={}, includeProducts={}, decimalSeparator={}",
                 fromDate, toDate, format, includeProducts, decimalSeparator);
 
         List<FddbDataDTO> data = fetchData(fromDate, toDate);
-
-        return includeProducts
-                ? exportFullData(data, format, decimalSeparator)
-                : exportTotalsOnly(data, format, decimalSeparator);
+        if (!includeProducts) {
+            data = fddbDataMapper.toFddbDataDTOWithoutProducts(data);
+        }
+        List<WeightReportReading> report = includeWeightReport ? fetchWeightReport(fromDate, toDate) : List.of();
+        if (format == DownloadFormat.CSV) {
+            return convertToCsv(data, includeProducts, decimalSeparator, includeWeightReport, report);
+        }
+        return convertToJson(includeWeightReport ? new CombinedDownload(data, report) : data);
     }
 
-    private byte[] exportFullData(List<FddbDataDTO> data, DownloadFormat format, String decimalSeparator) {
-        return format == DownloadFormat.CSV
-                ? convertFullDataToCsv(data, decimalSeparator)
-                : convertToJson(data);
+    private List<WeightReportReading> fetchWeightReport(LocalDate fromDate, LocalDate toDate) {
+        var store = bodyMeasurements.getIfAvailable();
+        if (store == null) {
+            return List.of();
+        }
+        var zone = properties.resolveZone();
+        var from = fromDate == null ? null : fromDate.atStartOfDay(zone).toInstant();
+        var to = toDate == null ? null : toDate.plusDays(1).atStartOfDay(zone).toInstant();
+        var readings = store.findHistory(from, to, FddbWeightReportService.SOURCE);
+        return readings.stream().map(reading -> new WeightReportReading(
+                reading.measuredAt().atZone(zone).toLocalDate(), reading.externalId(), reading.metrics())).toList();
     }
 
-    private byte[] exportTotalsOnly(List<FddbDataDTO> data, DownloadFormat format, String decimalSeparator) {
-        List<FddbDataDTO> totals = fddbDataMapper.toFddbDataDTOWithoutProducts(data);
-        return format == DownloadFormat.CSV
-                ? convertTotalsToCsv(totals, decimalSeparator)
-                : convertToJson(totals);
+    private record CombinedDownload(List<FddbDataDTO> diary, List<WeightReportReading> weightReport) {
+    }
+
+    private record WeightReportReading(LocalDate date, String id, Map<BodyMetric, Double> metrics) {
+    }
+
+    private record WeightReportMetricColumn(String header, BodyMetric metric) {
     }
 
     private List<FddbDataDTO> fetchData(LocalDate fromDate, LocalDate toDate) {
-        List<FddbData> entries;
-        if (fromDate == null && toDate == null) {
-            // count first: the unbounded case is the one that must never be read into memory to find out how big it is
-            requireWithinLimit(persistenceService.countAllEntries());
-            entries = persistenceService.findAllEntries();
-        } else {
-            entries = persistenceService.findByDateBetween(fromDate, toDate);
-            requireWithinLimit(entries.size());
-        }
+        List<FddbData> entries = fromDate == null && toDate == null
+                ? persistenceService.findAllEntries()
+                : persistenceService.findByDateBetween(fromDate, toDate);
 
         List<FddbDataDTO> data = fddbDataMapper.toFddbDataDTO(entries);
         data.sort(Comparator.comparing(FddbDataDTO::getDate));
@@ -130,25 +147,81 @@ public class DataDownloadService {
         return data;
     }
 
-    private void requireWithinLimit(long entryCount) {
-        if (entryCount > MAX_DOWNLOAD_ENTRIES) {
-            throw new DownloadTooLargeException(entryCount);
-        }
-    }
-
-    private byte[] convertTotalsToCsv(List<FddbDataDTO> totals, String decimalSeparator) {
+    private byte[] convertToCsv(List<FddbDataDTO> data, boolean includeProducts, String decimalSeparator,
+                                boolean includeWeightReport, List<WeightReportReading> report) {
         ByteArrayOutputStream output = new ByteArrayOutputStream(INITIAL_CSV_BUFFER_BYTES);
         try (CSVWriter csvWriter = createCsvWriter(output)) {
-            csvWriter.writeNext(TOTALS_CSV_HEADER);
+            String[] diaryHeader = includeProducts ? FULL_DATA_CSV_HEADER : TOTALS_CSV_HEADER;
+            int extraColumns = includeWeightReport ? WEIGHT_REPORT_COLUMN_COUNT : 0;
+            String[] header = Arrays.copyOf(diaryHeader, diaryHeader.length + extraColumns);
+            if (includeWeightReport) {
+                int columnIndex = diaryHeader.length;
+                header[columnIndex++] = WEIGHT_REPORT_ID_HEADER;
+                for (WeightReportMetricColumn column : WEIGHT_REPORT_METRIC_COLUMNS) {
+                    header[columnIndex++] = column.header();
+                }
+            }
+            csvWriter.writeNext(header);
 
-            for (FddbDataDTO total : totals) {
-                writeRow(csvWriter, createTotalsRow(total, decimalSeparator));
+            int nextReading = 0;
+            for (FddbDataDTO entry : data) {
+                while (nextReading < report.size() && report.get(nextReading).date().isBefore(entry.getDate())) {
+                    writeReportRow(csvWriter, report.get(nextReading++), diaryHeader.length, decimalSeparator);
+                }
+                WeightReportReading reading = null;
+                if (nextReading < report.size() && report.get(nextReading).date().equals(entry.getDate())) {
+                    reading = report.get(nextReading++);
+                }
+                if (!includeProducts) {
+                    writeDiaryRow(csvWriter, createTotalsRow(entry, decimalSeparator), extraColumns, reading, decimalSeparator);
+                } else if (hasProducts(entry)) {
+                    for (ProductDTO product : entry.getProducts()) {
+                        writeDiaryRow(csvWriter, createProductRow(entry, product, decimalSeparator),
+                                extraColumns, reading, decimalSeparator);
+                        reading = null;
+                    }
+                } else {
+                    writeDiaryRow(csvWriter, createEmptyProductRow(entry, decimalSeparator),
+                            extraColumns, reading, decimalSeparator);
+                }
+            }
+            while (nextReading < report.size()) {
+                writeReportRow(csvWriter, report.get(nextReading++), diaryHeader.length, decimalSeparator);
             }
         } catch (Exception exception) {
-            log.error("Error generating CSV for totals", exception);
+            log.error("Error generating CSV", exception);
             throw new DownloadException("Failed to generate CSV", exception);
         }
         return output.toByteArray();
+    }
+
+    private void writeReportRow(CSVWriter writer, WeightReportReading reading, int diaryColumns,
+                                String decimalSeparator) {
+        String[] diary = new String[diaryColumns];
+        Arrays.fill(diary, EMPTY_FIELD);
+        diary[0] = reading.date().toString();
+        writeDiaryRow(writer, diary, WEIGHT_REPORT_COLUMN_COUNT, reading, decimalSeparator);
+    }
+
+    private void writeDiaryRow(CSVWriter writer, String[] row, int extraColumns,
+                               WeightReportReading reading, String decimalSeparator) {
+        if (extraColumns > 0) {
+            int diaryColumns = row.length;
+            row = Arrays.copyOf(row, diaryColumns + extraColumns);
+            Arrays.fill(row, diaryColumns, row.length, EMPTY_FIELD);
+            if (reading != null) {
+                int columnIndex = diaryColumns;
+                row[columnIndex++] = reading.id();
+                for (WeightReportMetricColumn column : WEIGHT_REPORT_METRIC_COLUMNS) {
+                    Double value = reading.metrics().get(column.metric());
+                    if (value != null) {
+                        row[columnIndex] = formatNumber(value, decimalSeparator);
+                    }
+                    columnIndex++;
+                }
+            }
+        }
+        writeRow(writer, row);
     }
 
     private String[] createTotalsRow(FddbDataDTO total, String decimalSeparator) {
@@ -161,31 +234,6 @@ public class DataDownloadService {
                 formatNumber(total.getTotalProtein(), decimalSeparator),
                 formatNumber(total.getTotalFibre(), decimalSeparator)
         };
-    }
-
-    private byte[] convertFullDataToCsv(List<FddbDataDTO> data, String decimalSeparator) {
-        ByteArrayOutputStream output = new ByteArrayOutputStream(INITIAL_CSV_BUFFER_BYTES);
-        try (CSVWriter csvWriter = createCsvWriter(output)) {
-            csvWriter.writeNext(FULL_DATA_CSV_HEADER);
-
-            for (FddbDataDTO entry : data) {
-                writeEntryRows(csvWriter, entry, decimalSeparator);
-            }
-        } catch (Exception exception) {
-            log.error("Error generating CSV for full data", exception);
-            throw new DownloadException("Failed to generate CSV", exception);
-        }
-        return output.toByteArray();
-    }
-
-    private void writeEntryRows(CSVWriter csvWriter, FddbDataDTO entry, String decimalSeparator) {
-        if (hasProducts(entry)) {
-            for (ProductDTO product : entry.getProducts()) {
-                writeRow(csvWriter, createProductRow(entry, product, decimalSeparator));
-            }
-        } else {
-            writeRow(csvWriter, createEmptyProductRow(entry, decimalSeparator));
-        }
     }
 
     private boolean hasProducts(FddbDataDTO entry) {
@@ -283,27 +331,6 @@ public class DataDownloadService {
 
         public DownloadException(String message, Throwable cause) {
             super(message, cause);
-        }
-    }
-
-    /**
-     * Thrown when a download would cover more than {@link #MAX_DOWNLOAD_ENTRIES} entries. Its message is
-     * written for a human: the browser shows it verbatim, since the Web UI navigates straight to the
-     * download URL rather than fetching it.
-     */
-    public static class DownloadTooLargeException extends RuntimeException {
-
-        private final long entryCount;
-
-        public DownloadTooLargeException(long entryCount) {
-            super("This download would cover " + entryCount + " days, which is more than the maximum of "
-                    + MAX_DOWNLOAD_ENTRIES + " days per download. Narrow the range with the fromDate and toDate "
-                    + "parameters and download the data in several parts.");
-            this.entryCount = entryCount;
-        }
-
-        public long getEntryCount() {
-            return entryCount;
         }
     }
 

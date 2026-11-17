@@ -25,6 +25,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FddbExporterPropertiesBindingTest {
 
     @Test
+    void bodyMeasurementsAreDisabledByDefault() {
+        assertFalse(bind(Map.of()).getBodyMeasurements().isEnabled());
+    }
+
+    @Test
+    void bodyMeasurementsFlagBindsFromTheHelmEnvironmentVariable() {
+        var properties = bind(Map.of("FDDB_EXPORTER_BODY_MEASUREMENTS_ENABLED", "true"));
+
+        assertTrue(properties.getBodyMeasurements().isEnabled());
+    }
+
+    @Test
     void writeToolsFlagShouldBindFromTheDocumentedEnvironmentVariable() {
         FddbExporterProperties properties = bind(Map.of(
                 "FDDB-EXPORTER_MCP_ENABLED", "true",
