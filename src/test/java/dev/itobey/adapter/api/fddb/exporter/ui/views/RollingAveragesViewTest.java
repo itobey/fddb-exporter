@@ -27,11 +27,14 @@ class RollingAveragesViewTest {
     private final StatsClient client = mock(StatsClient.class);
     private final FddbExporterProperties properties = mock(FddbExporterProperties.class, RETURNS_DEEP_STUBS);
     private final LocalDate today = LocalDate.now(ZoneId.of("Europe/Berlin"));
+    private UI ui;
     private RollingAveragesView view;
 
     @BeforeEach
     void setUp() {
-        UI.setCurrent(new UI());
+        // Vaadin keeps only a weak reference to the current UI.
+        ui = new UI();
+        UI.setCurrent(ui);
         when(properties.getPersistence().getMongodb().isEnabled()).thenReturn(true);
         doReturn(ZoneId.of("Europe/Berlin")).when(properties).resolveZone();
         view = new RollingAveragesView(client, properties, null);
